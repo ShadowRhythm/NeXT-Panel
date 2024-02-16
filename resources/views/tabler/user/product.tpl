@@ -30,13 +30,13 @@
                             <li class="nav-item">
                                 <a href="#bandwidth" class="nav-link" data-bs-toggle="tab">
                                     <i class="ti ti-arrows-down-up icon"></i>
-                                    &nbsp;流量包
+                                    &nbsp;流量包（配合时间包）
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a href="#time" class="nav-link" data-bs-toggle="tab">
                                     <i class="ti ti-clock icon"></i>
-                                    &nbsp;时间包
+                                    &nbsp;时间包（配合流量包）
                                 </a>
                             </li>
                         </ul>

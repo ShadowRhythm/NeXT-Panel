@@ -128,13 +128,7 @@
                     <div class="card">
                         <ul class="nav nav-tabs nav-fill" data-bs-toggle="tabs">
                             <li class="nav-item">
-                                <a href="#sub" class="nav-link active" data-bs-toggle="tab">
-                                    <i class="ti ti-rss icon"></i>
-                                    &nbsp;通用订阅
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#client-sub" class="nav-link" data-bs-toggle="tab">
+                                <a href="#client-sub" class="nav-link active" data-bs-toggle="tab">
                                     <i class="ti ti-rss icon"></i>
                                     &nbsp;客户端订阅
                                 </a>
@@ -169,16 +163,10 @@
                                     &nbsp;Linux
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a href="#config" class="nav-link" data-bs-toggle="tab">
-                                    <i class="ti ti-file-text icon"></i>
-                                    &nbsp;Config
-                                </a>
-                            </li>
                         </ul>
                         <div class="card-body">
                             <div class="tab-content">
-                                <div class="tab-pane active show" id="sub">
+                                <div class="tab-pane show" id="sub">
                                     <div>
                                         <p>
                                             通用订阅（Json）：<code class="spoiler">{$UniversalSub}/json</code>
@@ -223,7 +211,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="tab-pane show" id="client-sub">
+                                <div class="tab-pane active show" id="client-sub">
                                     <div>
                                         {if $public_setting['enable_ss_sub']}
                                         <p>
@@ -242,6 +230,9 @@
                                             客户端订阅（Trojan）：<code class="spoiler">{$UniversalSub}/trojan</code>
                                         </p>
                                         {/if}
+                                        <p>
+                                            客户端 Clash 订阅：<code class="spoiler">{$UniversalSub}/clash</code>
+                                        </p>                                        
                                         <div class="btn-list justify-content-start">
                                             {if $public_setting['enable_ss_sub']}
                                             <a data-clipboard-text="{$UniversalSub}/ss"
@@ -252,6 +243,7 @@
                                                class="copy btn btn-primary">
                                                 复制客户端订阅（SIP002）
                                             </a>
+                                            
                                             {/if}
                                             {if $public_setting['enable_v2_sub']}
                                             <a data-clipboard-text="{$UniversalSub}/v2ray"
@@ -259,12 +251,18 @@
                                                 复制客户端订阅（V2Ray）
                                             </a>
                                             {/if}
+                                            
                                             {if $public_setting['enable_trojan_sub']}
                                             <a data-clipboard-text="{$UniversalSub}/trojan"
                                                class="copy btn btn-primary">
                                                 复制客户端订阅（Trojan）
                                             </a>
                                             {/if}
+                                        </a>
+                                        <a data-clipboard-text="{$UniversalSub}/clash"
+                                           class="copy btn btn-primary">
+                                            复制 Clash 订阅链接
+                                        </a>                                            
                                         </div>
                                     </div>
                                 </div>
@@ -275,6 +273,9 @@
                                         </p>
                                         <p>
                                             适用于 SingBox 的订阅：<code class="spoiler">{$UniversalSub}/clash</code>
+                                        </p>
+                                        <p>
+                                            适用于 V2RayN 的订阅：<code class="spoiler">{$UniversalSub}/v2ray</code>
                                         </p>
                                         <div class="btn-list justify-content-start">
                                             <a  {if $config['enable_r2_client_download']}
@@ -309,7 +310,11 @@
                                                class="btn btn-indigo">
                                                 导入 Hiddify
                                             </a>
-                                        </div>
+                                             <a data-clipboard-text="{$UniversalSub}/v2ray"
+                                               class="copy btn btn-primary">
+                                                复制 V2Ray 客户端订阅
+                                            </a>
+                                       </div>
                                     </div>
                                 </div>
                                 <div class="tab-pane" id="macos">
@@ -373,11 +378,15 @@
                                 </div>
                                 <div class="tab-pane" id="android">
                                     <p>
+                                        适用于 V2rayNG 的订阅：<code class="spoiler">{$UniversalSub}/v2ray</code>
+                                    </p>                          
+                                    <p>
                                         适用于 Clash 的订阅：<code class="spoiler">{$UniversalSub}/clash</code>
                                     </p>
                                     <p>
                                         适用于 SingBox 的订阅：<code class="spoiler">{$UniversalSub}/singbox</code>
                                     </p>
+
                                     <div class="btn-list justify-content-start">
                                         <a {if $config['enable_r2_client_download']}
                                             href="/user/clients/CMFA.apk"
@@ -411,6 +420,14 @@
                                            class="btn btn-indigo">
                                             导入 SFA
                                         </a>
+                                        <a href="https://github.com/2dust/v2rayNG/releases"
+                                           class="btn btn-azure">
+                                            下载 V2rayNG
+                                        </a>                                        
+                                        <a data-clipboard-text="{$UniversalSub}/v2ray"
+                                           class="copy btn btn-primary">
+                                            复制 V2rayNG 订阅链接
+                                        </a>                                        
                                     </div>
                                     <div class="btn-list justify-content-start my-2">
                                         <a  {if $config['enable_r2_client_download']}
@@ -432,6 +449,12 @@
                                 </div>
                                 <div class="tab-pane" id="ios">
                                     <p>
+                                        适用于 Clash 的订阅：<code class="spoiler">{$UniversalSub}/clash</code>
+                                    </p>
+                                    <p>
+                                        适用于 Shadowrocket 的订阅：<code class="spoiler">{$UniversalSub}/clash</code>
+                                    </p>
+                                    <p>
                                         适用于 SingBox 的订阅：<code class="spoiler">{$UniversalSub}/singbox</code>
                                     </p>
                                     <div class="btn-list justify-content-start">
@@ -446,6 +469,10 @@
                                         <a href="sing-box://import-remote-profile?url={$UniversalSub}/singbox#{$config['appName']}"
                                            class="btn btn-indigo">
                                             导入 SFI
+                                        </a>
+                                        <a data-clipboard-text="{$UniversalSub}/clash"
+                                           class="copy btn btn-primary">
+                                            复制 Clash 订阅链接
                                         </a>
                                     </div>
                                 </div>
@@ -517,6 +544,28 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-sm-12">
+                    <div class="card">
+                        <div class="ribbon ribbon-top bg-yellow">
+                            <i class="ti ti-bell-ringing icon"></i>
+                        </div>
+                        <div class="card-body">
+                            <h3 class="card-title">
+                                置顶公告
+                                {if $ann !== null}
+                                <span class="card-subtitle">{$ann->date}</span>
+                                {/if}
+                            </h3>
+                            <p class="text-secondary">
+                                {if $ann !== null}
+                                {$ann->content}
+                                {else}
+                                暂无公告
+                                {/if}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -623,28 +672,6 @@
                     </div>
                 </div>
                 {/if}
-                <div class="col-lg-6 col-sm-12">
-                    <div class="card">
-                        <div class="ribbon ribbon-top bg-yellow">
-                            <i class="ti ti-bell-ringing icon"></i>
-                        </div>
-                        <div class="card-body">
-                            <h3 class="card-title">
-                                置顶公告
-                                {if $ann !== null}
-                                <span class="card-subtitle">{$ann->date}</span>
-                                {/if}
-                            </h3>
-                            <p class="text-secondary">
-                                {if $ann !== null}
-                                {$ann->content}
-                                {else}
-                                暂无公告
-                                {/if}
-                            </p>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

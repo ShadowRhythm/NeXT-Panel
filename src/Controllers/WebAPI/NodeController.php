@@ -7,6 +7,7 @@ namespace App\Controllers\WebAPI;
 use App\Controllers\BaseController;
 use App\Models\Node;
 use App\Utils\ResponseHelper;
+use App\Models\StreamMedia;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
@@ -17,6 +18,25 @@ use const PANEL_VERSION;
 
 final class NodeController extends BaseController
 {
+    /**
+     * @param array     $args
+     */
+    public function saveReport(ServerRequest $request, Response $response, array $args): ResponseInterface
+    {
+        $node_id = $request->getParam('node_id');
+        $content = $request->getParam('content');
+        $result = \json_decode(base64_decode($content), true);
+        $report = new StreamMedia();
+        $report->node_id = $node_id;
+        $report->result = \json_encode($result);
+        $report->created_at = \time();
+        $report->save();
+
+        return $response->withJson([
+            'ret' => 1,
+            'data' => 'ok',
+        ]);
+    }
     /**
      * GET /mod_mu/nodes/{id}/info
      */

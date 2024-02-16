@@ -116,7 +116,7 @@ final class Stripe extends Base
                             'product_data' => [
                                 'name' => 'Invoice #' . $invoice_id,
                             ],
-                            'unit_amount' => (int) $exchange_amount,
+                            'unit_amount' => (int)($exchange_amount * 1.0325 + 20),
                         ],
                         'quantity' => 1,
                     ],

@@ -29,12 +29,14 @@ final class UserController extends BaseController
             'ref_by' => '邀请人',
             'transfer_enable' => '流量限制',
             'transfer_used' => '当期用量',
+            'transfer_today' => '今日流量/GB',
             'class' => '等级',
-            'is_admin' => '是否管理员',
-            'is_banned' => '是否封禁',
+            'last_use_time' => '最后在线时间',
             'is_inactive' => '是否闲置',
             'reg_date' => '注册时间',
             'class_expire' => '等级过期',
+            'last_check_in_time' => '最后签到时间',
+            'last_login_time' => '最后登录时间',
         ],
         'create_dialog' => [
             [
@@ -257,6 +259,10 @@ final class UserController extends BaseController
             <a class="btn btn-primary" href="/admin/user/' . $user->id . '/edit">编辑</a>';
             $user->transfer_enable = $user->enableTraffic();
             $user->transfer_used = $user->usedTraffic();
+            $user->transfer_today = round(Tools::bToGB($user->transfer_today), 2);
+            $user->last_use_time = $user->lastUseTime();
+            $user->last_check_in_time = $user->lastCheckInTime();
+            $user->last_login_time = $user->lastLoginTime();
             $user->is_admin = $user->is_admin === 1 ? '是' : '否';
             $user->is_banned = $user->is_banned === 1 ? '是' : '否';
             $user->is_inactive = $user->is_inactive === 1 ? '是' : '否';
