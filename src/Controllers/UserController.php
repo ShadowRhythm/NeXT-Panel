@@ -6,7 +6,6 @@ namespace App\Controllers;
 
 use App\Models\Ann;
 use App\Models\Config;
-<<<<<<< HEAD
 use App\Models\InviteCode;
 use App\Models\LoginIp;
 use App\Models\Node;
@@ -14,9 +13,7 @@ use App\Models\StreamMedia;
 use App\Services\DB;
 use App\Models\OnlineLog;
 use App\Models\Payback;
-=======
 use App\Services\Analytics;
->>>>>>> origin/new
 use App\Services\Auth;
 use App\Services\Captcha;
 use App\Services\Reward;
@@ -89,44 +86,6 @@ final class UserController extends BaseController
         );
     }
 
-<<<<<<< HEAD
-    /**
-     * @throws Exception
-     */
-    public function invite(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
-    {
-        $code = (new InviteCode())->where('user_id', $this->user->id)->first()?->code;
-
-        if ($code === null) {
-            $code = (new InviteCode())->add($this->user->id);
-        }
-
-        $paybacks = (new Payback())->where('ref_by', $this->user->id)
-            ->orderBy('id', 'desc')
-            ->get();
-
-        foreach ($paybacks as $payback) {
-            $payback->datetime = Tools::toDateTime($payback->datetime);
-        }
-
-        $paybacks_sum = (new Payback())->where('ref_by', $this->user->id)->sum('ref_get');
-
-        if (! $paybacks_sum) {
-            $paybacks_sum = 0;
-        }
-
-        $invite_url = $_ENV['baseUrl'] . '/auth/register?code=' . $code;
-        $invite_reward_rate = Config::obtain('invite_reward_rate') * 100;
-
-        return $response->write(
-            $this->view()
-                ->assign('paybacks', $paybacks)
-                ->assign('invite_url', $invite_url)
-                ->assign('paybacks_sum', $paybacks_sum)
-                ->assign('invite_reward_rate', $invite_reward_rate)
-                ->fetch('user/invite.tpl')
-        );
-    }
 	
     /**
      * @throws Exception
@@ -170,10 +129,7 @@ final class UserController extends BaseController
             ->fetch('user/media.tpl'));
     }
 	
-    public function checkin(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
-=======
     public function checkin(ServerRequest $request, Response $response, array $args): ResponseInterface
->>>>>>> origin/new
     {
         if (! Config::obtain('enable_checkin') || ! $this->user->isAbleToCheckin()) {
             return ResponseHelper::error($response, '暂时还不能签到');
