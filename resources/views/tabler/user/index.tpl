@@ -242,6 +242,9 @@
                                             客户端订阅（Trojan）：<code class="spoiler">{$UniversalSub}/trojan</code>
                                         </p>
                                         {/if}
+                                        <p>
+                                            客户端 Clash 订阅：<code class="spoiler">{$UniversalSub}/clash</code>
+                                        </p>                                        
                                         <div class="btn-list justify-content-start">
                                             {if $public_setting['enable_ss_sub']}
                                             <a data-clipboard-text="{$UniversalSub}/ss"
@@ -252,6 +255,7 @@
                                                class="copy btn btn-primary">
                                                 复制客户端订阅（SIP002）
                                             </a>
+                                            
                                             {/if}
                                             {if $public_setting['enable_v2_sub']}
                                             <a data-clipboard-text="{$UniversalSub}/v2ray"
@@ -259,12 +263,18 @@
                                                 复制客户端订阅（V2Ray）
                                             </a>
                                             {/if}
+                                            
                                             {if $public_setting['enable_trojan_sub']}
                                             <a data-clipboard-text="{$UniversalSub}/trojan"
                                                class="copy btn btn-primary">
                                                 复制客户端订阅（Trojan）
                                             </a>
                                             {/if}
+                                        </a>
+                                        <a data-clipboard-text="{$UniversalSub}/clash"
+                                           class="copy btn btn-primary">
+                                            复制 Clash 订阅链接
+                                        </a>                                            
                                         </div>
                                     </div>
                                 </div>
@@ -272,6 +282,9 @@
                                     <div>
                                         <p>
                                             适用于 Clash 的订阅：<code class="spoiler">{$UniversalSub}/clash</code>
+                                        </p>
+                                        <p>
+                                            适用于 V2RayN 的订阅：<code class="spoiler">{$UniversalSub}/v2ray</code>
                                         </p>
                                         <div class="btn-list justify-content-start">
                                             <a  {if $config['enable_r2_client_download']}
@@ -289,7 +302,11 @@
                                                class="btn btn-indigo">
                                                 导入 Clash
                                             </a>
-                                        </div>
+                                             <a data-clipboard-text="{$UniversalSub}/v2ray"
+                                               class="copy btn btn-primary">
+                                                复制 V2Ray 客户端订阅
+                                            </a>
+                                       </div>
                                     </div>
                                 </div>
                                 <div class="tab-pane" id="macos">
@@ -336,11 +353,15 @@
                                 </div>
                                 <div class="tab-pane" id="android">
                                     <p>
+                                        适用于 V2rayNG 的订阅：<code class="spoiler">{$UniversalSub}/v2ray</code>
+                                    </p>                          
+                                    <p>
                                         适用于 Clash 的订阅：<code class="spoiler">{$UniversalSub}/clash</code>
                                     </p>
                                     <p>
                                         适用于 sing-box 的订阅：<code class="spoiler">{$UniversalSub}/singbox</code>
                                     </p>
+
                                     <div class="btn-list justify-content-start">
                                         <a {if $config['enable_r2_client_download']}
                                             href="/user/clients/CMFA.apk"
@@ -374,9 +395,23 @@
                                            class="btn btn-indigo">
                                             导入 SFA
                                         </a>
+                                        <a href="https://github.com/2dust/v2rayNG/releases"
+                                           class="btn btn-azure">
+                                            下载 V2rayNG
+                                        </a>                                        
+                                        <a data-clipboard-text="{$UniversalSub}/v2ray"
+                                           class="copy btn btn-primary">
+                                            复制 V2rayNG 订阅链接
+                                        </a>                                        
                                     </div>
                                 </div>
                                 <div class="tab-pane" id="ios">
+                                    <p>
+                                        适用于 Clash 的订阅：<code class="spoiler">{$UniversalSub}/clash</code>
+                                    </p>
+                                    <p>
+                                        适用于 Shadowrocket 的订阅：<code class="spoiler">{$UniversalSub}/clash</code>
+                                    </p>
                                     <p>
                                         适用于 sing-box 的订阅：<code class="spoiler">{$UniversalSub}/singbox</code>
                                     </p>
@@ -392,6 +427,10 @@
                                         <a href="sing-box://import-remote-profile?url={$UniversalSub}/singbox#{$config['appName']}"
                                            class="btn btn-indigo">
                                             导入 sing-box
+                                        </a>
+                                        <a data-clipboard-text="{$UniversalSub}/clash"
+                                           class="copy btn btn-primary">
+                                            复制 Clash 订阅链接
                                         </a>
                                     </div>
                                 </div>
