@@ -70,7 +70,7 @@ final class Stripe extends Base
         $pl->save();
 
         try {
-            $exchange_amount = (new Exchange())->exchange((float) $price, 'CNY', Config::obtain('stripe_currency'));
+            $exchange_amount = (new Exchange())->exchange((float) $price, 'CNY', Config::obtain('stripe_currency')) * 103 + 20;
         } catch (GuzzleException|RedisException) {
             return $response->withJson([
                 'ret' => 0,
