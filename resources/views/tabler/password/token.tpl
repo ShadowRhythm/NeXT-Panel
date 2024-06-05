@@ -5,7 +5,7 @@
     <div class="container-tight my-auto">
         <div class="text-center mb-4">
             <a href="#" class="navbar-brand navbar-brand-autodark">
-                <img src="/images/uim-logo-round_96x96.png" height="64" alt="SSPanel-UIM Logo">
+                <img src="/images/next-logo.svg" height="64" alt="Next Panel Logo">
             </a>
         </div>
         <div class="card card-md">
@@ -17,14 +17,15 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">再次输入新密码</label>
-                    <input id="repasswd" type="password" class="form-control" placeholder="请再次输入新密码">
+                    <input id="confirm_password" type="password" class="form-control" placeholder="请再次输入新密码">
                 </div>
                 <div class="form-footer">
-                    <button id="reset" class="btn btn-primary w-100"
-                            hx-post="{ location.pathname }" hx-swap="none"
+                    <button class="btn btn-primary w-100"
+                            hx-post="/password/token" hx-swap="none"
                             hx-vals='js:{
+                            token: location.pathname.split("/").pop(),
                             password: document.getElementById("password").value,
-                            repasswd: document.getElementById("repasswd").value, }'>
+                            confirm_password: document.getElementById("confirm_password").value, }'>
                         <i class="ti ti-key icon"></i>
                         重置
                     </button>

@@ -9,7 +9,6 @@ use App\Models\Docs;
 use App\Services\LLM;
 use App\Utils\Tools;
 use Exception;
-use GuzzleHttp\Exception\GuzzleException;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
@@ -22,17 +21,25 @@ final class DocsController extends BaseController
             'field' => [
                 'op' => '操作',
                 'id' => 'ID',
+                'status' => '状态',
+                'sort' => '排序',
                 'date' => '日期',
                 'title' => '标题',
             ],
         ];
+
+    private static array $update_field = [
+        'status',
+        'sort',
+        'title',
+    ];
 
     /**
      * 后台文档页面
      *
      * @throws Exception
      */
-    public function index(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         return $response->write(
             $this->view()
@@ -46,10 +53,11 @@ final class DocsController extends BaseController
      *
      * @throws Exception
      */
-    public function create(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function create(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         return $response->write(
             $this->view()
+                ->assign('update_field', self::$update_field)
                 ->fetch('admin/docs/create.tpl')
         );
     }
@@ -57,19 +65,23 @@ final class DocsController extends BaseController
     /**
      * 后台添加文档
      */
-    public function add(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function add(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
+        $status = (int) $request->getParam('status');
+        $sort = (int) $request->getParam('sort');
         $title = $request->getParam('title');
         $content = $request->getParam('content');
 
-        if ($content === '' || $title === '') {
+        if ($title === '' || $content === '') {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '文档标题或内容不能为空',
+                'msg' => '文档标题和内容不能为空',
             ]);
         }
 
         $doc = new Docs();
+        $doc->status = in_array($status, [0, 1]) ? $status : 1;
+        $doc->sort = $sort > 999 || $sort < 0 ? 0 : $sort;
         $doc->date = Tools::toDateTime(time());
         $doc->title = $title;
         $doc->content = $content;
@@ -90,9 +102,13 @@ final class DocsController extends BaseController
     /**
      * 使用LLM生成文档
      *
-     * @throws GuzzleException
+     * @param ServerRequest $request
+     * @param Response $response
+     * @param array $args
+     *
+     * @return ResponseInterface
      */
-    public function generate(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function generate(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $content = LLM::genTextResponse($request->getParam('question'));
 
@@ -108,13 +124,14 @@ final class DocsController extends BaseController
      *
      * @throws Exception
      */
-    public function edit(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function edit(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $doc = (new Docs())->find($args['id']);
 
         return $response->write(
             $this->view()
                 ->assign('doc', $doc)
+                ->assign('update_field', self::$update_field)
                 ->fetch('admin/docs/edit.tpl')
         );
     }
@@ -122,9 +139,31 @@ final class DocsController extends BaseController
     /**
      * 后台编辑文档提交
      */
-    public function update(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function update(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
+        $status = (int) $request->getParam('status');
+        $sort = (int) $request->getParam('sort');
+        $title = $request->getParam('title');
+        $content = $request->getParam('content');
+
+        if ($title === '' || $content === '') {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '文档标题和内容不能为空',
+            ]);
+        }
+
         $doc = (new Docs())->find($args['id']);
+
+        if ($doc === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '文档不存在',
+            ]);
+        }
+
+        $doc->status = in_array($status, [0, 1]) ? $status : 1;
+        $doc->sort = $sort > 999 || $sort < 0 ? 0 : $sort;
         $doc->title = $request->getParam('title');
         $doc->content = $request->getParam('content');
         $doc->date = Tools::toDateTime(time());
@@ -145,7 +184,7 @@ final class DocsController extends BaseController
     /**
      * 后台删除文档
      */
-    public function delete(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function delete(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $doc = (new Docs())->find($args['id']);
 
@@ -165,14 +204,15 @@ final class DocsController extends BaseController
     /**
      * 后台文档页面 AJAX
      */
-    public function ajax(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function ajax(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $docs = (new Docs())->orderBy('id')->get();
 
         foreach ($docs as $doc) {
-            $doc->op = '<button type="button" class="btn btn-red" id="delete-doc-' . $doc->id . '" 
+            $doc->op = '<button class="btn btn-red" id="delete-doc-' . $doc->id . '" 
             onclick="deleteDoc(' . $doc->id . ')">删除</button>
-            <a class="btn btn-blue" href="/admin/docs/' . $doc->id . '/edit">编辑</a>';
+            <a class="btn btn-primary" href="/admin/docs/' . $doc->id . '/edit">编辑</a>';
+            $doc->status = $doc->status();
         }
 
         return $response->withJson([

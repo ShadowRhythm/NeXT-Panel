@@ -21,7 +21,7 @@ final class StartCommand extends Command
     /**
      * @var string Command Description
      */
-    protected string $description = '[群组/私聊] Bot 初始命令.';
+    protected string $description = '[群组/私聊] Bot 初始命令';
 
     public function handle(): void
     {
@@ -36,7 +36,7 @@ final class StartCommand extends Command
             // 回送信息
             $this->replyWithMessage(
                 [
-                    'text' => '发送 /help 获取帮助',
+                    'text' => '发送 `/help` 获取帮助',
                     'parse_mode' => 'Markdown',
                 ]
             );
@@ -47,7 +47,7 @@ final class StartCommand extends Command
                 // 回送信息
                 $this->replyWithMessage(
                     [
-                        'text' => '喵喵喵.',
+                        'text' => '?',
                         'parse_mode' => 'Markdown',
                         'reply_to_message_id' => $message->getMessageId(),
                     ]

@@ -37,6 +37,7 @@ EOL;
         $jobs->processTabpOrderActivation();
         $jobs->processBandwidthOrderActivation();
         $jobs->processTimeOrderActivation();
+        $jobs->processTopupOrderActivation();
 
         // Run user related jobs
         $jobs->expirePaidUserAccount();
@@ -56,21 +57,25 @@ EOL;
         ) {
             $jobs->cleanDb();
             $jobs->resetNodeBandwidth();
-            $jobs->resetFreeUserTraffic();
+            $jobs->resetFreeUserBandwidth();
             $jobs->sendDailyTrafficReport();
 
             if (Config::obtain('enable_detect_inactive_user')) {
                 $jobs->detectInactiveUser();
             }
 
-            if (Config::obtain('telegram_diary')) {
-                $jobs->sendTelegramDiary();
+            if (Config::obtain('remove_inactive_user_link_and_invite')) {
+                $jobs->removeInactiveUserLinkAndInvite();
             }
 
-            $jobs->resetTodayTraffic();
+            if (Config::obtain('im_bot_group_notify_diary')) {
+                $jobs->sendDiaryNotification();
+            }
 
-            if (Config::obtain('telegram_daily_job')) {
-                $jobs->sendTelegramDailyJob();
+            $jobs->resetTodayBandwidth();
+
+            if (Config::obtain('im_bot_group_notify_daily_job')) {
+                $jobs->sendDailyJobNotification();
             }
 
             (new Config())->where('item', 'last_daily_job_time')->update([

@@ -45,7 +45,7 @@ final class TicketController extends BaseController
      *
      * @throws Exception
      */
-    public function index(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         return $response->write(
             $this->view()
@@ -59,7 +59,7 @@ final class TicketController extends BaseController
      * @throws GuzzleException
      * @throws ClientExceptionInterface
      */
-    public function update(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function update(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $id = $args['id'];
         $comment = $request->getParam('comment') ?? '';
@@ -113,7 +113,7 @@ final class TicketController extends BaseController
      * @throws TelegramSDKException
      * @throws ClientExceptionInterface
      */
-    public function updateAI(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function updateAI(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $id = $args['id'];
 
@@ -161,7 +161,7 @@ final class TicketController extends BaseController
      *
      * @throws Exception
      */
-    public function detail(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function detail(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $id = $args['id'];
         $ticket = (new Ticket())->where('id', '=', $id)->first();
@@ -187,7 +187,7 @@ final class TicketController extends BaseController
     /**
      * 后台关闭工单
      */
-    public function close(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function close(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $id = $args['id'];
         $ticket = (new Ticket())->where('id', '=', $id)->first();
@@ -218,7 +218,7 @@ final class TicketController extends BaseController
     /**
      * 后台删除工单
      */
-    public function delete(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function delete(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $id = $args['id'];
         (new Ticket())->where('id', '=', $id)->delete();
@@ -232,22 +232,22 @@ final class TicketController extends BaseController
     /**
      * 后台工单页面 Ajax
      */
-    public function ajax(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function ajax(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $tickets = (new Ticket())->orderBy('id', 'desc')->get();
 
         foreach ($tickets as $ticket) {
-            $ticket->op = '<button type="button" class="btn btn-red" id="delete-ticket" 
+            $ticket->op = '<button class="btn btn-red" id="delete-ticket" 
             onclick="deleteTicket(' . $ticket->id . ')">删除</button>';
 
             if ($ticket->status !== 'closed') {
                 $ticket->op .= '
-                <button type="button" class="btn btn-orange" id="close-ticket" 
+                <button class="btn btn-orange" id="close-ticket" 
                 onclick="closeTicket(' . $ticket->id . ')">关闭</button>';
             }
 
             $ticket->op .= '
-            <a class="btn btn-blue" href="/admin/ticket/' . $ticket->id . '/view">查看</a>';
+            <a class="btn btn-primary" href="/admin/ticket/' . $ticket->id . '/view">查看</a>';
             $ticket->status = $ticket->status();
             $ticket->type = $ticket->type();
             $ticket->datetime = Tools::toDateTime((int) $ticket->datetime);

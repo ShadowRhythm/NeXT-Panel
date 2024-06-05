@@ -10,21 +10,25 @@ return new class() implements MigrationInterface {
     {
         DB::getPdo()->exec(
             "CREATE TABLE `announcement` (
-                `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '公告ID',
+                `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '公告ID',
+                `status` tinyint(1) unsigned NOT NULL DEFAULT 1 COMMENT '公告状态',
+                `sort` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT '公告排序',
                 `date` datetime NOT NULL DEFAULT '1989-06-04 00:05:00' COMMENT '公告日期',
-                `content` text NOT NULL DEFAULT '' COMMENT '公告内容',
-                PRIMARY KEY (`id`)
+                `content` longtext NOT NULL DEFAULT '' COMMENT '公告内容',
+                PRIMARY KEY (`id`),
+                KEY `status` (`status`),
+                KEY `sort` (`sort`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
             CREATE TABLE `config` (
-                `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键',
-                `item` varchar(255) DEFAULT NULL COMMENT '配置项',
-                `value` varchar(2048) DEFAULT NULL COMMENT '配置值',
-                `class` varchar(255) DEFAULT 'default' COMMENT '配置类别',
-                `is_public` int(11) DEFAULT 0 COMMENT '是否为公共参数',
-                `type` varchar(255) DEFAULT NULL COMMENT '配置值类型',
-                `default` varchar(255) DEFAULT NULL COMMENT '默认值',
-                `mark` varchar(255) DEFAULT NULL COMMENT '备注',
+                `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '配置ID',
+                `item` varchar(255) NOT NULL DEFAULT '' COMMENT '配置项',
+                `value` varchar(2048) NOT NULL DEFAULT '' COMMENT '配置值',
+                `class` varchar(16) NOT NULL DEFAULT '' COMMENT '配置类别',
+                `is_public` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '是否为公共参数',
+                `type` varchar(16) NOT NULL DEFAULT '' COMMENT '配置值类型',
+                `default` varchar(2048) NOT NULL DEFAULT '' COMMENT '默认值',
+                `mark` varchar(255) NOT NULL DEFAULT '' COMMENT '备注',
                 PRIMARY KEY (`id`),
                 KEY `item` (`item`),
                 KEY `class` (`class`),
@@ -32,7 +36,7 @@ return new class() implements MigrationInterface {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
             CREATE TABLE `detect_ban_log` (
-                `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '封禁记录ID',
+                `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '封禁记录ID',
                 `user_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '用户ID',
                 `detect_number` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '本次违规次数',
                 `ban_time` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '封禁时长',
@@ -61,16 +65,20 @@ return new class() implements MigrationInterface {
                 `status` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '状态',
                 PRIMARY KEY (`id`),
                 KEY `user_id` (`user_id`),
-                KEY `node_id` (`node_id`),
-                KEY `list_id` (`list_id`)
+                KEY `list_id` (`list_id`),
+                KEY `node_id` (`node_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
             CREATE TABLE `docs` (
                 `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '文档ID',
+                `status` tinyint(1) unsigned NOT NULL DEFAULT 1 COMMENT '文档状态',
+                `sort` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT '文档排序',
                 `date` datetime NOT NULL DEFAULT '1989-06-04 00:05:00' COMMENT '文档日期',
                 `title` varchar(255) NOT NULL DEFAULT '' COMMENT '文档标题',
                 `content` longtext NOT NULL DEFAULT '' COMMENT '文档内容',
-                PRIMARY KEY (`id`)
+                PRIMARY KEY (`id`),
+                KEY `status` (`status`),
+                KEY `sort` (`sort`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
             CREATE TABLE `email_queue` (
@@ -107,24 +115,26 @@ return new class() implements MigrationInterface {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
             CREATE TABLE `invoice` (
-                `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '账单ID',
-                `user_id` bigint(20) unsigned DEFAULT 0 COMMENT '归属用户ID',
-                `order_id` bigint(20) unsigned DEFAULT 0 COMMENT '订单ID',
-                `content` longtext DEFAULT '{}' COMMENT '账单内容' CHECK (json_valid(`content`)),
-                `price` double unsigned DEFAULT 0 COMMENT '账单金额',
-                `status` varchar(255) DEFAULT '' COMMENT '账单状态',
-                `create_time` int(11) unsigned DEFAULT 0 COMMENT '创建时间',
-                `update_time` int(11) unsigned DEFAULT 0 COMMENT '更新时间',
-                `pay_time` int(11) unsigned DEFAULT 0 COMMENT '支付时间',
+                `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '账单ID',
+                `type` varchar(255) NOT NULL DEFAULT 'product' COMMENT '类型',
+                `user_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '归属用户ID',
+                `order_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '订单ID',
+                `content` longtext NOT NULL DEFAULT '{}' COMMENT '账单内容' CHECK (json_valid(`content`)),
+                `price` double unsigned NOT NULL DEFAULT 0 COMMENT '账单金额',
+                `status` varchar(255) NOT NULL DEFAULT '' COMMENT '账单状态',
+                `create_time` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '创建时间',
+                `update_time` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '更新时间',
+                `pay_time` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '支付时间',
                 PRIMARY KEY (`id`),
                 KEY `id` (`id`),
+                KEY `type` (`type`),
                 KEY `user_id` (`user_id`),
                 KEY `order_id` (`order_id`),
                 KEY `status` (`status`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
             CREATE TABLE `link` (
-                `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+                `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '记录ID',
                 `token` varchar(255) NOT NULL DEFAULT '' COMMENT '订阅token',
                 `userid` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '用户ID',
                 PRIMARY KEY (`id`),
@@ -150,7 +160,7 @@ return new class() implements MigrationInterface {
                 `server` varchar(255) NOT NULL DEFAULT '' COMMENT '节点地址',
                 `custom_config` longtext NOT NULL DEFAULT '{}' COMMENT '自定义配置' CHECK (json_valid(`custom_config`)),
                 `sort` tinyint(2) unsigned NOT NULL DEFAULT 14 COMMENT '节点类型',
-                `traffic_rate` float unsigned NOT NULL DEFAULT 1 COMMENT '流量倍率',
+                `traffic_rate` double unsigned NOT NULL DEFAULT 1 COMMENT '流量倍率',
                 `is_dynamic_rate` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '是否启用动态流量倍率',
                 `dynamic_rate_type` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '动态流量倍率计算方式',
                 `dynamic_rate_config` longtext NOT NULL DEFAULT '{}' COMMENT '动态流量倍率配置' CHECK (json_valid(`custom_config`)),
@@ -161,8 +171,8 @@ return new class() implements MigrationInterface {
                 `bandwidthlimit_resetday` tinyint(2) unsigned NOT NULL DEFAULT 0 COMMENT '流量重置日',
                 `node_heartbeat` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '节点心跳',
                 `online_user` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '节点在线用户',
-                `ipv4` INET4 NOT NULL DEFAULT '127.0.0.1' COMMENT 'IPv4地址',
-                `ipv6` INET6 NOT NULL DEFAULT '::1' COMMENT 'IPv6地址',
+                `ipv4` inet4 NOT NULL DEFAULT '127.0.0.1' COMMENT 'IPv4地址',
+                `ipv6` inet6 NOT NULL DEFAULT '::1' COMMENT 'IPv6地址',
                 `node_group` smallint(5) unsigned NOT NULL DEFAULT 0 COMMENT '节点群组',
                 `online` tinyint(1) NOT NULL DEFAULT 1 COMMENT '在线状态',
                 `gfw_block` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '是否被GFW封锁',
@@ -207,6 +217,7 @@ return new class() implements MigrationInterface {
                 KEY `id` (`id`),
                 KEY `user_id` (`user_id`),
                 KEY `product_id` (`product_id`),
+                KEY `product_type` (`product_type`),
                 KEY `status` (`status`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -258,16 +269,37 @@ return new class() implements MigrationInterface {
                 KEY `status` (`status`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
             
+            CREATE TABLE `syslog` (
+                `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+                `user_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '触发用户',
+                `ip` varchar(255) NOT NULL DEFAULT '' COMMENT '触发IP',
+                `message` varchar(1024) NOT NULL DEFAULT '' COMMENT '日志内容',
+                `level` tinyint(3) unsigned NOT NULL DEFAULT 100 COMMENT '日志等级',
+                `context` longtext NOT NULL DEFAULT '{}' COMMENT '日志内容' CHECK (json_valid(`context`)),
+                `channel` varchar(255) NOT NULL DEFAULT '' COMMENT '日志类别',
+                `datetime` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '记录时间',
+                PRIMARY KEY (`id`),
+                KEY `user_id` (`user_id`),
+                KEY `ip` (`ip`),
+                KEY `message` (`message`),
+                KEY `level` (`level`),
+                KEY `channel` (`channel`),
+                KEY `datetime` (`datetime`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            
             CREATE TABLE `subscribe_log` (
                 `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '记录ID',
                 `user_id` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '用户ID',
                 `type` varchar(255) NOT NULL DEFAULT '' COMMENT '获取的订阅类型',
                 `request_ip` varchar(255) NOT NULL DEFAULT '' COMMENT '请求IP',
                 `request_time` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '请求时间',
-                `request_user_agent` varchar(255) NOT NULL DEFAULT '' COMMENT '请求UA',
+                `request_user_agent` varchar(1024) NOT NULL DEFAULT '' COMMENT '请求UA',
                 PRIMARY KEY (`id`),
                 KEY `user_id` (`user_id`),
-                KEY `type` (`type`)
+                KEY `type` (`type`),
+                KEY `request_ip` (`request_ip`),
+                KEY `request_time` (`request_time`),
+                KEY `request_user_agent` (`request_user_agent`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
             CREATE TABLE `ticket` (
@@ -287,10 +319,10 @@ return new class() implements MigrationInterface {
             CREATE TABLE `user` (
                 `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '用户ID',
                 `user_name` varchar(255) NOT NULL DEFAULT '' COMMENT '用户名',
-                `email` varchar(255) NOT NULL COMMENT 'E-Mail',
+                `email` varchar(255) NOT NULL COMMENT '用户Email',
                 `pass` varchar(255) NOT NULL COMMENT '登录密码',
-                `passwd` varchar(255) NOT NULL COMMENT '节点密码',
-                `uuid` char(36) NOT NULL COMMENT 'UUID',
+                `passwd` varchar(255) NOT NULL COMMENT '连接密码',
+                `uuid` uuid NOT NULL COMMENT 'UUID',
                 `u` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '账户当前上传流量',
                 `d` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '账户当前下载流量',
                 `transfer_today` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '账户今日所用流量',
@@ -305,7 +337,7 @@ return new class() implements MigrationInterface {
                 `reg_date` datetime NOT NULL DEFAULT '1989-06-04 00:05:00' COMMENT '注册时间',
                 `money` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT '账户余额',
                 `ref_by` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT '邀请人ID',
-                `method` varchar(255) NOT NULL DEFAULT 'aes-128-gcm' COMMENT 'Shadowsocks加密方式',
+                `method` varchar(255) NOT NULL DEFAULT 'aes-128-gcm' COMMENT '加密方式',
                 `reg_ip` varchar(255) NOT NULL DEFAULT '127.0.0.1' COMMENT '注册IP',
                 `node_speedlimit` double NOT NULL DEFAULT 0 COMMENT '用户限速',
                 `node_iplimit` smallint(6) unsigned NOT NULL DEFAULT 0 COMMENT '同时可连接IP数',
@@ -326,16 +358,15 @@ return new class() implements MigrationInterface {
                 `is_shadow_banned` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '是否处于账户异常状态',
                 `expire_notified` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '过期提醒',
                 `traffic_notified` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '流量提醒',
-                `forbidden_ip` varchar(255) NOT NULL DEFAULT '' COMMENT '禁止访问IP',
-                `forbidden_port` varchar(255) NOT NULL DEFAULT '' COMMENT '禁止访问端口',
                 `auto_reset_day` smallint(6) unsigned NOT NULL DEFAULT 0 COMMENT '自动重置流量日',
                 `auto_reset_bandwidth` decimal(12,2) unsigned NOT NULL DEFAULT 0 COMMENT '自动重置流量',
-                `api_token` char(36) NOT NULL DEFAULT '' COMMENT 'API 密钥',
+                `api_token` varchar(255) NOT NULL DEFAULT '' COMMENT 'API 密钥',
                 `is_dark_mode` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '是否启用暗黑模式',
                 `is_inactive` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '是否处于闲置状态',
                 `locale` varchar(16) NOT NULL DEFAULT 'zh-TW' COMMENT '显示语言',
                 PRIMARY KEY (`id`),
                 UNIQUE KEY `email` (`email`),
+                UNIQUE KEY `passwd` (`passwd`),
                 UNIQUE KEY `uuid` (`uuid`),
                 UNIQUE KEY `ga_token` (`ga_token`),
                 UNIQUE KEY `api_token` (`api_token`),
@@ -346,7 +377,7 @@ return new class() implements MigrationInterface {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
             CREATE TABLE `user_coupon` (
-                `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '优惠码ID',
+                `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '优惠码ID',
                 `code` varchar(255) NOT NULL DEFAULT '' COMMENT '优惠码',
                 `content` longtext NOT NULL DEFAULT '{}' COMMENT '优惠码内容' CHECK (json_valid(`content`)),
                 `limit` longtext NOT NULL DEFAULT '{}' COMMENT '优惠码限制' CHECK (json_valid(`limit`)),
@@ -355,7 +386,7 @@ return new class() implements MigrationInterface {
                 `expire_time` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '过期时间',
                 PRIMARY KEY (`id`),
                 KEY `id` (`id`),
-                KEY `code` (`code`),
+                UNIQUE KEY `code` (`code`),
                 KEY `expire_time` (`expire_time`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -386,8 +417,6 @@ return new class() implements MigrationInterface {
 
     public function down(): int
     {
-        echo 'No reverse operation for initial migration' . PHP_EOL . PHP_EOL;
-
         return 2023020100;
     }
 };

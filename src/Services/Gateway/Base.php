@@ -8,6 +8,7 @@ use App\Models\Config;
 use App\Models\Invoice;
 use App\Models\Paylist;
 use App\Models\User;
+use App\Models\UserMoneyLog;
 use App\Services\Reward;
 use App\Utils\Tools;
 use Psr\Http\Message\ResponseInterface;
@@ -59,7 +60,7 @@ abstract class Base
 
     abstract public static function getPurchaseHTML(): string;
 
-    public function postPayment($trade_no): void
+    public function postPayment(string $trade_no): void
     {
         $paylist = (new Paylist())->where('tradeno', $trade_no)->first();
 
@@ -71,7 +72,8 @@ abstract class Base
 
         $invoice = (new Invoice())->where('id', $paylist?->invoice_id)->first();
 
-        if ($invoice?->status === 'unpaid' && (int) $invoice?->price === (int) $paylist?->total) {
+        if (($invoice?->status === 'unpaid' || $invoice?->status === 'partially_paid') &&
+            (int) $paylist?->total >= (int) $invoice?->price) {
             $invoice->status = 'paid_gateway';
             $invoice->update_time = time();
             $invoice->pay_time = time();
@@ -79,9 +81,22 @@ abstract class Base
         }
 
         $user = (new User())->find($paylist?->userid);
-        // 返利
+
+        if ($paylist?->total > $invoice?->price) {
+            $money_before = $user->money;
+            $user->money += $paylist?->total - $invoice?->price;
+            $user->save();
+            (new UserMoneyLog())->add(
+                $user->id,
+                $money_before,
+                $user->money,
+                $paylist?->total - $invoice?->price,
+                '超额支付账单 #' . $invoice?->id
+            );
+        }
+
         if ($user !== null && $user->ref_by > 0 && Config::obtain('invite_mode') === 'reward') {
-            Reward::issuePaybackReward($user->id, $user->ref_by, $paylist->total, $paylist->invoice_id);
+            Reward::issuePaybackReward($user->id, $user->ref_by, $invoice?->price, $paylist?->invoice_id);
         }
     }
 
@@ -100,7 +115,7 @@ abstract class Base
         return $_ENV['baseUrl'] . '/user/payment/return/' . get_called_class()::_name();
     }
 
-    protected static function getActiveGateway($key): bool
+    protected static function getActiveGateway(string $key): bool
     {
         $payment_gateways = (new Config())->where('item', 'payment_gateway')->first();
         $active_gateways = json_decode($payment_gateways->value);

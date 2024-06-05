@@ -8,6 +8,9 @@ use App\Controllers\BaseController;
 use App\Models\Config;
 use App\Services\Mail;
 use Exception;
+use Psr\Http\Message\ResponseInterface;
+use Slim\Http\Response;
+use Slim\Http\ServerRequest;
 use Throwable;
 
 final class EmailController extends BaseController
@@ -37,9 +40,9 @@ final class EmailController extends BaseController
         'sendgrid_sender',
         'sendgrid_name',
         // AWS SES
-        'aws_access_key_id',
-        'aws_secret_access_key',
-        'aws_region',
+        'aws_ses_access_key_id',
+        'aws_ses_access_key_secret',
+        'aws_ses_region',
         'aws_ses_sender',
         // Postal
         'postal_host',
@@ -50,12 +53,18 @@ final class EmailController extends BaseController
         'mailchimp_key',
         'mailchimp_from_email',
         'mailchimp_from_name',
+        // Alibaba Cloud
+        'alibabacloud_dm_access_key_id',
+        'alibabacloud_dm_access_key_secret',
+        'alibabacloud_dm_endpoint',
+        'alibabacloud_dm_account_name',
+        'alibabacloud_dm_from_alias',
     ];
 
     /**
      * @throws Exception
      */
-    public function index($request, $response, $args)
+    public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $settings = Config::getClass('email');
 
@@ -67,7 +76,7 @@ final class EmailController extends BaseController
         );
     }
 
-    public function save($request, $response, $args)
+    public function save(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         foreach (self::$update_field as $item) {
             if (! Config::set($item, $request->getParam($item))) {
@@ -84,7 +93,7 @@ final class EmailController extends BaseController
         ]);
     }
 
-    public function testEmail($request, $response, $args)
+    public function testEmail(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $to = $request->getParam('recipient');
 

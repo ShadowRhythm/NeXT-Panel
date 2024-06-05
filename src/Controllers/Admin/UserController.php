@@ -6,6 +6,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\AuthController;
 use App\Controllers\BaseController;
+use App\Models\Config;
 use App\Models\User;
 use App\Models\UserMoneyLog;
 use App\Utils\Hash;
@@ -14,8 +15,6 @@ use Exception;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
-use function str_replace;
-use const PHP_EOL;
 
 final class UserController extends BaseController
 {
@@ -87,14 +86,12 @@ final class UserController extends BaseController
         'port',
         'passwd',
         'method',
-        'forbidden_ip',
-        'forbidden_port',
     ];
 
     /**
      * @throws Exception
      */
-    public function index(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         return $response->write(
             $this->view()
@@ -106,7 +103,7 @@ final class UserController extends BaseController
     /**
      * @throws Exception
      */
-    public function create(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function create(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $email = $request->getParam('email');
         $ref_by = $request->getParam('ref_by');
@@ -143,14 +140,14 @@ final class UserController extends BaseController
 
         return $response->withJson([
             'ret' => 1,
-            'msg' => '添加成功，用户邮箱：'.$email.' 密码：'.$password,
+            'msg' => '添加成功，用户邮箱：' . $email . ' 密码：'.$password,
         ]);
     }
 
     /**
      * @throws Exception
      */
-    public function edit(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function edit(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $user = (new User())->find($args['id']);
 
@@ -162,14 +159,17 @@ final class UserController extends BaseController
         );
     }
 
-    public function update(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function update(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $id = (int) $args['id'];
         $user = (new User())->find($id);
 
         if ($request->getParam('pass') !== '' && $request->getParam('pass') !== null) {
             $user->pass = Hash::passwordHash($request->getParam('pass'));
-            $user->cleanLink();
+
+            if (Config::obtain('enable_forced_replacement')) {
+                $user->removeLink();
+            }
         }
 
         if ($request->getParam('money') !== '' &&
@@ -201,10 +201,7 @@ final class UserController extends BaseController
         $user->node_speedlimit = $request->getParam('node_speedlimit');
         $user->node_iplimit = $request->getParam('node_iplimit');
         $user->port = $request->getParam('port');
-        $user->passwd = $request->getParam('passwd');
         $user->method = $request->getParam('method');
-        $user->forbidden_ip = str_replace(PHP_EOL, ',', $request->getParam('forbidden_ip'));
-        $user->forbidden_port = str_replace(PHP_EOL, ',', $request->getParam('forbidden_port'));
 
         if (! $user->save()) {
             return $response->withJson([
@@ -218,7 +215,7 @@ final class UserController extends BaseController
         ]);
     }
 
-    public function delete(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function delete(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $id = $args['id'];
         $user = (new User())->find((int) $id);
@@ -236,14 +233,14 @@ final class UserController extends BaseController
         ]);
     }
 
-    public function ajax(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function ajax(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $users = (new User())->orderBy('id', 'desc')->get();
 
         foreach ($users as $user) {
-            $user->op = '<button type="button" class="btn btn-red" id="delete-user-' . $user->id . '" 
+            $user->op = '<button class="btn btn-red" id="delete-user-' . $user->id . '" 
             onclick="deleteUser(' . $user->id . ')">删除</button>
-            <a class="btn btn-blue" href="/admin/user/' . $user->id . '/edit">编辑</a>';
+            <a class="btn btn-primary" href="/admin/user/' . $user->id . '/edit">编辑</a>';
             $user->transfer_enable = $user->enableTraffic();
             $user->transfer_used = $user->usedTraffic();
             $user->is_admin = $user->is_admin === 1 ? '是' : '否';

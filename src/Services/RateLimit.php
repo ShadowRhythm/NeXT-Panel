@@ -8,134 +8,163 @@ use App\Models\Config;
 use RateLimit\Exception\LimitExceeded;
 use RateLimit\Rate;
 use RateLimit\RedisRateLimiter;
+use Redis;
 
 final class RateLimit
 {
-    public static function checkIPLimit(string $request_ip): bool
+    private Redis $redis;
+
+    public function __construct()
     {
-        $ip_limiter = new RedisRateLimiter(
-            Rate::perMinute($_ENV['rate_limit_ip']),
-            (new Cache())->initRedis()
-        );
+        $this->redis = (new Cache())->initRedis();
+    }
+
+    public function checkRateLimit(string $limit_type, string $value): bool
+    {
+        $limiter = match ($limit_type) {
+            'sub_ip' => $this->getSubIpLimiter(),
+            'sub_token' => $this->getSubTokenLimiter(),
+            'webapi_ip' => $this->getWebApiIpLimiter(),
+            'webapi_key' => $this->getWebApiKeyLimiter(),
+            'user_api_ip' => $this->getUserApiIpLimiter(),
+            'user_api_key' => $this->getUserApiKeyLimiter(),
+            'admin_api_ip' => $this->getAdminApiIpLimiter(),
+            'admin_api_key' => $this->getAdminApiKeyLimiter(),
+            'node_api_ip' => $this->getNodeApiIpLimiter(),
+            'node_api_key' => $this->getNodeApiKeyLimiter(),
+            'email_request_ip' => $this->getEmailIpLimiter(),
+            'email_request_address' => $this->getEmailAddressLimiter(),
+            'ticket' => $this->getTicketLimiter(),
+            default => null,
+        };
+
+        if ($limiter === null) {
+            return false;
+        }
 
         try {
-            $ip_limiter->limit($request_ip);
-        } catch (LimitExceeded $e) {
+            $limiter->limit($value);
+        } catch (LimitExceeded) {
             return false;
         }
 
         return true;
     }
 
-    public static function checkSubLimit(string $sub_token): bool
+    public function getSubIpLimiter(): RedisRateLimiter
     {
-        $sub_limiter = new RedisRateLimiter(
-            Rate::perMinute($_ENV['rate_limit_sub']),
-            (new Cache())->initRedis()
+        return new RedisRateLimiter(
+            Rate::perMinute((int) $_ENV['rate_limit_sub_ip']),
+            $this->redis,
+            'sspanel_sub_ip:'
         );
-
-        try {
-            $sub_limiter->limit($sub_token);
-        } catch (LimitExceeded $e) {
-            return false;
-        }
-
-        return true;
     }
 
-    public static function checkWebAPILimit(string $web_api_token): bool
+    public function getSubTokenLimiter(): RedisRateLimiter
     {
-        $webapi_limiter = new RedisRateLimiter(
-            Rate::perMinute($_ENV['rate_limit_webapi']),
-            (new Cache())->initRedis()
+        return new RedisRateLimiter(
+            Rate::perMinute((int) $_ENV['rate_limit_sub']),
+            $this->redis,
+            'sspanel_sub_token:'
         );
-
-        try {
-            $webapi_limiter->limit($web_api_token);
-        } catch (LimitExceeded $e) {
-            return false;
-        }
-
-        return true;
     }
 
-    public static function checkUserAPILimit(string $user_api_token): bool
+    public function getWebApiIpLimiter(): RedisRateLimiter
     {
-        $user_api_limiter = new RedisRateLimiter(
-            Rate::perMinute($_ENV['rate_limit_user_api']),
-            (new Cache())->initRedis()
+        return new RedisRateLimiter(
+            Rate::perMinute((int) $_ENV['rate_limit_webapi_ip']),
+            $this->redis,
+            'sspanel_webapi_ip:'
         );
-
-        try {
-            $user_api_limiter->limit($user_api_token);
-        } catch (LimitExceeded $e) {
-            return false;
-        }
-
-        return true;
     }
 
-    public static function checkAdminAPILimit(string $admin_api_token): bool
+    public function getWebApiKeyLimiter(): RedisRateLimiter
     {
-        $admin_api_limiter = new RedisRateLimiter(
-            Rate::perMinute($_ENV['rate_limit_admin_api']),
-            (new Cache())->initRedis()
+        return new RedisRateLimiter(
+            Rate::perMinute((int) $_ENV['rate_limit_webapi']),
+            $this->redis,
+            'sspanel_webapi_key:'
         );
-
-        try {
-            $admin_api_limiter->limit($admin_api_token);
-        } catch (LimitExceeded $e) {
-            return false;
-        }
-
-        return true;
     }
 
-    public static function checkEmailIpLimit(string $request_ip): bool
+    public function getUserApiIpLimiter(): RedisRateLimiter
     {
-        $email_ip_limiter = new RedisRateLimiter(
+        return new RedisRateLimiter(
+            Rate::perMinute((int) $_ENV['rate_limit_user_api_ip']),
+            $this->redis,
+            'sspanel_user_api_ip:'
+        );
+    }
+
+    public function getUserApiKeyLimiter(): RedisRateLimiter
+    {
+        return new RedisRateLimiter(
+            Rate::perMinute((int) $_ENV['rate_limit_user_api']),
+            $this->redis,
+            'sspanel_user_api_key:'
+        );
+    }
+
+    public function getAdminApiIpLimiter(): RedisRateLimiter
+    {
+        return new RedisRateLimiter(
+            Rate::perMinute((int) $_ENV['rate_limit_admin_api_ip']),
+            $this->redis,
+            'sspanel_admin_api_ip:'
+        );
+    }
+
+    public function getAdminApiKeyLimiter(): RedisRateLimiter
+    {
+        return new RedisRateLimiter(
+            Rate::perMinute((int) $_ENV['rate_limit_admin_api']),
+            $this->redis,
+            'sspanel_admin_api_key:'
+        );
+    }
+
+    public function getNodeApiIpLimiter(): RedisRateLimiter
+    {
+        return new RedisRateLimiter(
+            Rate::perMinute((int) $_ENV['rate_limit_node_api_ip']),
+            $this->redis,
+            'sspanel_node_api_ip:'
+        );
+    }
+
+    public function getNodeApiKeyLimiter(): RedisRateLimiter
+    {
+        return new RedisRateLimiter(
+            Rate::perMinute((int) $_ENV['rate_limit_node_api']),
+            $this->redis,
+            'sspanel_node_api_key:'
+        );
+    }
+
+    public function getEmailIpLimiter(): RedisRateLimiter
+    {
+        return new RedisRateLimiter(
             Rate::perHour(Config::obtain('email_request_ip_limit')),
-            (new Cache())->initRedis()
+            $this->redis,
+            'sspanel_email_request_ip:'
         );
-
-        try {
-            $email_ip_limiter->limit($request_ip);
-        } catch (LimitExceeded $e) {
-            return false;
-        }
-
-        return true;
     }
 
-    public static function checkEmailAddressLimit(string $request_address): bool
+    public function getEmailAddressLimiter(): RedisRateLimiter
     {
-        $email_address_limiter = new RedisRateLimiter(
+        return new RedisRateLimiter(
             Rate::perHour(Config::obtain('email_request_address_limit')),
-            (new Cache())->initRedis()
+            $this->redis,
+            'sspanel_email_request_address:'
         );
-
-        try {
-            $email_address_limiter->limit($request_address);
-        } catch (LimitExceeded $e) {
-            return false;
-        }
-
-        return true;
     }
 
-    public static function checkTicketLimit(int $user_id): bool
+    public function getTicketLimiter(): RedisRateLimiter
     {
-        $ticket_limiter = new RedisRateLimiter(
+        return new RedisRateLimiter(
             Rate::custom(Config::obtain('ticket_limit'), 2592000),
-            (new Cache())->initRedis()
+            $this->redis,
+            'sspanel_ticket:'
         );
-
-        try {
-            $ticket_limiter->limit((string) $user_id);
-        } catch (LimitExceeded $e) {
-            return false;
-        }
-
-        return true;
     }
 }

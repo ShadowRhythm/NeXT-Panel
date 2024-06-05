@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-/**
- * To define global variable
- */
-
+// Global constants
 const BASE_PATH = __DIR__ . '/..';
-const VERSION = '2024.1';
+const PANEL_NAME = 'NeXT-Panel';
+const PANEL_VERSION = '24.2.0';
+const OTA_API_URL = 'https://api.nextpanel.dev/v1/version/latest';

@@ -80,10 +80,10 @@ final class UserController extends BaseController
         ]);
 
         $keys_unset = match ($node->sort) {
-            14, 11 => ['u', 'd', 'transfer_enable', 'method', 'port', 'passwd'],
-            2 => ['u', 'd', 'transfer_enable', 'method', 'port'],
-            1 => ['u', 'd', 'transfer_enable', 'method', 'port', 'uuid'],
-            default => ['u', 'd', 'transfer_enable', 'uuid']
+            14, 11 => ['u', 'd', 'transfer_enable', 'method', 'port', 'passwd', 'node_iplimit'],
+            2 => ['u', 'd', 'transfer_enable', 'method', 'port', 'node_iplimit'],
+            1 => ['u', 'd', 'transfer_enable', 'method', 'port', 'uuid', 'node_iplimit'],
+            default => ['u', 'd', 'transfer_enable', 'uuid', 'node_iplimit']
         };
 
         $users = [];
@@ -110,20 +110,19 @@ final class UserController extends BaseController
 
             if ($node->sort === 1) {
                 $method = json_decode($node->custom_config)->method ?? '2022-blake3-aes-128-gcm';
+                $user_pk = Tools::genSs2022UserPk($user_raw->passwd, $method);
 
-                $pk_len = match ($method) {
-                    '2022-blake3-aes-128-gcm' => 16,
-                    default => 32,
-                };
+                if (! $user_pk) {
+                    continue;
+                }
 
-                $user_raw->passwd = Tools::genSs2022UserPk($user_raw->passwd, $pk_len);
+                $user_raw->passwd = $user_pk;
             }
 
             foreach ($keys_unset as $key) {
                 unset($user_raw->$key);
             }
 
-            $user_raw->alive_ip = 0;
             $users[] = $user_raw;
         }
 

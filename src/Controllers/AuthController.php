@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Auth;
 use App\Services\Cache;
 use App\Services\Captcha;
+use App\Services\Filter;
 use App\Services\Mail;
 use App\Services\MFA;
 use App\Services\RateLimit;
@@ -53,7 +54,7 @@ final class AuthController extends BaseController
             ->fetch('auth/login.tpl'));
     }
 
-    public function loginHandle(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function loginHandle(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         if (Config::obtain('enable_login_captcha') && ! Captcha::verify($request->getParams())) {
             return $response->withJson([
@@ -63,7 +64,7 @@ final class AuthController extends BaseController
         }
 
         $mfa_code = $this->antiXss->xss_clean($request->getParam('mfa_code'));
-        $passwd = $request->getParam('passwd');
+        $password = $request->getParam('password');
         $rememberMe = $request->getParam('remember_me') === 'true' ? 1 : 0;
         $email = strtolower(trim($this->antiXss->xss_clean($request->getParam('email'))));
         $redir = $this->antiXss->xss_clean(Cookie::get('redir')) ?? '/user';
@@ -79,7 +80,7 @@ final class AuthController extends BaseController
             ]);
         }
 
-        if (! Hash::checkPassword($user->pass, $passwd)) {
+        if (! Hash::checkPassword($user->pass, $password)) {
             $loginIp->collectLoginIP($_SERVER['REMOTE_ADDR'], 1, $user->id);
 
             return $response->withJson([
@@ -118,7 +119,7 @@ final class AuthController extends BaseController
     /**
      * @throws Exception
      */
-    public function register(ServerRequest $request, Response $response, $next): Response|ResponseInterface
+    public function register(ServerRequest $request, Response $response, $next): ResponseInterface
     {
         $captcha = [];
 
@@ -140,7 +141,7 @@ final class AuthController extends BaseController
     /**
      * @throws RedisException
      */
-    public function sendVerify(ServerRequest $request, Response $response, $next): Response|ResponseInterface
+    public function sendVerify(ServerRequest $request, Response $response, $next): ResponseInterface
     {
         if (Config::obtain('reg_email_verify')) {
             $email = strtolower(trim($this->antiXss->xss_clean($request->getParam('email'))));
@@ -150,13 +151,14 @@ final class AuthController extends BaseController
             }
 
             // check email format
-            $check_res = Tools::isEmailLegal($email);
-            if ($check_res['ret'] === 0) {
-                return $response->withJson($check_res);
+            $email_check = Filter::checkEmailFilter($email);
+
+            if (! $email_check) {
+                return ResponseHelper::error($response, '无效的邮箱');
             }
 
-            if (! RateLimit::checkEmailIpLimit($request->getServerParam('REMOTE_ADDR')) ||
-                ! RateLimit::checkEmailAddressLimit($email)
+            if (! (new RateLimit())->checkRateLimit('email_request_ip', $request->getServerParam('REMOTE_ADDR')) ||
+                ! (new RateLimit())->checkRateLimit('email_request_address', $email)
             ) {
                 return ResponseHelper::error($response, '你的请求过于频繁，请稍后再试');
             }
@@ -181,7 +183,7 @@ final class AuthController extends BaseController
                         'expire' => date('Y-m-d H:i:s', time() + Config::obtain('email_verify_code_ttl')),
                     ]
                 );
-            } catch (Exception|ClientExceptionInterface $e) {
+            } catch (Exception|ClientExceptionInterface) {
                 return ResponseHelper::error($response, '邮件发送失败，请联系网站管理员。');
             }
 
@@ -198,7 +200,7 @@ final class AuthController extends BaseController
         Response $response,
         $name,
         $email,
-        $passwd,
+        $password,
         $invite_code,
         $imtype,
         $imvalue,
@@ -213,19 +215,17 @@ final class AuthController extends BaseController
         $user->user_name = $name;
         $user->email = $email;
         $user->remark = '';
-        $user->pass = Hash::passwordHash($passwd);
+        $user->pass = Hash::passwordHash($password);
         $user->passwd = Tools::genRandomChar(16);
         $user->uuid = Uuid::uuid4();
-        $user->api_token = Uuid::uuid4();
+        $user->api_token = Tools::genRandomChar(32);
         $user->port = Tools::getSsPort();
         $user->u = 0;
         $user->d = 0;
         $user->method = $configs['reg_method'];
-        $user->forbidden_ip = Config::obtain('reg_forbidden_ip');
-        $user->forbidden_port = Config::obtain('reg_forbidden_port');
         $user->im_type = $imtype;
         $user->im_value = $imvalue;
-        $user->transfer_enable = Tools::toGB($configs['reg_traffic']);
+        $user->transfer_enable = Tools::gbToB($configs['reg_traffic']);
         $user->auto_reset_day = Config::obtain('free_user_reset_day');
         $user->auto_reset_bandwidth = Config::obtain('free_user_reset_bandwidth');
         $user->daily_mail_enable = $configs['reg_daily_report'];
@@ -285,7 +285,7 @@ final class AuthController extends BaseController
      * @throws RedisException
      * @throws Exception
      */
-    public function registerHandle(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function registerHandle(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         if (Config::obtain('reg_mode') === 'close') {
             return ResponseHelper::error($response, '未开放注册。');
@@ -298,14 +298,22 @@ final class AuthController extends BaseController
         $tos = $request->getParam('tos') === 'true' ? 1 : 0;
         $email = strtolower(trim($this->antiXss->xss_clean($request->getParam('email'))));
         $name = $this->antiXss->xss_clean($request->getParam('name'));
-        $passwd = $request->getParam('passwd');
-        $repasswd = $request->getParam('repasswd');
+        $password = $request->getParam('password');
+        $confirm_password = $request->getParam('confirm_password');
         $invite_code = $this->antiXss->xss_clean(trim($request->getParam('invite_code')));
-        // Check TOS agreement
+
         if (! $tos) {
             return ResponseHelper::error($response, '请同意服务条款');
         }
-        // Check Invite Code
+
+        if (strlen($password) < 8) {
+            return ResponseHelper::error($response, '密码请大于8位');
+        }
+
+        if ($password !== $confirm_password) {
+            return ResponseHelper::error($response, '两次密码输入不符');
+        }
+
         if ($invite_code === '' && Config::obtain('reg_mode') === 'invite') {
             return ResponseHelper::error($response, '邀请码不能为空');
         }
@@ -328,24 +336,16 @@ final class AuthController extends BaseController
         $imvalue = '';
 
         // check email format
-        $check_res = Tools::isEmailLegal($email);
+        $email_check = Filter::checkEmailFilter($email);
 
-        if ($check_res['ret'] === 0) {
-            return $response->withJson($check_res);
+        if (! $email_check) {
+            return ResponseHelper::error($response, '无效的邮箱');
         }
         // check email
         $user = (new User())->where('email', $email)->first();
 
         if ($user !== null) {
-            return ResponseHelper::error($response, '邮箱已经被注册了');
-        }
-        // check pwd length
-        if (strlen($passwd) < 8) {
-            return ResponseHelper::error($response, '密码请大于8位');
-        }
-        // check pwd re
-        if ($passwd !== $repasswd) {
-            return ResponseHelper::error($response, '两次密码输入不符');
+            return ResponseHelper::error($response, '无效的邮箱');
         }
 
         if (Config::obtain('reg_email_verify')) {
@@ -360,7 +360,7 @@ final class AuthController extends BaseController
             $redis->del('email_verify:' . $email_verify_code);
         }
 
-        return $this->registerHelper($response, $name, $email, $passwd, $invite_code, $imtype, $imvalue, 0, 0);
+        return $this->registerHelper($response, $name, $email, $password, $invite_code, $imtype, $imvalue, 0, 0);
     }
 
     public function logout(ServerRequest $request, Response $response, $next): Response

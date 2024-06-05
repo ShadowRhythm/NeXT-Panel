@@ -112,7 +112,7 @@ final class Reward
             }
 
             if ($invite_reg_traffic_reward !== 0) {
-                $ref_user->transfer_enable += Tools::toGB($invite_reg_traffic_reward);
+                $ref_user->transfer_enable += Tools::gbToB($invite_reg_traffic_reward);
                 $ref_user->save();
             }
         }
@@ -134,13 +134,13 @@ final class Reward
         } else {
             try {
                 $traffic = random_int($checkin_min, $checkin_max);
-            } catch (Exception $e) {
+            } catch (Exception) {
                 $traffic = 0;
             }
         }
 
         if ($traffic !== 0) {
-            $user->transfer_enable += Tools::toMB($traffic);
+            $user->transfer_enable += Tools::mbToB($traffic);
             $user->last_check_in_time = time();
             $user->save();
         }

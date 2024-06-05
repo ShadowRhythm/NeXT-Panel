@@ -5,7 +5,7 @@
     <div class="container-tight my-auto">
         <div class="text-center mb-4">
             <a href="#" class="navbar-brand navbar-brand-autodark">
-                <img src="/images/uim-logo-round_96x96.png" height="64" alt="SSPanel-UIM Logo">
+                <img src="/images/next-logo.svg" height="64" alt="Next Panel Logo">
             </a>
         </div>
         <div class="card card-md">
@@ -23,7 +23,7 @@
                             </span>
                     </label>
                     <div class="input-group input-group-flat">
-                        <input id="passwd" type="password" class="form-control" autocomplete="off">
+                        <input id="password" type="password" class="form-control" autocomplete="off">
                     </div>
                 </div>
                 <div class="mb-2">
@@ -39,23 +39,18 @@
                 <div class="mb-3">
                     <div class="input-group mb-3">
                     {if $public_setting['enable_login_captcha']}
-                        {include file='captcha_div.tpl'}
+                        {include file='captcha/div.tpl'}
                     {/if}
                     </div>
                 </div>
                 <div class="form-footer">
-                    <button id="login" class="btn btn-primary w-100"
+                    <button class="btn btn-primary w-100"
                             hx-post="/auth/login" hx-swap="none" hx-vals='js:{
                                 {if $public_setting['enable_login_captcha']}
-                                    {if $public_setting['captcha_provider'] === 'turnstile'}
-                                        turnstile: document.querySelector("[name=cf-turnstile-response]").value,
-                                    {/if}
-                                    {if $public_setting['captcha_provider'] === 'geetest'}
-                                        geetest: geetest_result,
-                                    {/if}
+                                    {include file='captcha/ajax.tpl'}
                                 {/if}
                                 email: document.getElementById("email").value,
-                                passwd: document.getElementById("passwd").value,
+                                password: document.getElementById("password").value,
                                 mfa_code: document.getElementById("mfa_code").value,
                                 remember_me: document.getElementById("remember_me").checked,
                              }'>
@@ -71,7 +66,7 @@
 </div>
 
 {if $public_setting['enable_login_captcha']}
-    {include file='captcha_js.tpl'}
+    {include file='captcha/js.tpl'}
 {/if}
 
 {include file='footer.tpl'}

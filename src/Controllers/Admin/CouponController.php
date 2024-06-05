@@ -102,7 +102,7 @@ final class CouponController extends BaseController
      *
      * @throws Exception
      */
-    public function index(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         return $response->write(
             $this->view()
@@ -114,7 +114,7 @@ final class CouponController extends BaseController
     /**
      * 添加优惠码
      */
-    public function add(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function add(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $code = $request->getParam('code');
         $type = $request->getParam('type');
@@ -202,7 +202,7 @@ final class CouponController extends BaseController
         ]);
     }
 
-    public function delete(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function delete(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $coupon_id = $args['id'];
         (new UserCoupon())->find($coupon_id)->delete();
@@ -213,7 +213,7 @@ final class CouponController extends BaseController
         ]);
     }
 
-    public function disable(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function disable(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $coupon_id = $args['id'];
         $coupon = (new UserCoupon())->find($coupon_id)->first();
@@ -231,7 +231,7 @@ final class CouponController extends BaseController
     /**
      * 后台商品优惠码页面 AJAX
      */
-    public function ajax(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function ajax(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $coupons = (new UserCoupon())->orderBy('id', 'desc')->get();
 
@@ -239,10 +239,10 @@ final class CouponController extends BaseController
             $content = json_decode($coupon->content);
             $limit = json_decode($coupon->limit);
 
-            $coupon->op = '<button type="button" class="btn btn-red" id="delete-coupon-' . $coupon->id . '"
+            $coupon->op = '<button class="btn btn-red" id="delete-coupon-' . $coupon->id . '"
                 onclick="deleteCoupon(' . $coupon->id . ')">删除</button>' .
                 ($limit->disabled !== 1 ? '
-                <button type="button" class="btn btn-orange" id="disable-coupon-' .
+                <button class="btn btn-orange" id="disable-coupon-' .
                     $coupon->id . '" onclick="disableCoupon(' . $coupon->id . ')">禁用</button>' : '');
 
             $coupon->type = $coupon->type();

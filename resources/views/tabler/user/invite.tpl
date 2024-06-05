@@ -38,14 +38,14 @@
                             <div class="card">
                                 <div class="card-body">
                                     <h3 class="card-title">邀请链接</h3>
-                                    {if $user->class >= 4}{if 
+                                    {if $user->class >= 2}{if 
                                         date($user->reg_date) <= date("Y-m-d",strtotime("-3 month"))}
-                                    <input class="form-control" id="invite-url" value="{$invite_url}" disabled/>
+                                    <input class="form-control" id="invite-url" value="{$invite_url}" disabled>
                                 </div>
                                 <div class="card-footer">
                                     <div class="d-flex">
-                                        <button id="reset-url" class="btn text-red btn-link"
-                                                hx-post="/user/invite_reset" hx-swap="none">
+                                        <button class="btn text-red btn-link"
+                                                hx-post="/user/invite/reset" hx-swap="none">
                                             重置
                                         </button>
                                         <button data-clipboard-text="{$invite_url}"

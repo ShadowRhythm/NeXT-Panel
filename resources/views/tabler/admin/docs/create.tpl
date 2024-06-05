@@ -1,7 +1,5 @@
 {include file='admin/header.tpl'}
 
-<script src="//cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"></script>
-
 <div class="page-wrapper">
     <div class="container-xl">
         <div class="page-header d-print-none text-white">
@@ -17,11 +15,11 @@
                 <div class="col-auto ms-auto d-print-none">
                     <div class="btn-list">
                         <button href="#" class="btn btn-primary" data-bs-toggle="modal"
-                                data-bs-target="#generate-ai-content">
-                            <i class="icon ti ti-robot"></i>
+                                data-bs-target="#generate">
+                            <i class="icon ti ti-ai"></i>
                             AI 文档生成
                         </button>
-                        <button id="create-doc" href="#" class="btn btn-primary">
+                        <button id="create" href="#" class="btn btn-primary">
                             <i class="icon ti ti-device-floppy"></i>
                             保存
                         </button>
@@ -32,25 +30,50 @@
     </div>
     <div class="page-body">
         <div class="container-xl">
-            <div class="card">
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label col-3 col-form-label">文档标题</label>
-                        <div class="col">
-                            <input id="title" type="text" class="form-control" value="">
+            <div class="row row-cards">
+                <div class="col-md-9 col-sm-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label col-3 col-form-label">文档标题</label>
+                                <div class="col">
+                                    <input id="title" type="text" class="form-control" value="">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <form method="post">
+                                    <textarea id="tinymce"></textarea>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <form method="post">
-                            <textarea id="tinymce"></textarea>
-                        </form>
+                </div>
+                <div class="col-md-3 col-sm-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 class="card-title">选项</h3>
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">状态</label>
+                                <div class="col">
+                                    <select id="status" class="col form-select" value="1">
+                                        <option value="0">未发布</option>
+                                        <option value="1">已发布</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <label class="form-label">排序</label>
+                                <div class="col">
+                                    <input id="sort" type="text" class="form-control" value="0">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="modal modal-blur fade" id="generate-ai-content" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal modal-blur fade" id="generate" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -59,7 +82,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <input id="question" class="form-control" rows="12" placeholder="请输入文档生成问题"></input>
+                        <input id="question" class="form-control" rows="12" placeholder="请输入文档生成提示">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -71,31 +94,9 @@
     </div>
 </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        let options = {
-            selector: '#tinymce',
-            menubar: false,
-            statusbar: false,
-            plugins:
-                'advlist autolink lists link image charmap preview anchor ' +
-                'searchreplace visualblocks code fullscreen ' +
-                'insertdatetime media table wordcount',
-            toolbar: 'undo redo | formatselect | ' +
-                'bold italic backcolor link | blocks | alignleft aligncenter ' +
-                'alignright alignjustify | bullist numlist outdent indent | ' +
-                'image removeformat',
-            image_title: false,
-            image_description: false,
-            content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;font-size:   14px; -webkit-font-smoothing: antialiased; }',
-            {if $user->is_dark_mode}
-            skin: 'oxide-dark',
-            content_css: 'dark',
-            {/if}
-        }
-        tinyMCE.init(options);
-    })
+{include file='tinymce.tpl'}
 
+<script>
     $("#generate").click(function () {
         $.ajax({
             url: "/admin/docs/generate",
@@ -106,8 +107,8 @@
             },
             success: function (data) {
                 if (data.ret === 1) {
-                    $('#success-noreload-message').text(data.msg);
-                    $('#success-noreload-dialog').modal('show');
+                    $('#success-message').text(data.msg);
+                    $('#success-dialog').modal('show');
                     tinyMCE.activeEditor.setContent(data.content);
                 } else {
                     $('#fail-message').text(data.msg);
@@ -117,14 +118,16 @@
         })
     });
 
-    $("#create-doc").click(function () {
+    $("#create").click(function () {
         $.ajax({
             url: '/admin/docs',
             type: 'POST',
             dataType: "json",
             data: {
-                title: $("#title").val(),
-                content: tinyMCE.get('tinymce').getContent(),
+                {foreach $update_field as $key}
+                {$key}: $('#{$key}').val(),
+                {/foreach}
+                content: tinyMCE.activeEditor.getContent(),
             },
             success: function (data) {
                 if (data.ret === 1) {

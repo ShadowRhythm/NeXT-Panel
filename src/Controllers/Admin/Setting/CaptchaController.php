@@ -7,6 +7,9 @@ namespace App\Controllers\Admin\Setting;
 use App\Controllers\BaseController;
 use App\Models\Config;
 use Exception;
+use Psr\Http\Message\ResponseInterface;
+use Slim\Http\Response;
+use Slim\Http\ServerRequest;
 
 final class CaptchaController extends BaseController
 {
@@ -22,12 +25,19 @@ final class CaptchaController extends BaseController
         // Geetest
         'geetest_id',
         'geetest_key',
+        // hCaptcha
+        'hcaptcha_sitekey',
+        'hcaptcha_secret',
+        // reCAPTCHA Enterprise
+        'recaptcha_enterprise_key_id',
+        'recaptcha_enterprise_project_id',
+        'recaptcha_enterprise_api_key',
     ];
 
     /**
      * @throws Exception
      */
-    public function index($request, $response, $args)
+    public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $settings = Config::getClass('captcha');
 
@@ -39,7 +49,7 @@ final class CaptchaController extends BaseController
         );
     }
 
-    public function save($request, $response, $args)
+    public function save(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         foreach (self::$update_field as $item) {
             if (! Config::set($item, $request->getParam($item))) {

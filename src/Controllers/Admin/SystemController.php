@@ -6,15 +6,17 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\Config;
+use App\Utils\ResponseHelper;
 use App\Utils\Tools;
 use Exception;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
-use function file_get_contents;
-use function stream_context_create;
 use function version_compare;
-use const VERSION;
+use const OTA_API_URL;
+use const PANEL_VERSION;
 
 final class SystemController extends BaseController
 {
@@ -25,14 +27,11 @@ final class SystemController extends BaseController
      */
     public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
-        $last_daily_job_time = Tools::toDateTime(Config::obtain('last_daily_job_time'));
-        $db_version = Config::obtain('db_version');
-
         return $response->write(
             $this->view()
-                ->assign('version', VERSION)
-                ->assign('last_daily_job_time', $last_daily_job_time)
-                ->assign('db_version', $db_version)
+                ->assign('version', PANEL_VERSION)
+                ->assign('last_daily_job_time', Tools::toDateTime(Config::obtain('last_daily_job_time')))
+                ->assign('db_version', Config::obtain('db_version'))
                 ->fetch('admin/system.tpl')
         );
     }
@@ -42,15 +41,26 @@ final class SystemController extends BaseController
      */
     public function checkUpdate(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
-        $latest_version = file_get_contents('https://ota.sspanel.org/get-latest-version', false, stream_context_create([
-            'http' => [
+        $client = new Client();
+
+        $headers = [
+            'User-Agent' => 'NeXT-Panel/' . PANEL_VERSION,
+            'Panel-Type' => 'NeXT',
+            'Accept' => 'application/json',
+        ];
+
+        try {
+            $latest_version = $client->get(OTA_API_URL, [
+                'headers' => $headers,
                 'timeout' => 3,
-            ],
-        ]));
-        $is_upto_date = version_compare($latest_version, VERSION, '<=');
+            ])->getBody()->getContents();
+        } catch (GuzzleException $e) {
+            return ResponseHelper::error($response, '检查更新失败：' . $e->getMessage());
+        }
 
         return $response->withJson([
-            'is_upto_date' => $is_upto_date,
+            'ret' => 1,
+            'is_up_to_date' => version_compare($latest_version, PANEL_VERSION, '<='),
             'latest_version' => $latest_version,
         ]);
     }

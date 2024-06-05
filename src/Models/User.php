@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Services\IM;
-use App\Utils\Hash;
+use App\Services\IM\Telegram;
 use App\Utils\Tools;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Database\Query\Builder;
-use Ramsey\Uuid\Uuid;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use function date;
-use function md5;
+use function hash;
 use function round;
 use const PHP_EOL;
 
@@ -58,8 +57,6 @@ use const PHP_EOL;
  * @property int    $is_shadow_banned 是否处于账户异常状态
  * @property int    $expire_notified 过期提醒
  * @property int    $traffic_notified 流量提醒
- * @property string $forbidden_ip 禁止访问IP
- * @property string $forbidden_port 禁止访问端口
  * @property int    $auto_reset_day 自动重置流量日
  * @property float  $auto_reset_bandwidth 自动重置流量
  * @property string $api_token API 密钥
@@ -94,17 +91,20 @@ final class User extends Model
         'ref_by' => 'int',
     ];
 
-    public function getSs2022Pk($len): string
-    {
-        return Tools::genSs2022UserPk($this->passwd, $len);
-    }
-
     /**
      * DiceBear 头像
      */
     public function getDiceBearAttribute(): string
     {
-        return 'https://api.dicebear.com/7.x/identicon/svg?seed=' . md5($this->email);
+        return 'https://api.dicebear.com/8.x/identicon/svg?seed=' . hash('sha3-256', $this->email);
+    }
+
+    /**
+     * User identifier
+     */
+    public function getIdentifierAttribute(): string
+    {
+        return hash('sha3-256', $this->id . ':' . $this->email);
     }
 
     /**
@@ -133,26 +133,6 @@ final class User extends Model
     public function lastCheckInTime(): string
     {
         return $this->last_check_in_time === 0 ? '从未签到' : Tools::toDateTime($this->last_check_in_time);
-    }
-
-    /**
-     * 更新密码
-     */
-    public function updatePassword(string $pwd): bool
-    {
-        $this->pass = Hash::passwordHash($pwd);
-
-        return $this->save();
-    }
-
-    /**
-     * 生成新的 API Token
-     */
-    public function generateApiToken(): bool
-    {
-        $this->api_token = Uuid::uuid4();
-
-        return $this->save();
     }
 
     /*
@@ -247,7 +227,7 @@ final class User extends Model
     /**
      * 删除用户的订阅链接
      */
-    public function cleanLink(): void
+    public function removeLink(): void
     {
         (new Link())->where('userid', $this->id)->delete();
     }
@@ -255,7 +235,7 @@ final class User extends Model
     /**
      * 删除用户的邀请码
      */
-    public function clearInviteCodes(): void
+    public function removeInvite(): void
     {
         (new InviteCode())->where('user_id', $this->id)->delete();
     }
@@ -283,6 +263,14 @@ final class User extends Model
         $this->im_type = 0;
         $this->im_value = '';
 
+        if ($this->im_type === 4 && Config::obtain('telegram_unbind_kick_member')) {
+            try {
+                (new Telegram())->banGroupMember((int) $this->im_value);
+            } catch (TelegramSDKException) {
+                return false;
+            }
+        }
+
         return $this->save();
     }
 
@@ -299,7 +287,7 @@ final class User extends Model
         $unused_traffic = $this->unusedTraffic();
 
         if ($this->daily_mail_enable === 1) {
-            echo 'Send daily mail to user: ' . $this->id . PHP_EOL;
+            echo 'Sending daily mail to user: ' . $this->id . PHP_EOL;
 
             (new EmailQueue())->add(
                 $this->email,
@@ -307,15 +295,16 @@ final class User extends Model
                 'traffic_report.tpl',
                 [
                     'user' => $this,
-                    'text' => '下面是系统中目前的最新公告:<br><br>' . $ann . '<br><br>晚安！',
+                    'text' => '站点公告:<br><br>' . $ann . '<br><br>晚安！',
                     'lastday_traffic' => $lastday_traffic,
                     'enable_traffic' => $enable_traffic,
                     'used_traffic' => $used_traffic,
                     'unused_traffic' => $unused_traffic,
                 ]
             );
-        } else {
-            echo 'Send daily IM message to user: ' . $this->id . PHP_EOL;
+        } elseif ($this->daily_mail_enable === 2 && $this->im_value !== '') {
+            echo 'Sending daily IM message to user: ' . $this->id . PHP_EOL;
+
             $text = date('Y-m-d') . ' 流量使用报告' . PHP_EOL . PHP_EOL;
             $text .= '流量总计：' . $enable_traffic . PHP_EOL;
             $text .= '已用流量：' . $used_traffic . PHP_EOL;
@@ -323,7 +312,7 @@ final class User extends Model
             $text .= '今日使用：' . $lastday_traffic;
 
             try {
-                IM::send($this->im_value, $text, $this->im_type);
+                IM::send((int) $this->im_value, $text, $this->im_type);
             } catch (GuzzleException|TelegramSDKException $e) {
                 echo $e->getMessage() . PHP_EOL;
             }

@@ -5,20 +5,20 @@ declare(strict_types=1);
 namespace App\Utils;
 
 use App\Models\Config;
-use App\Models\Link;
 use App\Models\User;
 use App\Services\GeoIP2;
 use App\Services\QQWry;
 use GeoIp2\Exception\AddressNotFoundException;
 use MaxMind\Db\Reader\InvalidDatabaseException;
+use Random\RandomException;
 use function array_diff;
 use function array_flip;
 use function base64_encode;
 use function bin2hex;
+use function ceil;
 use function closedir;
 use function count;
 use function date;
-use function explode;
 use function filter_var;
 use function floor;
 use function hash;
@@ -26,10 +26,11 @@ use function in_array;
 use function is_numeric;
 use function json_decode;
 use function log;
+use function max;
 use function mb_strcut;
 use function opendir;
-use function openssl_random_pseudo_bytes;
 use function pow;
+use function random_bytes;
 use function range;
 use function readdir;
 use function round;
@@ -42,6 +43,7 @@ use const FILTER_FLAG_IPV6;
 use const FILTER_VALIDATE_EMAIL;
 use const FILTER_VALIDATE_INT;
 use const FILTER_VALIDATE_IP;
+use const PHP_INT_MAX;
 
 final class Tools
 {
@@ -60,13 +62,13 @@ final class Tools
         if ($_ENV['maxmind_license_key'] !== '') {
             try {
                 $geoip = new GeoIP2();
-            } catch (InvalidDatabaseException $e) {
+            } catch (InvalidDatabaseException) {
                 return $data;
             }
 
             try {
                 $city = $geoip->getCity($ip);
-            } catch (AddressNotFoundException|InvalidDatabaseException $e) {
+            } catch (AddressNotFoundException|InvalidDatabaseException) {
                 $city = '未知城市';
             }
             try {
@@ -77,7 +79,7 @@ final class Tools
 
             try {
                 $country = $geoip->getCountry($ip);
-            } catch (AddressNotFoundException|InvalidDatabaseException $e) {
+            } catch (AddressNotFoundException|InvalidDatabaseException) {
                 $country = '未知国家';
             }
         }
@@ -120,7 +122,7 @@ final class Tools
             return '0B';
         }
 
-        if ($size > 1208925819614629174706176) {
+        if ($size > PHP_INT_MAX) {
             return '∞';
         }
 
@@ -133,21 +135,28 @@ final class Tools
     /**
      * 根据含单位的流量值转换 B 输出
      */
-    public static function autoBytesR($size): ?int
+    public static function autoBytesR(string $size): int
     {
-        if (is_numeric(substr($size, 0, -1))) {
+        $suffix_single = substr($size, -1);
+
+        if (is_numeric(substr($size, 0, -1)) && $suffix_single === 'B') {
             return (int) substr($size, 0, -1);
         }
 
-        $suffix = substr($size, -2);
-        $base = substr($size, 0, strlen($size) - 2);
         $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB'];
+        $suffix_double = substr($size, -2);
 
-        if ($base > 999 && $suffix === 'EB') {
+        if (! in_array($suffix_double, $units)) {
             return -1;
         }
 
-        return (int) ($base * pow(1024, array_flip($units)[$suffix]));
+        $base = substr($size, 0, strlen($size) - 2);
+
+        if (! is_numeric($base) || ($base > 999 && $suffix_double === 'EB')) {
+            return -1;
+        }
+
+        return (int) ($base * pow(1024, array_flip($units)[$suffix_double]));
     }
 
     /**
@@ -169,61 +178,81 @@ final class Tools
         return round(pow(1000, $base - floor($base)), $precision) . $units[floor($base)];
     }
 
-    /**
-     * 虽然名字是toMB，但是实际上功能是from MB to B
-     */
-    public static function toMB($traffic): int
+    public static function mbToB($traffic): int
     {
+        if ($traffic <= 0 || $traffic > PHP_INT_MAX) {
+            return 0;
+        }
+
         return (int) $traffic * 1048576;
     }
 
-    /**
-     * 虽然名字是toGB，但是实际上功能是from GB to B
-     */
-    public static function toGB($traffic): int
+    public static function gbToB($traffic): int
     {
+        if ($traffic <= 0 || $traffic > PHP_INT_MAX) {
+            return 0;
+        }
+
         return (int) $traffic * 1073741824;
     }
 
-    public static function flowToMB($traffic): float
+    public static function bToMB($traffic): float
     {
+        if ($traffic <= 0 || $traffic > PHP_INT_MAX) {
+            return 0;
+        }
+
         return round($traffic / 1048576, 2);
     }
 
-    public static function flowToGB($traffic): float
+    public static function bToGB($traffic): float
     {
+        if ($traffic <= 0 || $traffic > PHP_INT_MAX) {
+            return 0;
+        }
+
         return round($traffic / 1073741824, 2);
     }
 
     public static function genSubToken(): string
     {
-        $token = self::genRandomChar($_ENV['sub_token_len']);
-        $is_token_used = (new Link())->where('token', $token)->first();
-
-        if ($is_token_used === null) {
-            return $token;
-        }
-
-        return "couldn't alloc token";
+        return self::genRandomChar(max($_ENV['sub_token_len'], 8));
     }
 
-    public static function genRandomChar(int $length = 8): string
+    public static function genRandomChar(int $length = 8): string|false
     {
         if ($length <= 2) {
             $length = 2;
         }
 
-        return bin2hex(openssl_random_pseudo_bytes($length / 2));
+        try {
+            $randomString = bin2hex(random_bytes((int) ceil($length / 2)));
+        } catch (RandomException) {
+            return false;
+        }
+
+        return substr($randomString, 0, $length);
     }
 
-    public static function genSs2022UserPk($passwd, $len): string
+    public static function genSs2022UserPk(string $passwd, string $method): string|false
     {
-        $passwd_hash = hash('sha256', $passwd);
+        $ss2022_methods = [
+            '2022-blake3-aes-128-gcm',
+            '2022-blake3-aes-256-gcm',
+            '2022-blake3-chacha8-poly1305',
+            '2022-blake3-chacha12-poly1305',
+            '2022-blake3-chacha20-poly1305',
+        ];
 
-        $pk = match ($len) {
-            16 => mb_strcut($passwd_hash, 0, 16),
-            32 => mb_strcut($passwd_hash, 0, 32),
-            default => $passwd_hash,
+        if (! in_array($method, $ss2022_methods)) {
+            return false;
+        }
+
+        $passwd_hash = hash('sha3-256', $passwd);
+
+        $pk = match ($method) {
+            '2022-blake3-aes-128-gcm' => mb_strcut($passwd_hash, 0, 16),
+            default => mb_strcut($passwd_hash, 0, 32),
         };
 
         return base64_encode($pk);
@@ -310,49 +339,6 @@ final class Tools
                 'xchacha20-ietf-poly1305',
             ],
         };
-    }
-
-    /**
-     * @param $email
-     *
-     * @return array
-     */
-    public static function isEmailLegal($email): array
-    {
-        $res = [];
-        $res['ret'] = 0;
-
-        if (! self::isEmail($email)) {
-            $res['msg'] = '邮箱不规范';
-            return $res;
-        }
-
-        $mail_suffix = explode('@', $email)[1];
-        $mail_filter_list = $_ENV['mail_filter_list'];
-
-        switch ($_ENV['mail_filter']) {
-            case 1:
-                // 白名单
-                if (in_array($mail_suffix, $mail_filter_list)) {
-                    $res['ret'] = 1;
-                } else {
-                    $res['msg'] = '邮箱域名 ' . $mail_suffix . ' 无效，请更换邮件地址';
-                }
-
-                return $res;
-            case 2:
-                // 黑名单
-                if (! in_array($mail_suffix, $mail_filter_list)) {
-                    $res['ret'] = 1;
-                } else {
-                    $res['msg'] = '邮箱域名 ' . $mail_suffix . ' 无效，请更换邮件地址';
-                }
-
-                return $res;
-            default:
-                $res['ret'] = 1;
-                return $res;
-        }
     }
 
     public static function isEmail($input): bool

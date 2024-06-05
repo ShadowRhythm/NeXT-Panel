@@ -17,7 +17,6 @@ use App\Utils\Tools;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use MaxMind\Db\Reader\InvalidDatabaseException;
 use Telegram\Bot\Api;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use function array_chunk;
@@ -66,7 +65,7 @@ final class Callback
     /**
      * 触发源信息 ID
      */
-    private $message_id;
+    private int $message_id;
 
     /**
      * 源消息是否可编辑
@@ -74,7 +73,6 @@ final class Callback
     private bool $allow_edit_message;
 
     /**
-     * @throws InvalidDatabaseException
      * @throws TelegramSDKException|GuzzleException
      */
     public function __construct(Api $bot, Collection $callback)
@@ -110,8 +108,7 @@ final class Callback
      *
      * @param array $send_message
      *
-     * @throws TelegramSDKException
-     * @throws GuzzleException
+     * @throws TelegramSDKException|GuzzleException
      */
     public function replyWithMessage(array $send_message): void
     {
@@ -203,7 +200,6 @@ final class Callback
     /**
      * 用户相关回调数据处理
      *
-     * @throws InvalidDatabaseException
      * @throws TelegramSDKException|GuzzleException
      */
     public function userCallback(): void
@@ -309,8 +305,7 @@ final class Callback
     /**
      * 用户中心
      *
-     * @throws TelegramSDKException
-     * @throws InvalidDatabaseException|GuzzleException
+     * @throws TelegramSDKException|GuzzleException
      */
     public function userCenter(): void
     {
@@ -507,8 +502,7 @@ final class Callback
     /**
      * 用户编辑
      *
-     * @throws TelegramSDKException
-     * @throws GuzzleException
+     * @throws TelegramSDKException|GuzzleException
      */
     public function userEdit(): void
     {
@@ -540,7 +534,7 @@ final class Callback
         switch ($OpEnd) {
             case 'update_link':
                 // 重置订阅链接
-                $this->user->cleanLink();
+                $this->user->removeLink();
 
                 $this->answerCallbackQuery([
                     'text' => '订阅链接重置成功，请在下方重新更新订阅。',
@@ -819,8 +813,6 @@ final class Callback
                 ],
             ];
 
-            $sendMessage = [];
-
             $UniversalSub_Url = Subscribe::getUniversalSubLink($this->user);
 
             $text = match ($CallbackDataExplode[1]) {
@@ -887,8 +879,6 @@ final class Callback
         if (is_null($paybacks_sum)) {
             $paybacks_sum = 0;
         }
-
-        $invite = Config::getClass('ref');
 
         $text = [
             '<strong>你每邀请 <code>1</code> 位用户注册：</strong>',
@@ -987,7 +977,7 @@ final class Callback
             if (! $traffic) {
                 $msg = '签到失败';
             } else {
-                $msg = '获得了 ' . $traffic . 'MB 流量.';
+                $msg = '获得了 ' . $traffic . 'MB 流量';
             }
         } else {
             $msg = '你今天已经签到过了';

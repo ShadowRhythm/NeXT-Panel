@@ -6,10 +6,10 @@ namespace App\Controllers\User;
 
 use App\Controllers\BaseController;
 use App\Models\Config;
-use App\Models\InviteCode;
 use App\Models\User;
 use App\Services\Auth;
 use App\Services\Cache;
+use App\Services\Filter;
 use App\Services\MFA;
 use App\Utils\Hash;
 use App\Utils\ResponseHelper;
@@ -30,7 +30,7 @@ final class InfoController extends BaseController
     /**
      * @throws Exception
      */
-    public function index(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $themes = Tools::getDir(BASE_PATH . '/resources/views');
         $methods = Tools::getSsMethod('method');
@@ -47,7 +47,7 @@ final class InfoController extends BaseController
     /**
      * @throws RedisException
      */
-    public function updateEmail(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function updateEmail(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $new_email = $this->antiXss->xss_clean($request->getParam('newemail'));
         $user = $this->user;
@@ -61,20 +61,16 @@ final class InfoController extends BaseController
             return ResponseHelper::error($response, '未填写邮箱');
         }
 
-        $check_res = Tools::isEmailLegal($new_email);
-
-        if ($check_res['ret'] !== 1) {
-            return $response->withJson($check_res);
-        }
-
-        $exist_user = (new User())->where('email', $new_email)->first();
-
-        if ($exist_user !== null) {
-            return ResponseHelper::error($response, '邮箱已经被使用了');
+        if (! Filter::checkEmailFilter($new_email)) {
+            return ResponseHelper::error($response, '无效的邮箱');
         }
 
         if ($new_email === $old_email) {
             return ResponseHelper::error($response, '新邮箱不能和旧邮箱一样');
+        }
+
+        if ((new User())->where('email', $new_email)->first() !== null) {
+            return ResponseHelper::error($response, '邮箱已经被使用了');
         }
 
         if (Config::obtain('reg_email_verify')) {
@@ -128,11 +124,9 @@ final class InfoController extends BaseController
         ]);
     }
 
-    public function unbindIM(ServerRequest $request, Response $response, array $args): ResponseInterface
+    public function unbindIm(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
-        $user = $this->user;
-
-        if (! $user->unbindIM()) {
+        if (! $this->user->unbindIM()) {
             return ResponseHelper::error($response, '解绑失败');
         }
 
@@ -144,33 +138,35 @@ final class InfoController extends BaseController
 
     public function updatePassword(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
-        $oldpwd = $request->getParam('oldpwd');
-        $pwd = $request->getParam('pwd');
-        $repwd = $request->getParam('repwd');
+        $password = $request->getParam('password');
+        $new_password = $request->getParam('new_password');
+        $confirm_new_password = $request->getParam('confirm_new_password');
         $user = $this->user;
 
-        if ($oldpwd === '' || $pwd === '' || $repwd === '') {
+        if ($password === '' || $new_password === '' || $confirm_new_password === '') {
             return ResponseHelper::error($response, '密码不能为空');
         }
 
-        if (! Hash::checkPassword($user->pass, $oldpwd)) {
+        if (! Hash::checkPassword($user->pass, $password)) {
             return ResponseHelper::error($response, '旧密码错误');
         }
 
-        if ($pwd !== $repwd) {
+        if ($new_password !== $confirm_new_password) {
             return ResponseHelper::error($response, '两次输入不符合');
         }
 
-        if (strlen($pwd) < 8) {
+        if (strlen($new_password) < 8) {
             return ResponseHelper::error($response, '密码太短啦');
         }
 
-        if (! $user->updatePassword($pwd)) {
+        $user->pass = Hash::passwordHash($new_password);
+
+        if (! $user->save()) {
             return ResponseHelper::error($response, '修改失败');
         }
 
         if (Config::obtain('enable_forced_replacement')) {
-            $user->cleanLink();
+            $user->removeLink();
         }
 
         return ResponseHelper::success($response, '修改成功');
@@ -199,7 +195,7 @@ final class InfoController extends BaseController
     public function resetApiToken(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $user = $this->user;
-        $user->api_token = Uuid::uuid4();
+        $user->api_token = Tools::genRandomChar(32);
 
         if (! $user->save()) {
             return ResponseHelper::error($response, '重置失败');
@@ -216,6 +212,7 @@ final class InfoController extends BaseController
         if ($method === '') {
             ResponseHelper::error($response, '非法输入');
         }
+
         if (! Tools::isParamValidate('method', $method)) {
             ResponseHelper::error($response, '加密无效');
         }
@@ -229,27 +226,11 @@ final class InfoController extends BaseController
         return ResponseHelper::success($response, '修改成功');
     }
 
-    public function resetURL(ServerRequest $request, Response $response, array $args): ResponseInterface
+    public function resetUrl(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
-        $user = $this->user;
-        $user->cleanLink();
+        $this->user->removeLink();
 
         return ResponseHelper::success($response, '重置成功');
-    }
-
-    public function resetInviteURL(ServerRequest $request, Response $response, array $args): ResponseInterface
-    {
-        $user = $this->user;
-        $user->clearInviteCodes();
-        $code = (new InviteCode())->add($user->id);
-
-        return $response->withJson([
-            'ret' => 1,
-            'msg' => '重置成功',
-            'data' => [
-                'invite-url' => $_ENV['baseUrl'] . '/auth/register?code=' . $code,
-            ],
-        ]);
     }
 
     public function updateDailyMail(ServerRequest $request, Response $response, array $args): ResponseInterface
@@ -288,7 +269,7 @@ final class InfoController extends BaseController
         return ResponseHelper::success($response, '修改成功');
     }
 
-    public function updateTheme(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function updateTheme(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $theme = $this->antiXss->xss_clean($request->getParam('theme'));
         $user = $this->user;
@@ -309,16 +290,29 @@ final class InfoController extends BaseController
         ]);
     }
 
+    public function updateThemeMode(ServerRequest $request, Response $response, array $args): ResponseInterface
+    {
+        $theme_mode = (int) $this->antiXss->xss_clean($request->getParam('theme_mode'));
+        $user = $this->user;
+
+        $user->is_dark_mode = in_array($theme_mode, [0, 1]) ? $theme_mode : 0;
+
+        if (! $user->save()) {
+            return ResponseHelper::error($response, '切换失败');
+        }
+
+        return $response->withHeader('HX-Refresh', 'true')->withJson([
+            'ret' => 1,
+            'msg' => '切换成功',
+        ]);
+    }
+
     public function sendToGulag(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $user = $this->user;
-        $passwd = $request->getParam('passwd');
+        $password = $request->getParam('password');
 
-        if ($passwd === '') {
-            return ResponseHelper::error($response, '密码不能为空');
-        }
-
-        if (! Hash::checkPassword($user->pass, $passwd)) {
+        if ($password === '' || ! Hash::checkPassword($user->pass, $password)) {
             return ResponseHelper::error($response, '密码错误');
         }
 
@@ -328,7 +322,7 @@ final class InfoController extends BaseController
 
             return $response->withHeader('HX-Refresh', 'true')->withJson([
                 'ret' => 1,
-                'msg' => '你的帐号已被送去古拉格劳动改造，再见',
+                'msg' => '你将被送去古拉格接受劳动改造，再见',
             ]);
         }
 

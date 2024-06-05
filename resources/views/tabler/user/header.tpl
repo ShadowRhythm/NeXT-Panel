@@ -24,6 +24,17 @@
         .home-title {
             font-size: 36px;
         }
+
+        .spoiler {
+            background-color: gray;
+            color: transparent;
+            transition: 0.3s;
+        }
+
+        .spoiler:hover {
+            background-color: inherit;
+            color: inherit;
+        }
     </style>
 </head>
 
@@ -39,32 +50,14 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
-                <img src="/images/uim-logo-round_48x48.png" height="32" alt="SSPanel-UIM Logo"
-                     class="navbar-brand-image" style="filter: none;">
+                <img src="/images/next-logo.svg" height="32" alt="Next Panel Logo" class="navbar-brand-image" style="filter: none;">
             </h1>
             <div class="navbar-nav flex-row order-md-last">
                 <div class="nav-item dropdown">
-                    <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown"
-                       aria-label="Open user menu">
-                            <span class="avatar avatar-sm"
-                                  style="background-image: url({$user->dice_bear})"></span>
-                        <div class="d-none d-xl-block ps-2">
-                            <div>{$user->email}</div>
-                            <div class="mt-1 small text-secondary">{$user->user_name}</div>
-                        </div>
+                    <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown">
+                        <span class="avatar avatar-sm" style="background-image: url({$user->dice_bear})"></span>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                        {if $user->is_dark_mode}
-                            <a id="switch-theme-mode" class="dropdown-item"
-                               hx-post="/user/switch_theme_mode" hx-swap="none">
-                                浅色模式
-                            </a>
-                        {else}
-                            <a id="switch_theme_mode" class="dropdown-item"
-                               hx-post="/user/switch_theme_mode" hx-swap="none">
-                                深色模式
-                            </a>
-                        {/if}
                         <a href="/user/logout" class="dropdown-item">登出</a>
                     </div>
                 </div>
@@ -74,23 +67,23 @@
                     <ul class="navbar-nav">
                         <li class="nav-item">
                             <a class="nav-link" href="/user">
-                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                        <i class="ti ti-home icon"></i>
-                                    </span>
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-home icon"></i>
+                                </span>
                                 <span class="nav-link-title">
-                                        主页
-                                    </span>
+                                    主页
+                                </span>
                             </a>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#navbar-base" data-bs-toggle="dropdown"
-                               data-bs-auto-close="outside" role="button" aria-expanded="false">
-                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                        <i class="ti ti-user icon"></i>
-                                    </span>
+                                data-bs-auto-close="outside" role="button" aria-expanded="false">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-user icon"></i>
+                                </span>
                                 <span class="nav-link-title">
-                                        我的
-                                    </span>
+                                    我的
+                                </span>
                             </a>
                             <div class="dropdown-menu">
                                 <div class="dropdown-menu-columns">
@@ -103,12 +96,6 @@
                                             <i class="ti ti-edit"></i>&nbsp;
                                             资料
                                         </a>
-                                        {if $public_setting['subscribe_log']}
-                                            <a class="dropdown-item" href="/user/subscribe">
-                                                <i class="ti ti-rss"></i>&nbsp;
-                                                订阅日志
-                                            </a>
-                                        {/if}
                                         <a class="dropdown-item" href="/user/invite">
                                             <i class="ti ti-friends"></i>&nbsp;
                                             邀请
@@ -119,13 +106,13 @@
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#navbar-extra" data-bs-toggle="dropdown"
-                               data-bs-auto-close="outside" role="button" aria-expanded="false">
-                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                        <i class="ti ti-brand-telegram icon"></i>
-                                    </span>
+                                data-bs-auto-close="outside" role="button" aria-expanded="false">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-brand-telegram icon"></i>
+                                </span>
                                 <span class="nav-link-title">
-                                        使用
-                                    </span>
+                                    使用
+                                </span>
                             </a>
                             <div class="dropdown-menu">
                                 <a class="dropdown-item" href="/user/server">
@@ -140,17 +127,11 @@
                                     <i class="ti ti-key"></i>&nbsp;
                                     流媒体解锁
                                 </a>
-                                {if $public_setting['traffic_log']}
-                                    <a class="dropdown-item" href="/user/traffic">
-                                        <i class="ti ti-traffic-lights"></i>&nbsp;
-                                        流量日志
-                                    </a>
-                                {/if}
                             </div>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#navbar-extra" data-bs-toggle="dropdown"
-                               data-bs-auto-close="outside" role="button" aria-expanded="false">
+                                data-bs-auto-close="outside" role="button" aria-expanded="false">
                                     <span class="nav-link-icon d-md-none d-lg-inline-block">
                                         <i class="ti ti-dots-circle-horizontal icon"></i>
                                     </span>
@@ -164,29 +145,29 @@
                                     公告
                                 </a>
                                 {if $public_setting['enable_ticket']}
-                                    <a class="dropdown-item" href="/user/ticket">
-                                        <i class="ti ti-ticket"></i>&nbsp;
-                                        工单
-                                    </a>
+                                <a class="dropdown-item" href="/user/ticket">
+                                    <i class="ti ti-ticket"></i>&nbsp;
+                                    工单
+                                </a>
                                 {/if}
                                 {if $public_setting['display_docs'] &&
                                 (! $public_setting['display_docs_only_for_paid_user'] || $user->class !== 0)}
-                                    <a class="dropdown-item" href="/user/docs">
-                                        <i class="ti ti-notes"></i>&nbsp;
-                                        文档
-                                    </a>
+                                <a class="dropdown-item" href="/user/docs">
+                                    <i class="ti ti-notes"></i>&nbsp;
+                                    文档
+                                </a>
                                 {/if}
                             </div>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#navbar-extra" data-bs-toggle="dropdown"
-                               data-bs-auto-close="outside" role="button" aria-expanded="false">
-                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                        <i class="ti ti-shield-check icon"></i>
-                                    </span>
+                                data-bs-auto-close="outside" role="button" aria-expanded="false">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-shield-check icon"></i>
+                                </span>
                                 <span class="nav-link-title">
-                                        审计
-                                    </span>
+                                    审计
+                                </span>
                             </a>
                             <div class="dropdown-menu">
                                 <a class="dropdown-item" href="/user/detect">
@@ -194,22 +175,22 @@
                                     规则
                                 </a>
                                 {if $public_setting['display_detect_log']}
-                                    <a class="dropdown-item" href="/user/detect/log">
-                                        <i class="ti ti-notes"></i>&nbsp;
-                                        日志
-                                    </a>
+                                <a class="dropdown-item" href="/user/detect/log">
+                                    <i class="ti ti-notes"></i>&nbsp;
+                                    日志
+                                </a>
                                 {/if}
                             </div>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#navbar-layout" data-bs-toggle="dropdown"
-                               data-bs-auto-close="outside" role="button" aria-expanded="false">
-                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                        <i class="ti ti-building-store icon"></i>
-                                    </span>
+                                data-bs-auto-close="outside" role="button" aria-expanded="false">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-building-store icon"></i>
+                                </span>
                                 <span class="nav-link-title">
-                                        商店
-                                    </span>
+                                    商店
+                                </span>
                             </a>
                             <div class="dropdown-menu">
                                 <div class="dropdown-menu-columns">
@@ -235,16 +216,16 @@
                             </div>
                         </li>
                         {if $user->is_admin}
-                            <li class="nav-item">
-                                <a class="nav-link" href="/admin">
-                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                        <i class="ti ti-settings icon"></i>
-                                    </span>
-                                    <span class="nav-link-title">
-                                        站点管理
-                                    </span>
-                                </a>
-                            </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-settings icon"></i>
+                                </span>
+                                <span class="nav-link-title">
+                                    站点管理
+                                </span>
+                            </a>
+                        </li>
                         {/if}
                     </ul>
                 </div>

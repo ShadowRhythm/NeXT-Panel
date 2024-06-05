@@ -39,12 +39,10 @@ final class OrderController extends BaseController
         ],
     ];
 
-    private static string $err_msg = '订单创建失败';
-
     /**
      * @throws Exception
      */
-    public function index(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         return $response->write(
             $this->view()
@@ -56,7 +54,7 @@ final class OrderController extends BaseController
     /**
      * @throws Exception
      */
-    public function create(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function create(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $product_id = $this->antiXss->xss_clean($request->getQueryParams()['product_id']) ?? null;
         $redir = Cookie::get('redir');
@@ -83,7 +81,7 @@ final class OrderController extends BaseController
     /**
      * @throws Exception
      */
-    public function detail(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function detail(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $id = $this->antiXss->xss_clean($args['id']);
 
@@ -114,7 +112,19 @@ final class OrderController extends BaseController
         );
     }
 
-    public function process(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function process(ServerRequest $request, Response $response, array $args): ResponseInterface
+    {
+        return match ($request->getParam('type')) {
+            'product' => $this->product($request, $response, $args),
+            'topup' => $this->topup($request, $response, $args),
+            default => $response->withJson([
+                'ret' => 0,
+                'msg' => '未知订单类型',
+            ]),
+        };
+    }
+
+    public function product(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $coupon_raw = $this->antiXss->xss_clean($request->getParam('coupon'));
         $product_id = $this->antiXss->xss_clean($request->getParam('product_id'));
@@ -124,7 +134,7 @@ final class OrderController extends BaseController
         if ($product === null || $product->stock === 0) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => self::$err_msg,
+                'msg' => '商品不存在或库存不足',
             ]);
         }
 
@@ -134,7 +144,7 @@ final class OrderController extends BaseController
         if ($user->is_shadow_banned) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => self::$err_msg,
+                'msg' => '商品不存在或库存不足',
             ]);
         }
 
@@ -144,7 +154,7 @@ final class OrderController extends BaseController
             if ($coupon === null || ($coupon->expire_time !== 0 && $coupon->expire_time < time())) {
                 return $response->withJson([
                     'ret' => 0,
-                    'msg' => self::$err_msg,
+                    'msg' => '优惠码不存在或已过期',
                 ]);
             }
 
@@ -153,14 +163,14 @@ final class OrderController extends BaseController
             if ($coupon_limit->disabled) {
                 return $response->withJson([
                     'ret' => 0,
-                    'msg' => self::$err_msg,
+                    'msg' => '优惠码已被禁用',
                 ]);
             }
 
             if ($coupon_limit->product_id !== '' && ! in_array($product_id, explode(',', $coupon_limit->product_id))) {
                 return $response->withJson([
                     'ret' => 0,
-                    'msg' => self::$err_msg,
+                    'msg' => '优惠码不适用于此商品',
                 ]);
             }
 
@@ -171,7 +181,7 @@ final class OrderController extends BaseController
                 if ($user_use_count >= $coupon_use_limit) {
                     return $response->withJson([
                         'ret' => 0,
-                        'msg' => self::$err_msg,
+                        'msg' => '优惠码使用次数已达上限',
                     ]);
                 }
             }
@@ -185,7 +195,7 @@ final class OrderController extends BaseController
             if ($coupon_total_use_limit > 0 && $coupon->use_count >= $coupon_total_use_limit) {
                 return $response->withJson([
                     'ret' => 0,
-                    'msg' => self::$err_msg,
+                    'msg' => '优惠码使用次数已达上限',
                 ]);
             }
 
@@ -205,7 +215,7 @@ final class OrderController extends BaseController
         if ($product_limit->class_required !== '' && $user->class < (int) $product_limit->class_required) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => self::$err_msg,
+                'msg' => '你的账户等级不足，无法购买此商品',
             ]);
         }
 
@@ -213,7 +223,7 @@ final class OrderController extends BaseController
             && $user->node_group !== (int) $product_limit->node_group_required) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => self::$err_msg,
+                'msg' => '你所在的用户组无法购买此商品',
             ]);
         }
 
@@ -222,7 +232,7 @@ final class OrderController extends BaseController
             if ($order_count > 0) {
                 return $response->withJson([
                     'ret' => 0,
-                    'msg' => self::$err_msg,
+                    'msg' => '此商品仅限新用户购买',
                 ]);
             }
         }
@@ -241,7 +251,6 @@ final class OrderController extends BaseController
         $order->save();
 
         $invoice_content = [];
-
         $invoice_content[] = [
             'content_id' => 0,
             'name' => $product->name,
@@ -265,11 +274,13 @@ final class OrderController extends BaseController
         $invoice->create_time = time();
         $invoice->update_time = time();
         $invoice->pay_time = 0;
+        $invoice->type = 'product';
         $invoice->save();
 
         if ($product->stock > 0) {
             $product->stock -= 1;
         }
+
         $product->sale_count += 1;
         $product->save();
 
@@ -285,12 +296,63 @@ final class OrderController extends BaseController
         ]);
     }
 
-    public function ajax(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function topup(ServerRequest $request, Response $response, array $args): ResponseInterface
+    {
+        $amount = $this->antiXss->xss_clean($request->getParam('amount'));
+        $amount = is_numeric($amount) ? round((float) $amount, 2) : null;
+
+        if ($amount === null || $amount <= 0) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '充值金额无效',
+            ]);
+        }
+
+        $order = new Order();
+        $order->user_id = $this->user->id;
+        $order->product_id = 0;
+        $order->product_type = 'topup';
+        $order->product_name = '余额充值';
+        $order->product_content = json_encode(['amount' => $amount]);
+        $order->coupon = '';
+        $order->price = $amount;
+        $order->status = 'pending_payment';
+        $order->create_time = time();
+        $order->update_time = time();
+        $order->save();
+
+        $invoice_content = [];
+        $invoice_content[] = [
+            'content_id' => 0,
+            'name' => '余额充值',
+            'price' => $amount,
+        ];
+
+        $invoice = new Invoice();
+        $invoice->user_id = $this->user->id;
+        $invoice->order_id = $order->id;
+        $invoice->content = json_encode($invoice_content);
+        $invoice->price = $amount;
+        $invoice->status = 'unpaid';
+        $invoice->create_time = time();
+        $invoice->update_time = time();
+        $invoice->pay_time = 0;
+        $invoice->type = 'topup';
+        $invoice->save();
+
+        return $response->withHeader('HX-Redirect', '/user/invoice/'.$invoice->id.'/view')->withJson([
+            'ret' => 1,
+            'msg' => '成功创建订单，正在跳转账单页面',
+            'invoice_id' => $invoice->id,
+        ]);
+    }
+
+    public function ajax(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $orders = (new Order())->orderBy('id', 'desc')->where('user_id', $this->user->id)->get();
 
         foreach ($orders as $order) {
-            $order->op = '<a class="btn btn-blue" href="/user/order/' . $order->id . '/view">查看</a>';
+            $order->op = '<a class="btn btn-primary" href="/user/order/' . $order->id . '/view">查看</a>';
 
             if ($order->status === 'pending_payment') {
                 $invoice_id = (new Invoice())->where('order_id', $order->id)->first()->id;

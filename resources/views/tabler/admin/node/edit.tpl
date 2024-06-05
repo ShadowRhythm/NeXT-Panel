@@ -216,7 +216,7 @@
                                     </div>
                                 </div>
                                 <label class="form-label col-form-label">
-                                    通讯密钥用于 WebAPI 节点模式鉴权，如需更改请点击重置
+                                    通讯密钥用于 NodeAPI 鉴权，如需更改请点击重置
                                 </label>
                             </div>
                         </div>
@@ -230,8 +230,8 @@
 <script>
     let clipboard = new ClipboardJS('.copy');
     clipboard.on('success', function (e) {
-        $('#success-noreload-message').text('已复制到剪切板');
-        $('#success-noreload-dialog').modal('show');
+        $('#success-message').text('已复制到剪切板');
+        $('#success-dialog').modal('show');
     });
 
     const container = document.getElementById('custom_config');

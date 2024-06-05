@@ -1,7 +1,5 @@
 {include file='admin/header.tpl'}
 
-<script src="//cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"></script>
-
 <div class="page-wrapper">
     <div class="container-xl">
         <div class="page-header d-print-none text-white">
@@ -16,7 +14,7 @@
                 </div>
                 <div class="col-auto ms-auto d-print-none">
                     <div class="btn-list">
-                        <button id="create-ann" href="#" class="btn btn-primary">
+                        <button id="create" href="#" class="btn btn-primary">
                             <i class="icon ti ti-device-floppy"></i>
                             保存
                         </button>
@@ -27,31 +25,55 @@
     </div>
     <div class="page-body">
         <div class="container-xl">
-            <div class="card">
-                <div class="card-body">
-                    <div class="mb-3">
-                        <form method="post">
-                            <textarea id="tinymce"></textarea>
-                        </form>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label col-3 col-form-label">公告通知的用户等级，0为不分级</label>
-                        <div class="col">
-                            <input id="email_notify_class" type="text" class="form-control" value="">
+            <div class="row row-cards">
+                <div class="col-md-9 col-sm-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <form method="post">
+                                    <textarea id="tinymce"></textarea>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <div class="divide-y">
-                            <div>
-                                <label class="row">
-                                    <span class="col">发送邮件通知</span>
-                                    <span class="col-auto">
-                                        <label class="form-check form-check-single form-switch">
-                                            <input id="email_notify" class="form-check-input" type="checkbox"
-                                                   checked="">
-                                        </label>
-                                    </span>
-                                </label>
+                </div>
+                <div class="col-md-3 col-sm-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 class="card-title">选项</h3>
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">状态</label>
+                                <div class="col">
+                                    <select id="status" class="col form-select" value="1">
+                                        <option value="0">未发布</option>
+                                        <option value="1">已发布</option>
+                                        <option value="2">置顶</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <label class="form-label">排序</label>
+                                <div class="col">
+                                    <input id="sort" type="text" class="form-control" value="0">
+                                </div>
+                            </div>
+                            <div class="hr-text">
+                                <span>通知</span>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <label class="form-label">邮件通知的用户等级</label>
+                                <div class="col">
+                                    <input id="email_notify_class" type="text" class="form-control" value="0">
+                                </div>
+                            </div>
+                            <div class="form-group mb-3 row">
+                                <span class="col">发送邮件通知</span>
+                                <span class="col-auto">
+                                    <label class="form-check form-check-single form-switch">
+                                        <input id="email_notify" class="form-check-input" type="checkbox"
+                                               checked="">
+                                    </label>
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -61,30 +83,10 @@
     </div>
 </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        let options = {
-            selector: '#tinymce',
-            menubar: false,
-            statusbar: false,
-            plugins:
-                'advlist autolink lists link image charmap preview anchor ' +
-                'searchreplace visualblocks code fullscreen ' +
-                'insertdatetime media table wordcount',
-            toolbar: 'undo redo | formatselect | ' +
-                'bold italic backcolor link | blocks | alignleft aligncenter ' +
-                'alignright alignjustify | bullist numlist outdent indent | ' +
-                'removeformat',
-            content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;font-size:   14px; -webkit-font-smoothing: antialiased; }',
-            {if $user->is_dark_mode}
-            skin: 'oxide-dark',
-            content_css: 'dark',
-            {/if}
-        }
-        tinyMCE.init(options);
-    })
+{include file='tinymce.tpl'}
 
-    $("#create-ann").click(function () {
+<script>
+    $("#create").click(function () {
         $.ajax({
             url: '/admin/announcement',
             type: 'POST',
@@ -93,6 +95,7 @@
                 {foreach $update_field as $key}
                 {$key}: $('#{$key}').val(),
                 {/foreach}
+                email_notify_class : $('#email_notify_class').val(),
                 email_notify: $("#email_notify").is(":checked"),
                 content: tinyMCE.activeEditor.getContent(),
             },

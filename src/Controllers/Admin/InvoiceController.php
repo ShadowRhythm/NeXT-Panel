@@ -36,7 +36,7 @@ final class InvoiceController extends BaseController
     /**
      * @throws Exception
      */
-    public function index(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         return $response->write(
             $this->view()
@@ -48,7 +48,7 @@ final class InvoiceController extends BaseController
     /**
      * @throws Exception
      */
-    public function detail(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function detail(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $id = $args['id'];
         $invoice = (new Invoice())->find($id);
@@ -73,7 +73,7 @@ final class InvoiceController extends BaseController
         );
     }
 
-    public function markPaid(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function markPaid(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $invoice_id = $args['id'];
         $invoice = (new Invoice())->find($invoice_id);
@@ -109,12 +109,12 @@ final class InvoiceController extends BaseController
         ]);
     }
 
-    public function ajax(ServerRequest $request, Response $response, array $args): Response|ResponseInterface
+    public function ajax(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $invoices = (new Invoice())->orderBy('id', 'desc')->get();
 
         foreach ($invoices as $invoice) {
-            $invoice->op = '<a class="btn btn-blue" href="/admin/invoice/' . $invoice->id . '/view">查看</a>';
+            $invoice->op = '<a class="btn btn-primary" href="/admin/invoice/' . $invoice->id . '/view">查看</a>';
             $invoice->status = $invoice->status();
             $invoice->create_time = Tools::toDateTime($invoice->create_time);
             $invoice->update_time = Tools::toDateTime($invoice->update_time);

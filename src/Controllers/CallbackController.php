@@ -11,7 +11,7 @@ use MaxMind\Db\Reader\InvalidDatabaseException;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
-use SmartyException;
+use Smarty\Exception as SmartyException;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 
 final class CallbackController extends BaseController
@@ -37,7 +37,7 @@ final class CallbackController extends BaseController
     {
         $token = $request->getQueryParam('token');
 
-        if (Config::obtain('enable_telegram') && $token === Config::obtain('telegram_request_token')) {
+        if (Config::obtain('telegram_token') !== '' && $token === Config::obtain('telegram_webhook_token')) {
             Telegram::process($request);
 
             return $response->withStatus(204);
