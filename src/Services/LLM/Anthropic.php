@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\LLM;
 
-use GuzzleHttp\Client;
+use App\Models\Config;
 use GuzzleHttp\Exception\GuzzleException;
 use function json_decode;
 
@@ -15,22 +15,19 @@ final class Anthropic extends Base
      */
     public function textPrompt(string $q): string
     {
-        if ($_ENV['anthropic_api_key'] === '') {
+        if (Config::obtain('anthropic_api_key') === '') {
             return 'Anthropic API key not set';
         }
-
-        $client = new Client();
 
         $api_url = 'https://api.anthropic.com/v1/messages';
 
         $headers = [
-            'x-api-key' => $_ENV['anthropic_api_key'],
-            'anthropic-version' => '2023-06-01',
+            'x-api-key' => Config::obtain('anthropic_api_key'),
             'content-type' => 'application/json',
         ];
 
         $data = [
-            'model' => $_ENV['anthropic_model_id'],
+            'model' => Config::obtain('anthropic_model_id'),
             'max_tokens' => 1024,
             'temperature' => 1,
             'messages' => [
@@ -41,10 +38,10 @@ final class Anthropic extends Base
             ],
         ];
 
-        $response = json_decode($client->post($api_url, [
+        $response = json_decode($this->client->post($api_url, [
             'headers' => $headers,
             'json' => $data,
-            'timeout' => 10,
+            'timeout' => 30,
         ])->getBody()->getContents());
 
         return $response->content[0]->text;
