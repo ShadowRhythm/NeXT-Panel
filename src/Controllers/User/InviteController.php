@@ -21,6 +21,11 @@ final class InviteController extends BaseController
      */
     public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
+        // 获取用户注册日期
+        $userRegDate = strtotime($this->user->reg_date);
+        $threeMonthsAgo = strtotime("-90 days");
+        $userclass = ($this->user->class);
+
         $code = (new InviteCode())->where('user_id', $this->user->id)->first()?->code;
 
         if ($code === null) {
@@ -44,6 +49,13 @@ final class InviteController extends BaseController
         $invite_url = $_ENV['baseUrl'] . '/auth/register?code=' . $code;
         $invite_reward_rate = Config::obtain('invite_reward_rate') * 100;
 
+        // 邀请限制
+        if ($userRegDate > $threeMonthsAgo) {
+            $invite_url = '注册时长未满90天，所以暂无邀请权限。过段时间再来看看吧';
+        }
+        if ($userclass <= 1){
+            $invite_url = '当前等级未满2，所以暂无邀请权限。';
+        }
         return $response->write(
             $this->view()
                 ->assign('paybacks', $paybacks)
