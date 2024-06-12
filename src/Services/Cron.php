@@ -174,9 +174,6 @@ final class Cron
                     echo $e->getMessage() . PHP_EOL;
                 }
 
-                $user->u = 0;
-                $user->d = 0;
-                $user->transfer_today = 0;
                 $user->class = 0;
                 $user->save();
             }
