@@ -26,6 +26,7 @@
                                 <thead>
                                     <tr>
                                         <th>节点</th>
+
                                         {foreach $results['0']['unlock_item'] as $key => $value}
                                             <th>{$key}</th>
                                         {/foreach}
@@ -42,7 +43,7 @@
                                             <td><span class="">{$result['unlock_item']['OpenAI']}</span></td>                                                                                      
                                             <td><span class="">{$result['unlock_item']['BBC']}</span></td>
                                             <td><span class="">{$result['unlock_item']['Abema']}</span></td>
-                                            <td>{date('Y-m-d H:i:s', $result['created_at'])}</td>
+                                            <td>{$result.created_at|date_format:"%Y-%m-%d %H:%M:%S"}</td>
                                         </tr>
                                     {/foreach}
                                 </tbody>
