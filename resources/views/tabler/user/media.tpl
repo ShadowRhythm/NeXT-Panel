@@ -26,7 +26,6 @@
                                 <thead>
                                     <tr>
                                         <th>节点</th>
-
                                         {foreach $results['0']['unlock_item'] as $key => $value}
                                             <th>{$key}</th>
                                         {/foreach}

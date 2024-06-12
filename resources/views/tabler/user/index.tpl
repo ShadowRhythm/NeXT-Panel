@@ -128,13 +128,7 @@
                     <div class="card">
                         <ul class="nav nav-tabs nav-fill" data-bs-toggle="tabs">
                             <li class="nav-item">
-                                <a href="#sub" class="nav-link active" data-bs-toggle="tab">
-                                    <i class="ti ti-rss icon"></i>
-                                    &nbsp;通用订阅
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#client-sub" class="nav-link" data-bs-toggle="tab">
+                                <a href="#client-sub" class="nav-link active" data-bs-toggle="tab">
                                     <i class="ti ti-rss icon"></i>
                                     &nbsp;客户端订阅
                                 </a>
@@ -169,16 +163,10 @@
                                     &nbsp;Linux
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a href="#config" class="nav-link" data-bs-toggle="tab">
-                                    <i class="ti ti-file-text icon"></i>
-                                    &nbsp;Config
-                                </a>
-                            </li>
                         </ul>
                         <div class="card-body">
                             <div class="tab-content">
-                                <div class="tab-pane active show" id="sub">
+                                <div class="tab-pane show" id="sub">
                                     <div>
                                         <p>
                                             通用订阅（json）：<code class="spoiler">{$UniversalSub}/json</code>
@@ -223,7 +211,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="tab-pane show" id="client-sub">
+                                <div class="tab-pane active show" id="client-sub">
                                     <div>
                                         {if $public_setting['enable_ss_sub']}
                                         <p>
@@ -486,6 +474,28 @@
                     </div>
                 </div>
                 <div class="col-lg-6 col-sm-12">
+                    <div class="card">
+                        <div class="ribbon ribbon-top bg-yellow">
+                            <i class="ti ti-bell-ringing icon"></i>
+                        </div>
+                        <div class="card-body">
+                            <h3 class="card-title">
+                                置顶公告
+                                {if $ann !== null}
+                                <span class="card-subtitle">{$ann->date}</span>
+                                {/if}
+                            </h3>
+                            <p class="text-secondary">
+                                {if $ann !== null}
+                                {$ann->content}
+                                {else}
+                                暂无公告
+                                {/if}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-sm-12">
                     <div class="vstack">
                         <div class="card">
                             <div class="card-body">
@@ -588,28 +598,6 @@
                     </div>
                 </div>
                 {/if}
-                <div class="col-lg-6 col-sm-12">
-                    <div class="card">
-                        <div class="ribbon ribbon-top bg-yellow">
-                            <i class="ti ti-bell-ringing icon"></i>
-                        </div>
-                        <div class="card-body">
-                            <h3 class="card-title">
-                                置顶公告
-                                {if $ann !== null}
-                                <span class="card-subtitle">{$ann->date}</span>
-                                {/if}
-                            </h3>
-                            <p class="text-secondary">
-                                {if $ann !== null}
-                                {$ann->content}
-                                {else}
-                                暂无公告
-                                {/if}
-                            </p>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
