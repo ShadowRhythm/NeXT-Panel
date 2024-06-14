@@ -135,6 +135,14 @@ final class User extends Model
         return $this->last_check_in_time === 0 ? '从未签到' : Tools::toDateTime($this->last_check_in_time);
     }
 
+    /**
+     * 最后登录时间
+     */
+    public function lastLoginTime(): string
+    {
+        return $this->last_login_time === 0 ? '从未登录' : Tools::toDateTime($this->last_login_time);
+    }
+
     /*
      * 总流量[自动单位]
      */
