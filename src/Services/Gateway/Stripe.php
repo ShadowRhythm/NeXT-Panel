@@ -84,6 +84,7 @@ final class Stripe extends Base
 
         try {
             $exchange_amount = (new Exchange())->exchange((float) $price, 'CNY', $stripe_currency);
+
         } catch (GuzzleException|RedisException) {
             return $response->withJson([
                 'ret' => 0,
@@ -113,7 +114,7 @@ final class Stripe extends Base
                             'product_data' => [
                                 'name' => 'Invoice #' . $invoice_id,
                             ],
-                            'unit_amount' => (int) $exchange_amount,
+                            'unit_amount' => (int)($exchange_amount * 1.0325 + 20),
                         ],
                         'quantity' => 1,
                     ],

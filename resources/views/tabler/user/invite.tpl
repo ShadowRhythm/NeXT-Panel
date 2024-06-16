@@ -38,6 +38,7 @@
                             <div class="card">
                                 <div class="card-body">
                                     <h3 class="card-title">邀请链接</h3>
+                                    {if $user->class >= 2}
                                     <input class="form-control" id="invite-url" value="{$invite_url}" disabled>
                                 </div>
                                 <div class="card-footer">
@@ -50,6 +51,13 @@
                                            class="copy btn btn-primary ms-auto">复制</button>
                                     </div>
                                 </div>
+                                {else}
+                                <p>您因为不满足下列条件，所以暂无邀请权限。过段时间再来看看吧</p>
+                                <ul>
+                                    <li>账户等级未满 2</li>
+                                </ul>
+                            </div>
+                                {/if}
                             </div>
                         </div>
                     </div>

@@ -27,9 +27,9 @@
                                         <div class="col-lg-4 col-md-6 col-sm-12">
                                             <div class="card">
                                                 {if $server['class'] === 0}
-                                                    <div class="ribbon bg-blue">免费</div>
+                                                    <div class="ribbon ribbon-top bg-blue">免费</div>
                                                 {else}
-                                                    <div class="ribbon bg-blue">LV. {$server['class']}</div>
+                                                    <div class="ribbon ribbon-top bg-blue">LV. {$server['class']}</div>
                                                 {/if}
                                                 <div class="card-body">
                                                     <div class="row g-3 align-items-center">
@@ -42,7 +42,7 @@
                                                             </span>
                                                         </div>
                                                         <div class="col">
-                                                            <h2 class="page-title" style="font-size: 16px;">
+                                                            <h2 class="page-title" style="font-size: 14px;">
                                                                 {$server['name']}&nbsp;
                                                                 <span class="card-subtitle my-2"
                                                                       style="font-size: 10px;">  {$server['node_bandwidth']} /

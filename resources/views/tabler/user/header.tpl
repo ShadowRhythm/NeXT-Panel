@@ -123,6 +123,10 @@
                                     <i class="ti ti-chart-bar"></i>&nbsp;
                                     流量倍率
                                 </a>
+                                <a class="dropdown-item" href="/user/media">
+                                    <i class="ti ti-key"></i>&nbsp;
+                                    流媒体解锁
+                                </a>
                             </div>
                         </li>
                         <li class="nav-item dropdown">
