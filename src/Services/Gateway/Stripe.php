@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Gateway;
 
 use App\Models\Config;
+use App\Models\Invoice;
 use App\Models\Paylist;
 use App\Services\Auth;
 use App\Services\Exchange;
@@ -21,6 +22,7 @@ use Stripe\StripeClient;
 use Stripe\Webhook;
 use UnexpectedValueException;
 use voku\helper\AntiXSS;
+use function in_array;
 
 final class Stripe extends Base
 {
@@ -46,8 +48,17 @@ final class Stripe extends Base
 
     public function purchase(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
-        $price = $this->antiXss->xss_clean($request->getParam('price'));
         $invoice_id = $this->antiXss->xss_clean($request->getParam('invoice_id'));
+        $invoice = (new Invoice())->find($invoice_id);
+
+        if ($invoice === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => 'Invoice not found',
+            ]);
+        }
+
+        $price = $invoice->price;
         $trade_no = self::generateGuid();
 
         if ($price < Config::obtain('stripe_min_recharge') ||
@@ -69,13 +80,25 @@ final class Stripe extends Base
         $pl->gateway = self::_readableName();
         $pl->save();
 
+        $stripe_currency = Config::obtain('stripe_currency');
+
         try {
-            $exchange_amount = (new Exchange())->exchange((float) $price, 'CNY', Config::obtain('stripe_currency')) * 103 + 20;
+            $exchange_amount = (new Exchange())->exchange((float) $price, 'CNY', $stripe_currency);
+
         } catch (GuzzleException|RedisException) {
             return $response->withJson([
                 'ret' => 0,
                 'msg' => '汇率获取失败',
             ]);
+        }
+        // https://docs.stripe.com/currencies?presentment-currency=US#zero-decimal
+        if (! in_array(
+            $stripe_currency,
+            ['BIF', 'CLP', 'DJF', 'GNF', 'JPY', 'KMF', 'KRW',
+                'MGA', 'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF',
+            ]
+        )) {
+            $exchange_amount *= 100;
         }
 
         $stripe = new StripeClient(Config::obtain('stripe_api_key'));
@@ -91,7 +114,7 @@ final class Stripe extends Base
                             'product_data' => [
                                 'name' => 'Invoice #' . $invoice_id,
                             ],
-                            'unit_amount' => (int) $exchange_amount,
+                            'unit_amount' => (int)($exchange_amount * 1.0325 + 20),
                         ],
                         'quantity' => 1,
                     ],
@@ -102,8 +125,8 @@ final class Stripe extends Base
                         'trade_no' => $trade_no,
                     ],
                 ],
-                'success_url' => $_ENV['baseUrl'] . '/user/invoice/' . $invoice_id,
-                'cancel_url' => $_ENV['baseUrl'] . '/user/invoice/' . $invoice_id,
+                'success_url' => $_ENV['baseUrl'] . '/user/invoice/' . $invoice_id . '/view',
+                'cancel_url' => $_ENV['baseUrl'] . '/user/invoice/' . $invoice_id . '/view',
             ]);
         } catch (ApiErrorException) {
             return $response->withJson([

@@ -1,9 +1,10 @@
 <img src=".github/next_1000.png" alt="next" width="600"/>
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/SSPanel-NeXT/NeXT-Panel-Dev?style=flat-square)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/SSPanel-NeXT/NeXT-Panel-Dev/lint.yml?branch=dev&label=lint&style=flat-square)
-![Sonar Quality Gate](https://img.shields.io/sonar/quality_gate/SSPanel-NeXT_NeXT-Panel-Dev/dev?server=https%3A%2F%2Fsonarcloud.io&style=flat-square)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/SSPanel-NeXT/NeXT-Panel-Dev/lint.yml?branch=dev&label=Lint&style=flat-square)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/SSPanel-NeXT/NeXT-Panel-Dev/unit.yaml?branch=dev&label=Unit%20Test&style=flat-square)
 ![Sonar Coverage](https://img.shields.io/sonar/coverage/SSPanel-NeXT_NeXT-Panel-Dev/dev?server=https%3A%2F%2Fsonarcloud.io&style=flat-square)
+![Sonar Quality Gate](https://img.shields.io/sonar/quality_gate/SSPanel-NeXT_NeXT-Panel-Dev/dev?server=https%3A%2F%2Fsonarcloud.io&style=flat-square)
 
 [![X (formerly Twitter)](https://img.shields.io/twitter/url?url=https%3A%2F%2Ftwitter.com%2FSSPanel_NeXT)](https://twitter.com/SSPanel_NeXT)
 [![Discord](https://img.shields.io/discord/1049692075085549600?color=5865F2&label=Discord&style=flat-square)](https://discord.gg/A7uFKCvf8V)
@@ -16,7 +17,7 @@ NeXT Panel is a multipurpose proxy service management system designed for Shadow
 
 - Integrate multiple payment systems such as Alipay F2F, PayPal, Stripe, etc.
 - Support multiple mail services, built-in mail queue function, no third-party components are required to use
-- Built-in tabler theme based on Bootstrap 5, template engine support
+- Built-in tabler theme based on Bootstrap 5, Smarty/Twig template engine support
 - Support Shadowsocks 2022, TUIC, and other latest proxy protocols
 - Universal subscription interface, one-click json/clash/sip008/sing-box format subscription distribution
 - Custom node configuration, modular subscription system, support multiple client-specific subscription formats
@@ -48,7 +49,7 @@ NeXT Panel requires the following programs to be installed and run normally:
 
 ## Support Developers
 
-Sadly, there is no three-letter agency that wants to sponsor this project yet(/s), so the development is driven by the community and unpaid volunteers.
+Sadly, there is no three-letter agency that wants to sponsor this project yet (/s), so the development is driven by the community and unpaid volunteers.
 Nothing will be put behind the paywall or require a donation to use, but the CI/Linux Mirror/CDN server doesn't grow on trees, if you are interested in supporting the project, you can support devs using the following methods:
 
 <a href="https://www.patreon.com/catdev">Patreon (One time or monthly)</a>

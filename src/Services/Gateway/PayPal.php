@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Gateway;
 
 use App\Models\Config;
+use App\Models\Invoice;
 use App\Models\Paylist;
 use App\Services\Auth;
 use App\Services\Exchange;
@@ -65,8 +66,17 @@ final class PayPal extends Base
 
     public function purchase(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
-        $price = $this->antiXss->xss_clean($request->getParam('price'));
         $invoice_id = $this->antiXss->xss_clean($request->getParam('invoice_id'));
+        $invoice = (new Invoice())->find($invoice_id);
+
+        if ($invoice === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => 'Invoice not found',
+            ]);
+        }
+
+        $price = $invoice->price;
         $trade_no = self::generateGuid();
 
         if ($price <= 0) {
@@ -77,7 +87,7 @@ final class PayPal extends Base
         }
 
         try {
-            $exchange_amount = (new Exchange())->exchange($price, 'CNY', Config::obtain('paypal_currency'));
+            $exchange_amount = (new Exchange())->exchange((float) $price, 'CNY', Config::obtain('paypal_currency'));
         } catch (GuzzleException|RedisException) {
             return $response->withJson([
                 'ret' => 0,
@@ -93,7 +103,7 @@ final class PayPal extends Base
                         'currency_code' => Config::obtain('paypal_currency'),
                         'value' => $exchange_amount,
                     ],
-                    'reference_id' => $trade_no,
+                    'invoice_id' => $trade_no,
                 ],
             ],
         ];
@@ -124,12 +134,12 @@ final class PayPal extends Base
 
     public function notify($request, $response, $args): ResponseInterface
     {
-        $order_id = $this->antiXss->xss_clean($request->getParam('order_id'));
+        $webhook_data = json_decode($request->getBody()->getContents(), true);
 
         try {
             $pp = new PayPalClient($this->gateway_config);
             $pp->getAccessToken();
-            $result = $pp->capturePaymentOrder($order_id);
+            $verify_result = $pp->verifyWebHook($webhook_data);
         } catch (Throwable) {
             return $response->withJson([
                 'ret' => 0,
@@ -137,18 +147,21 @@ final class PayPal extends Base
             ]);
         }
 
-        if (isset($result['status']) && $result['status'] === 'COMPLETED') {
-            $this->postPayment($result['purchase_units'][0]['reference_id']);
+        if ($verify_result['verification_status'] === 'SUCCESS' &&
+            $webhook_data['event_type'] === 'PAYMENT.CAPTURE.COMPLETED' &&
+            $webhook_data['resource']['status'] === 'COMPLETED'
+        ) {
+            $this->postPayment($webhook_data['resource']['invoice_id']);
 
             return $response->withJson([
                 'ret' => 1,
-                'msg' => '支付成功',
+                'msg' => 'Payment Success',
             ]);
         }
 
         return $response->withJson([
             'ret' => 0,
-            'msg' => '支付失败',
+            'msg' => 'Payment Failed',
         ]);
     }
 
