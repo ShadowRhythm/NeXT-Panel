@@ -28,7 +28,7 @@ final class UserController extends BaseController
             'ref_by' => '邀请人',
             'transfer_enable' => '流量限制',
             'transfer_used' => '当期用量',
-            'transfer_today' => '今日流量',
+            'transfer_today' => '今日流量/GB',
             'class' => '等级',
             'last_use_time' => '最后在线时间',
             'is_inactive' => '是否闲置',
@@ -245,7 +245,7 @@ final class UserController extends BaseController
             <a class="btn btn-primary" href="/admin/user/' . $user->id . '/edit">编辑</a>';
             $user->transfer_enable = $user->enableTraffic();
             $user->transfer_used = $user->usedTraffic();
-            $user->transfer_today = $user->todayUsedTraffic();
+            $user->transfer_today = round(Tools::bToGB($user->transfer_today), 2);
             $user->last_use_time = $user->lastUseTime();
             $user->last_check_in_time = $user->lastCheckInTime();
             $user->last_login_time = $user->lastLoginTime();
