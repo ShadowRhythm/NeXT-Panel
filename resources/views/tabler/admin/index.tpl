@@ -172,7 +172,7 @@
                 grid: {
                     strokeDashArray: 3,
                 },
-                colors: [tabler.getColor("azure"), tabler.getColor("cyan"), tabler.getColor("orange")],
+                colors: [tabler.tabler.getColor("azure"), tabler.tabler.getColor("cyan"), tabler.tabler.getColor("orange")],
                 legend: {
                     show: true,
                     position: 'bottom',
@@ -184,7 +184,7 @@
                     },
                     itemMargin: {
                         horizontal: 8,
-                        vertical: 8
+                        vertical: 15
                     },
                 },
                 tooltip: {
@@ -212,7 +212,7 @@
                 grid: {
                     strokeDashArray: 2,
                 },
-                colors: [tabler.getColor("lime"), tabler.getColor("red")],
+                colors: [tabler.tabler.getColor("lime"), tabler.tabler.getColor("red")],
                 legend: {
                     show: true,
                     position: 'bottom',
@@ -224,7 +224,7 @@
                     },
                     itemMargin: {
                         horizontal: 8,
-                        vertical: 8
+                        vertical: 15
                     },
                 },
                 tooltip: {
@@ -252,7 +252,7 @@
                 grid: {
                     strokeDashArray: 4,
                 },
-                colors: [tabler.getColor("yellow"), tabler.getColor("lime")],
+                colors: [tabler.tabler.getColor("yellow"), tabler.tabler.getColor("lime")],
                 legend: {
                     show: true,
                     position: 'bottom',
@@ -264,7 +264,7 @@
                     },
                     itemMargin: {
                         horizontal: 8,
-                        vertical: 8
+                        vertical: 15
                     },
                 },
                 tooltip: {
@@ -292,7 +292,7 @@
                 grid: {
                     strokeDashArray: 3,
                 },
-                colors: [tabler.getColor("green"), tabler.getColor("lime"), tabler.getColor("yellow")],
+                colors: [tabler.tabler.getColor("green"), tabler.tabler.getColor("lime"), tabler.tabler.getColor("yellow")],
                 legend: {
                     show: true,
                     position: 'bottom',
@@ -304,7 +304,7 @@
                     },
                     itemMargin: {
                         horizontal: 8,
-                        vertical: 8
+                        vertical: 15
                     },
                 },
                 tooltip: {

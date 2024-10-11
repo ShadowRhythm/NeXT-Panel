@@ -115,7 +115,7 @@
         ];
 
         let table = new DataTable('#data-table', tableConfig);
-
+		table.page.len(100).draw(); // 设置为100并刷新表格
         function loadTable() {
             table;
         }

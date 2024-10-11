@@ -27,9 +27,9 @@
                                         <div class="col-lg-4 col-md-6 col-sm-12">
                                             <div class="card">
                                                 {if $server['class'] === 0}
-                                                    <div class="ribbon ribbon-top bg-blue">免费</div>
+                                                    <div class="ribbon ribbon-start bg-blue">免费</div>
                                                 {else}
-                                                    <div class="ribbon ribbon-top bg-blue">LV. {$server['class']}</div>
+                                                    <div class="ribbon ribbon-start bg-blue">LV. {$server['class']}</div>
                                                 {/if}
                                                 <div class="card-body">
                                                     <div class="row g-3 align-items-center">
@@ -42,7 +42,7 @@
                                                             </span>
                                                         </div>
                                                         <div class="col">
-                                                            <h2 class="page-title" style="font-size: 14px;">
+                                                            <h2 style="font-size: 14px;">
                                                                 {$server['name']}&nbsp;
                                                                 <span class="card-subtitle my-2"
                                                                       style="font-size: 10px;">  {$server['node_bandwidth']} /
@@ -64,23 +64,15 @@
                                                                 {if $server['connection_type'] !== 0}
                                                                 <span class="badge bg-blue-lt">IPv6</span>
                                                                 {/if}
+                                                                {if $user->class < $server['class']}
+                                                                <span class="badge bg-pink-lt">当前账户等级小于节点等级</span>
+                                                                <span class="badge bg-green-lt">前往 <a href="/user/product">商品页面</a> 订购时间流量包</span>
+                                                                {/if}
                                                             </div>
                                                         </div>
-
                                                     </div>
                                                 </div>
                                             </div>
-                                            {if $user->class < $server['class']}
-                                                <div class="card bg-primary-lt">
-                                                    <div class="card-body">
-                                                        <p class="text-secondary">
-                                                            <i class="ti ti-info-circle icon text-blue"></i>
-                                                            你当前的账户等级小于节点等级，因此无法使用。可前往 <a
-                                                                    href="/user/product">商品页面</a> 订购时间流量包
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            {/if}
                                         </div>
                                     {/foreach}
                                 </div>

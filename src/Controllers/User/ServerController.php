@@ -39,7 +39,11 @@ final class ServerController extends BaseController
                     Tools::autoBytes($node->node_bandwidth_limit),
             ];
         }
-
+		
+		usort($node_list, function($a, $b) {
+			return $a['class'] <=> $b['class']; // 按 class 属性排序
+		});
+		
         return $response->write(
             $this->view()
                 ->assign('servers', $node_list)

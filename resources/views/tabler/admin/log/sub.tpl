@@ -61,7 +61,7 @@
         function loadTable() {
             table;
         }
-
+		table.page.len(100).draw(); // 设置为100并刷新表格
         loadTable();
     </script>
 

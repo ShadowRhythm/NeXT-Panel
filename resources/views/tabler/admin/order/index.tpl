@@ -108,7 +108,7 @@
         function reloadTableAjax() {
             table.ajax.reload(null, false);
         }
-
+		table.page.len(100).draw(); // 设置为100并刷新表格
         loadTable();
     </script>
 
