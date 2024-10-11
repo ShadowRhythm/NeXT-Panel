@@ -12,7 +12,7 @@
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">忘记密码</h2>
                 <p class="text-secondary mb-4">
-                    我们将向你的注册邮箱发送一封邮件，邮件内容中包含一个可以重设密码的链接
+                    我们将向你的注册邮箱发送一封邮件，邮件内容中包含一个可以重设密码的链接。
                 </p>
                 <div class="mb-3">
                     <label class="form-label">注册邮箱</label>
@@ -24,7 +24,6 @@
                         {include file='captcha/div.tpl'}
                     {/if}
                     </div>
-                </div>
                 <div class="form-footer">
                     <button id="send" class="btn btn-primary w-100"
                         hx-post="/password/reset" hx-swap="none" hx-vals='js:{
@@ -37,6 +36,11 @@
                         发送邮件
                     </button>
                 </div>
+            </div>
+            <div class="mb-3">
+                <p class="text-secondary mb-4">
+                若没收到邮件，请检查邮件‘垃圾箱”并将我们的邮件设置为白名单（移回收件箱）！
+                </p>
             </div>
         </div>
         <div class="text-center text-secondary mt-3">

@@ -112,7 +112,7 @@ final class Node extends Model
      */
     public function getNodeOnlineStatus(): int
     {
-        return $this->node_heartbeat === 0 ? 0 : ($this->node_heartbeat + 600 > time() ? 1 : -1);
+        return $this->node_heartbeat === 0 ? 0 : ($this->node_heartbeat + 1800 > time() ? 1 : -1);
     }
 
     /**

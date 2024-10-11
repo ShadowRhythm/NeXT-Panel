@@ -43,6 +43,10 @@
                         <div class="card-body">
                             <div class="tab-content">
                                 <div class="tab-pane active show" id="tabp">
+                                    <ul>
+                                        <li>订单会在5分钟内激活激活。</li>
+                                        <li>同一时间只能生效一个时间流量包，提前购买的新订单会在前订单过期后激活，临时增加流量请购买流量包。</li>
+                                    </ul>
                                     <div class="row">
                                         {foreach $tabps as $tabp}
                                             <div class="col-md-3 col-sm-12 my-3">
@@ -143,6 +147,11 @@
                                     </div>
                                 </div>
                                 <div class="tab-pane show" id="bandwidth">
+                                    <ul>
+                                        <li>订单会在5分钟内激活激活。</li>
+                                        <li>购买流量包时需要保证账户未过期（需先购买时间流量包）。</li>
+                                        <li>未用完流量会随时间流量包重置。</li>
+                                    </ul>
                                     <div class="row">
                                         {foreach $bandwidths as $bandwidth}
                                             <div class="col-md-3 col-sm-12 my-3">

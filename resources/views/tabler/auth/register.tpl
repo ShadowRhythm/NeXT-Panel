@@ -16,7 +16,7 @@
                         <input id="name" type="text" class="form-control" placeholder="昵称">
                     </div>
                     <div class="mb-3">
-                        <input id="email" type="email" class="form-control" placeholder="电子邮箱">
+                        <input id="email" type="email" class="form-control" placeholder="电子邮箱 推荐Outlook、Gmail、Icloud等">
                     </div>
                     {if $public_setting['reg_email_verify']}
                     <div class="mb-3">
@@ -80,6 +80,9 @@
                                  }'>
                             注册新账户
                         </button>
+                        <div class="text-center text-secondary mt-3">
+                        收不到验证码？请更换推荐邮箱（<a href="https://outlook.live.com/" target="_blank">Outlook</a>、<a href="https://www.gmail.com/" target="_blank">Gmail</a>、<a href="https://www.icloud.com/mail/" target="_blank">Icloud</a>、<a href="https://proton.me/mail" target="_blank">Protonmail</a>等）或检查邮件“垃圾箱”并将我们的邮件设置为白名单（移回收件箱）！
+                        </div>
                     </div>
                 </div>
             {else}

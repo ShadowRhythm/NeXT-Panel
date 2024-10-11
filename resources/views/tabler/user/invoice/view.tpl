@@ -98,7 +98,7 @@
                         <ul class="nav nav-tabs nav-fill" data-bs-toggle="tabs">
                             {if $invoice->type !== 'topup'}
                             <li class="nav-item">
-                                <a href="#balance" class="nav-link active" data-bs-toggle="tab">
+                                <a href="#balance" class="nav-link" data-bs-toggle="tab">
                                     <i class="ti ti-coins icon"></i>
                                     &nbsp;余额支付
                                 </a>
@@ -106,7 +106,7 @@
                             {/if}
                             {if count($payments) > 0}
                             <li class="nav-item">
-                                <a href="#gateway" class="nav-link" data-bs-toggle="tab">
+                                <a href="#gateway" class="nav-link active" data-bs-toggle="tab">
                                     <i class="ti ti-coin icon"></i>
                                     &nbsp;网关支付
                                 </a>
@@ -116,7 +116,7 @@
                         <div class="card-body">
                             <div class="tab-content">
                                 {if $invoice->type !== 'topup'}
-                                <div class="tab-pane active show" id="balance">
+                                <div class="tab-pane show" id="balance">
                                     <div class="mb-3">
                                         当前账户可用余额：<code>{$user->money}</code> 元
                                     </div>
@@ -132,7 +132,7 @@
                                 </div>
                                 {/if}
                                 {if count($payments) > 0}
-                                <div class="tab-pane show" id="gateway">
+                                <div class="tab-pane active show" id="gateway">
                                     {foreach from=$payments item=payment}
                                     <div class="mb-3">
                                         {$payment_name = $payment::_name()}

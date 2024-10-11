@@ -18,6 +18,7 @@
                 <div class="mb-2">
                     <label class="form-label">
                         登录密码
+                        <li>面板已升级，若提示密码不正确请<a href="/password/reset">重置密码</a>后登录！</li>
                         <span class="form-label-description">
                                 <a href="/password/reset">忘记密码</a>
                             </span>
