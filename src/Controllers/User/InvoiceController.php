@@ -110,6 +110,13 @@ final class InvoiceController extends BaseController
             ]);
         }
 
+        if ($invoice->status === 'paid_balance') {
+            return $response->withHeader('HX-Redirect', '/user/invoice')->withJson([
+                'ret' => 2,
+                'msg' => '已支付成功，无需重复支付',
+            ]);
+        }
+
         // 组合支付
         if ($user->money > 0) {
             $money_before = $user->money;
