@@ -296,6 +296,23 @@
                                         </div>
                                         <div class="btn-list justify-content-start my-2">
                                             <a  {if $config['enable_r2_client_download']}
+                                                href="/user/clients/Clash.Verge.exe"
+                                                {else}
+                                                href="/clients/Clash.Verge.exe"
+                                                {/if} class="btn btn-azure">
+                                                下载 Clash Verge
+                                            </a>
+                                            <a data-clipboard-text="{$UniversalSub}/clash"
+                                               class="copy btn btn-primary">
+                                                复制 Clash 订阅链接
+                                            </a>
+                                            <a href="clash://install-config?url={$UniversalSub}/clash&name={$config['appName']}"
+                                               class="btn btn-indigo">
+                                                导入 Clash
+                                            </a>
+                                        </div>
+                                        <div class="btn-list justify-content-start my-2">
+                                            <a  {if $config['enable_r2_client_download']}
                                                 href="/user/clients/Hiddify.exe"
                                                 {else}
                                                 href="/clients/Hiddify.exe"
@@ -343,9 +360,26 @@
                                     </div>
                                     <div class="btn-list justify-content-start my-2">
                                         <a {if $config['enable_r2_client_download']}
-                                            href="/user/clients/SFM.zip"
+                                            href="/user/clients/Clash.Verge_aarch64.dmg"
+                                        {else}
+                                            href="/clients/Clash.Verge_aarch64.dmg"
+                                        {/if} class="btn btn-azure">
+                                            下载 Clash Verge (aarch64)
+                                        </a>
+                                        <a data-clipboard-text="{$UniversalSub}/clash"
+                                           class="copy btn btn-primary">
+                                            复制 Clash 订阅链接
+                                        </a>
+                                        <a href="clash://install-config?url={$UniversalSub}/clash&name={$config['appName']}"
+                                           class="btn btn-indigo">
+                                            导入 Clash
+                                        </a>
+                                    </div>
+                                    <div class="btn-list justify-content-start my-2">
+                                        <a {if $config['enable_r2_client_download']}
+                                            href="/user/clients/SFM.dmg"
                                             {else}
-                                            href="/clients/SFM.zip"
+                                            href="/clients/SFM.dmg"
                                             {/if} class="btn btn-azure">
                                             下载 SFM
                                         </a>
@@ -420,10 +454,15 @@
                                            class="btn btn-indigo">
                                             导入 SFA
                                         </a>
-                                        <a href="https://github.com/2dust/v2rayNG/releases"
-                                           class="btn btn-azure">
+                                     </div>
+                                     <div class="btn-list justify-content-start my-2">
+                                        <a  {if $config['enable_r2_client_download']}
+                                            href="/user/clients/v2rayNG_universal.apk"
+                                            {else}
+                                            href="/clients/v2rayNG_universal.apk"
+                                            {/if} class="btn btn-azure">
                                             下载 V2rayNG
-                                        </a>                                        
+                                        </a>                                       
                                         <a data-clipboard-text="{$UniversalSub}/v2ray"
                                            class="copy btn btn-primary">
                                             复制 V2rayNG 订阅链接
@@ -458,6 +497,20 @@
                                         适用于 SingBox 的订阅：<code class="spoiler">{$UniversalSub}/singbox</code>
                                     </p>
                                     <div class="btn-list justify-content-start">
+									    <a href="https://apps.apple.com/app/shadowrocket/id932747118" target="_blank"
+                                           class="btn btn-azure">
+                                            购买 Shadowrocket
+                                        </a>
+                                        <a data-clipboard-text="{$UniversalSub}/clash"
+                                           class="copy btn btn-primary">
+                                            复制订阅链接
+                                        </a>
+
+                                        <a href="shadowrocket://add/{$UniversalSub}" class="btn btn-indigo">
+                                            导入 Shadowrocket
+                                        </a>
+                                    </div>
+                                    <div class="btn-list justify-content-start my-2">
                                         <a href="https://apps.apple.com/app/sing-box/id6451272673" target="_blank"
                                            class="btn btn-azure">
                                             安裝 SFI
