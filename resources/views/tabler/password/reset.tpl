@@ -24,6 +24,7 @@
                         {include file='captcha/div.tpl'}
                     {/if}
                     </div>
+                </div>
                 <div class="form-footer">
                     <button id="send" class="btn btn-primary w-100"
                         hx-post="/password/reset" hx-swap="none" hx-vals='js:{
