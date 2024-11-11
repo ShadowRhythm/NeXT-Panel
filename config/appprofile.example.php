@@ -45,13 +45,34 @@ $_ENV['V2RayJson_Config'] = [
 
 $_ENV['SingBox_Config'] = [
     'log' => [
+        'disabled' => false,
         'level' => 'error',
+        'timestamp' => true,
     ],
     'dns' => [
         'servers' => [
             [
                 'tag' => 'local',
                 'address' => 'local',
+                'detour' => 'direct',
+            ],
+            [
+                'tag' => 'resolver',
+                'address' => 'quic://223.6.6.6',
+                'strategy' => 'ipv4_only',
+                'detour' => 'direct',
+            ],
+            [
+                'tag' => 'cloudflare',
+                'address' => 'tls://one.one.one.one',
+                'address_resolver' => 'resolver',
+                'address_strategy' => 'ipv4_only',
+                'strategy' => 'prefer_ipv6',
+                'detour' => 'select',
+            ],
+            [
+                'tag' => 'block',
+                'address' => 'rcode://refused',
             ],
         ],
         'rules' => [
@@ -59,63 +80,91 @@ $_ENV['SingBox_Config'] = [
                 'outbound' => 'any',
                 'server' => 'local',
             ],
+            [
+                'clash_mode' => 'Global',
+                'server' => 'cloudflare',
+            ],
+            [
+                'rule_set' => 'geosite-cn',
+                'server' => 'local',
+            ],
+            [
+                'clash_mode' => 'Direct',
+                'server' => 'local',
+            ],
         ],
-        'final' => 'local',
-        'strategy' => 'prefer_ipv6',
+        'final' => 'cloudflare',
+        'disable_cache' => true,
+        'independent_cache' => true,
     ],
     'inbounds' => [
         [
             'type' => 'tun',
-            'inet4_address' => '172.19.0.1/30',
+            'address' => [
+                '172.18.0.1/30',
+                'fdfe:dcba:9876::1/126',
+            ],
             'auto_route' => true,
             'strict_route' => true,
-            'endpoint_independent_nat' => true,
+            'stack' => 'mixed',
+            'sniff' => true,
+            'sniff_override_destination' => true,
             'udp_timeout' => 60,
-            'platform' => [
-                'http_proxy' => [
-                    'enabled' => true,
-                    'server' => '127.0.0.1',
-                    'server_port' => 7891,
-                ],
-            ],
-            'sniff' => true,
-        ],
-        [
-            'type' => 'mixed',
-            'listen' => '127.0.0.1',
-            'listen_port' => 7891,
-            'sniff' => true,
-            'domain_strategy' => 'prefer_ipv6',
         ],
     ],
     'outbounds' => [
         [
+            'tag' => 'select',
             'type' => 'selector',
-            'tag' => 'default',
+            'default' => 'auto',
+            'outbounds' => [
+                'auto',
+            ],
+            'interrupt_exist_connections' => true,
+        ],
+        [
+            'tag' => 'auto',
+            'type' => 'urltest',
             'outbounds' => [],
+            'url' => 'https://cp.cloudflare.com/generate_204',
+            'interval' => '3m',
+            'tolerance' => 50,
+            'idle_timeout' => '30m',
+            'interrupt_exist_connections' => true,
         ],
         [
-            'type' => 'direct',
             'tag' => 'direct',
+            'type' => 'direct',
         ],
         [
-            'type' => 'block',
             'tag' => 'block',
+            'type' => 'block',
+        ],
+        [
+            'tag' => 'dns-out',
+            'type' => 'dns',
         ],
     ],
     'route' => [
         'rules' => [
             [
+                'protocol' => 'dns',
+                'outbound' => 'dns-out',
+            ],
+            [
                 'clash_mode' => 'Direct',
                 'outbound' => 'direct',
             ],
             [
-                'clash_mode' => 'Rule',
-                'outbound' => 'default',
+                'clash_mode' => 'Global',
+                'outbound' => 'select',
             ],
             [
-                'clash_mode' => 'Global',
-                'outbound' => 'default',
+                'rule_set' => [
+                    'geosite-cn',
+                    'geoip-cn',
+                ],
+                'outbound' => 'direct',
             ],
             [
                 'protocol' => 'stun',
@@ -125,14 +174,6 @@ $_ENV['SingBox_Config'] = [
                 'ip_is_private' => true,
                 'outbound' => 'direct',
             ],
-            [
-                'rule_set' => 'geoip-cn',
-                'outbound' => 'direct',
-            ],
-            [
-                'rule_set' => 'geosite-cn',
-                'outbound' => 'direct',
-            ],
         ],
         'rule_set' => [
             [
@@ -140,22 +181,26 @@ $_ENV['SingBox_Config'] = [
                 'type' => 'remote',
                 'format' => 'binary',
                 'url' => 'https://' . $_ENV['jsdelivr_url'] . '/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs',
-                'download_detour' => 'direct',
+                'download_detour' => 'select',
+                'update_interval' => '1d',
             ],
             [
                 'tag' => 'geosite-cn',
                 'type' => 'remote',
                 'format' => 'binary',
                 'url' => 'https://' . $_ENV['jsdelivr_url'] . '/gh/SagerNet/sing-geosite@rule-set/geosite-cn.srs',
-                'download_detour' => 'direct',
+                'download_detour' => 'select',
+                'update_interval' => '1d',
             ],
         ],
         'auto_detect_interface' => true,
+        'final' => 'select',
     ],
     'experimental' => [
         'cache_file' => [
             'enabled' => true,
             'cache_id' => '',
+            'path' => 'cache.db',
         ],
         'clash_api' => [
             'external_controller' => '127.0.0.1:9090',
@@ -170,11 +215,12 @@ $_ENV['Clash_Config'] = [
     'mode' => 'Rule',
     'ipv6' => true,
     'log-level' => 'error',
+	 'tcp-concurrent' => $_ENV['tcp_concurrent'],
     'external-controller' => '0.0.0.0:9091',
 ];
 
 // Clash group indexes to be inserted node names
-$_ENV['Clash_Group_Indexes'] = [0, 1, 2, 4, 6, 7, 8, 11];
+$_ENV['Clash_Group_Indexes'] = [0, 1, 2, 4, 6, 7, 8, 9, 10, 11];
 
 $_ENV['Clash_Group_Config'] = [
     'proxy-groups' => [
@@ -265,6 +311,26 @@ $_ENV['Clash_Group_Config'] = [
             ],
         ],
         [
+            'name' => '♾️ OpenAI',
+            'type' => 'select',
+            // 插入节点名称
+            'proxies' => [
+                '🔰 手动选择',
+                '♻️ 自动选择',
+                '🎯 Direct',
+            ],
+        ],
+        [
+            'name' => '🎮 游戏平台',
+            'type' => 'select',
+            // 插入节点名称
+            'proxies' => [
+                '🔰 手动选择',
+                '♻️ 自动选择',
+                '🎯 Direct',
+            ],
+        ],
+        [
             'name' => '🎯 Direct',
             'type' => 'select',
             'proxies' => [
@@ -342,6 +408,88 @@ $_ENV['Clash_Group_Config'] = [
         'GEOSITE,category-media,🌍 主流媒体',
         // 中国媒体
         'GEOSITE,category-media-cn,🇨🇳 中国媒体',
+		//♾️  OpenAI
+		'DOMAIN-SUFFIX,client.crisp.chat,♾️ OpenAI',
+		'DOMAIN,browser-intake-datadoghq.com,♾️ OpenAI',
+		'DOMAIN,static.cloudflareinsights.com,♾️ OpenAI',
+		'DOMAIN-SUFFIX,ai.com,♾️ OpenAI',
+		'DOMAIN-SUFFIX,algolia.net,♾️ OpenAI',
+		'DOMAIN-SUFFIX,api.statsig.com,♾️ OpenAI',
+		'DOMAIN-SUFFIX,auth0.com,♾️ OpenAI',
+		'DOMAIN-SUFFIX,cdn.cloudflare.net,♾️ OpenAI',
+		'DOMAIN-SUFFIX,challenges.cloudflare.com,♾️ OpenAI',
+		'DOMAIN-SUFFIX,chatgpt.livekit.cloud,♾️ OpenAI',
+		'DOMAIN-SUFFIX,client-api.arkoselabs.com,♾️ OpenAI',
+		'DOMAIN-SUFFIX,events.statsigapi.net,♾️ OpenAI',
+		'DOMAIN-SUFFIX,featuregates.org,♾️ OpenAI',
+		'DOMAIN-SUFFIX,host.livekit.cloud,♾️ OpenAI',
+		'DOMAIN-SUFFIX,identrust.com,♾️ OpenAI',
+		'DOMAIN-SUFFIX,intercom.io,♾️ OpenAI',
+		'DOMAIN-SUFFIX,intercomcdn.com,♾️ OpenAI',
+		'DOMAIN-SUFFIX,launchdarkly.com,♾️ OpenAI',
+		'DOMAIN-SUFFIX,oaistatic.com,♾️ OpenAI',
+		'DOMAIN-SUFFIX,oaiusercontent.com,♾️ OpenAI',
+		'DOMAIN-SUFFIX,observeit.net,♾️ OpenAI',
+		'DOMAIN-SUFFIX,poe.com,♾️ OpenAI',
+		'DOMAIN-SUFFIX,segment.io,♾️ OpenAI',
+		'DOMAIN-SUFFIX,sentry.io,♾️ OpenAI',
+		'DOMAIN-SUFFIX,stripe.com,♾️ OpenAI',
+		'DOMAIN-SUFFIX,turn.livekit.cloud,♾️ OpenAI',
+		'DOMAIN-SUFFIX,chatgpt.com,♾️ OpenAI',
+		'DOMAIN-KEYWORD,openai,♾️ OpenAI',
+		//game,🎮 游戏平台',
+		# Ubisoft
+		'DOMAIN-SUFFIX,ubisoft.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,ubi.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,ubisoft.org,🎮 游戏平台',
+		'DOMAIN-SUFFIX,ubisoftconnect.com,🎮 游戏平台',
+		'DOMAIN,uplaypc-s-ubisoft.cdn.ubi.com,🎮 游戏平台',
+		# Epic-Games
+		'DOMAIN-KEYWORD,epicgames,🎮 游戏平台',
+		'DOMAIN-SUFFIX,battlebreakers.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,eac-cdn.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,easy.ac,🎮 游戏平台',
+		'DOMAIN-SUFFIX,easyanticheat.net,🎮 游戏平台',
+		'DOMAIN-SUFFIX,epicgames.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,epicgames.dev,🎮 游戏平台',
+		'DOMAIN-SUFFIX,epicgames.net,🎮 游戏平台',
+		'DOMAIN-SUFFIX,fortnite.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,helpshift.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,paragon.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,playparagon.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,roborecall.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,shadowcomplex.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,spyjinx.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,unrealengine.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,unrealtournament.com,🎮 游戏平台',
+        # PlayStation
+		'DOMAIN-SUFFIX,playstation.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,playstation.net,🎮 游戏平台',
+		'DOMAIN-SUFFIX,playstationnetwork.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,sony.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,sonyentertainmentnetwork.com,🎮 游戏平台',
+		#Steam
+		'DOMAIN-KEYWORD,steamcontent,🎮 游戏平台',  
+		'DOMAIN-KEYWORD,steamuserimages,🎮 游戏平台',
+		'DOMAIN-SUFFIX,fanatical.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,humblebundle.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,playartifact.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,steam-chat.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,steamcommunity.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,steamgames.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,steampowered.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,steamstat.us,🎮 游戏平台',
+		'DOMAIN-SUFFIX,steamstatic.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,steamusercontent.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,underlords.com,🎮 游戏平台',
+		'DOMAIN-SUFFIX,valvesoftware.com,🎮 游戏平台',
+		'DOMAIN,steambroadcast.akamaized.net,🎮 游戏平台',
+		'DOMAIN,steamcdn-a.akamaihd.net,🎮 游戏平台',
+		'DOMAIN,steamcommunity-a.akamaihd.net,🎮 游戏平台',
+		'DOMAIN,steampipe.akamaized.net,🎮 游戏平台',
+		'DOMAIN,steamstore-a.akamaihd.net,🎮 游戏平台',
+		'DOMAIN,steamusercontent-a.akamaihd.net,🎮 游戏平台',
+		'DOMAIN,steamuserimages-a.akamaihd.net,🎮 游戏平台',
         // 广告拦截
         'GEOIP,ad,⛔️ 广告拦截',
         'GEOSITE,category-ads-all,⛔️ 广告拦截',
