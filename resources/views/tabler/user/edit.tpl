@@ -78,7 +78,7 @@
                                                         {if $public_setting['reg_email_verify'] && $config['enable_change_email']}
                                                         <button class="btn btn-link"
                                                                 hx-post="/user/edit/send" hx-swap="none"
-                                                                hx-vals='js:{ email: document.getElementById("newemail").value }'>
+                                                                hx-vals='js:{ email: document.getElementById("new-email").value }'>
                                                             获取验证码
                                                         </button>
                                                         <button class="btn btn-primary ms-auto"
