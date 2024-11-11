@@ -67,7 +67,7 @@
                                                                 {if $user->class < $server['class']}
                                                                 <span class="badge bg-pink-lt">当前账户等级小于节点等级</span>
                                                                 <span class="badge bg-green-lt">前往 <a href="/user/product">商品页面</a> 订购时间流量包</span>
-																{/if}
+                                                                {/if}
                                                             </div>
                                                         </div>
                                                     </div>
