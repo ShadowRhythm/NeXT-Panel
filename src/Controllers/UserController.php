@@ -100,7 +100,7 @@ final class UserController extends BaseController
 
             if ($unlock !== null && $node !== null) {
                 $details = \json_decode($unlock->result, true);
-                //$details = str_replace('Originals Only', '仅限自制', $details);
+                $details = str_replace('Yes (Native)', 'Yes', $details);
                 //$details = str_replace('Oversea Only', '仅限海外', $details);
                 foreach ($details as $key => $value) {
                     $info = [

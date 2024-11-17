@@ -56,6 +56,7 @@
 <script>
 $(document).ready(function(){
     $('td > span:contains("Yes")').addClass('badge bg-green-lt');
+    $('td > span:contains("DNS")').removeClass('bg-green-lt').addClass('badge bg-cyan-lt');
     $('td > span:contains("No")').addClass('badge bg-red-lt');
     $('td > span:contains("Only")').addClass('badge bg-purple-lt');
     $('td > span:contains("Failed")').addClass('badge bg-yellow-lt');
