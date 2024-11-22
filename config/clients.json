@@ -61,6 +61,18 @@
             ]
         },
         {
+            "name": "V2RayN",
+            "tagMethod": "github_release",
+            "gitRepo": "2dust/v2rayN",
+            "savePath": "public/clients/",
+            "downloads": [
+                {
+                    "sourceName": "v2rayN-windows-64-With-Core.zip",
+                    "saveName": "v2rayN-windows-64-With-Core.zip"
+                }
+            ]
+        },
+        {
             "name": "sing-box",
             "tagMethod": "github_release",
             "gitRepo": "SagerNet/sing-box",

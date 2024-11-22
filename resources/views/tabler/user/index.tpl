@@ -327,9 +327,16 @@
                                                class="btn btn-indigo">
                                                 导入 Hiddify
                                             </a>
+                                            <a  {if $config['enable_r2_client_download']}
+                                                href="/user/clients/v2rayN-windows-64-With-Core.zip"
+                                                {else}
+                                                href="/clients/v2rayN-windows-64-With-Core.zip"
+                                                {/if} class="btn btn-azure">
+                                                下载 v2rayN
+                                            </a>
                                              <a data-clipboard-text="{$UniversalSub}/v2ray"
                                                class="copy btn btn-primary">
-                                                复制 V2Ray 客户端订阅
+                                                复制 V2RayN 客户端订阅
                                             </a>
                                        </div>
                                     </div>
