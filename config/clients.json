@@ -67,8 +67,8 @@
             "savePath": "public/clients/",
             "downloads": [
                 {
-                    "sourceName": "v2rayN-windows-64-With-Core.zip",
-                    "saveName": "v2rayN-windows-64-With-Core.zip"
+                    "sourceName": "v2rayN-windows-64-desktop.zip",
+                    "saveName": "v2rayN-windows-64-desktop.zip"
                 }
             ]
         },
