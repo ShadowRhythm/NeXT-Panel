@@ -120,7 +120,7 @@
                         padding: 4,
                     },
                 },
-                colors: [tabler.getColor("azure")],
+                colors: [tabler.tabler.getColor("azure")],
                 legend: {
                     show: false,
                 },
