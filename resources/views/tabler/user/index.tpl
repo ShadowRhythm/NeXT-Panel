@@ -285,11 +285,15 @@
                                                 {/if} class="btn btn-azure">
                                                 下载 Clash Nyanpasu
                                             </a>
+                                            <a href="https://github.com/libnyanpasu/clash-nyanpasu/releases" target="_blank"
+                                                class="btn btn-cyan">
+                                                Clash Nyanpasu Github
+                                            </a>
                                             <a data-clipboard-text="{$UniversalSub}/clash"
                                                class="copy btn btn-primary">
                                                 复制 Clash 订阅链接
                                             </a>
-                                            <a href="clash-nyanpasu://subscribe-remote-profile?url={$UniversalSub}&name={$config['appName']}"
+                                            <a href="clash-nyanpasu://subscribe-remote-profile?url={$UniversalSub}/clash&name={$config['appName']}"
                                                class="btn btn-indigo">
                                                 导入 Clash Nyanpasu
                                             </a>
@@ -301,6 +305,10 @@
                                                 href="/clients/Clash.Verge.exe"
                                                 {/if} class="btn btn-azure">
                                                 下载 Clash Verge
+                                            </a>
+                                            <a href="https://github.com/clash-verge-rev/clash-verge-rev/releases" target="_blank"
+                                                class="btn btn-cyan">
+                                                Clash Verge Github
                                             </a>
                                             <a data-clipboard-text="{$UniversalSub}/clash"
                                                class="copy btn btn-primary">
@@ -319,6 +327,10 @@
                                                 {/if} class="btn btn-azure">
                                                 下载 Hiddify
                                             </a>
+                                            <a href="https://github.com/hiddify/hiddify-app/releases" target="_blank"
+                                                class="btn btn-cyan">
+                                                Hiddify Github
+                                            </a>
                                             <a data-clipboard-text="{$UniversalSub}/singbox"
                                                class="copy btn btn-primary">
                                                 复制 SingBox 订阅链接
@@ -327,12 +339,18 @@
                                                class="btn btn-indigo">
                                                 导入 Hiddify
                                             </a>
+										</div>
+                                        <div class="btn-list justify-content-start my-2">
                                             <a  {if $config['enable_r2_client_download']}
-                                                href="/user/clients/v2rayN-windows-64-With-Core.zip"
+                                                href="/user/clients/v2rayN-windows-64-desktop.zip"
                                                 {else}
-                                                href="/clients/v2rayN-windows-64-With-Core.zip"
+                                                href="/clients/v2rayN-windows-64-desktop.zip"
                                                 {/if} class="btn btn-azure">
                                                 下载 v2rayN
+                                            </a>
+                                            <a href="https://github.com/2dust/v2rayN/releases" target="_blank"
+                                                class="btn btn-cyan">
+                                                v2rayN Github
                                             </a>
                                              <a data-clipboard-text="{$UniversalSub}/v2ray"
                                                class="copy btn btn-primary">
@@ -356,11 +374,16 @@
                                             {/if} class="btn btn-azure">
                                             下载 Clash Nyanpasu (aarch64)
                                         </a>
+                                        </a>
+                                        <a href="https://github.com/libnyanpasu/clash-nyanpasu/releases" target="_blank"
+                                            class="btn btn-cyan">
+                                            Clash Nyanpasu Github
+                                        </a>
                                         <a data-clipboard-text="{$UniversalSub}/clash"
                                            class="copy btn btn-primary">
                                             复制 Clash 订阅链接
                                         </a>
-                                        <a href="clash-nyanpasu://subscribe-remote-profile?url={$UniversalSub}&name={$config['appName']}"
+                                        <a href="clash-nyanpasu://subscribe-remote-profile?url={$UniversalSub}/clash&name={$config['appName']}"
                                            class="btn btn-indigo">
                                             导入 Clash Nyanpasu
                                         </a>
@@ -372,6 +395,10 @@
                                             href="/clients/Clash.Verge_aarch64.dmg"
                                         {/if} class="btn btn-azure">
                                             下载 Clash Verge (aarch64)
+                                        </a>
+                                        <a href="https://github.com/clash-verge-rev/clash-verge-rev/releases" target="_blank"
+                                            class="btn btn-cyan">
+                                            Clash Verge Github
                                         </a>
                                         <a data-clipboard-text="{$UniversalSub}/clash"
                                            class="copy btn btn-primary">
@@ -407,6 +434,10 @@
                                             {/if} class="btn btn-azure">
                                             下载 Hiddify
                                         </a>
+                                        <a href="https://github.com/hiddify/hiddify-app/releases" target="_blank"
+                                            class="btn btn-cyan">
+                                            Hiddify Github
+                                        </a>
                                         <a data-clipboard-text="{$UniversalSub}/singbox"
                                            class="copy btn btn-primary">
                                             复制 SingBox 订阅链接
@@ -415,6 +446,10 @@
                                            class="btn btn-indigo">
                                             导入 Hiddify
                                         </a>
+                                            <a href="https://github.com/2dust/v2rayN/releases" target="_blank"
+                                                class="btn btn-cyan">
+                                                v2rayN Github
+                                            </a>
                                     </div>
                                 </div>
                                 <div class="tab-pane" id="android">
@@ -435,6 +470,10 @@
                                             href="/clients/CMFA.apk"
                                             {/if} class="btn btn-azure">
                                             下载 Clash.Meta For Android
+                                        </a>
+                                        <a href="https://github.com/MetaCubeX/ClashMetaForAndroid/releases" target="_blank"
+                                            class="btn btn-cyan">
+                                            Clash.Meta For Android Github
                                         </a>
                                         <a data-clipboard-text="{$UniversalSub}/clash"
                                            class="copy btn btn-primary">
@@ -469,8 +508,11 @@
                                             href="/clients/v2rayNG_universal.apk"
                                             {/if} class="btn btn-azure">
                                             下载 V2rayNG
-                                        </a>                                       
-                                        <a data-clipboard-text="{$UniversalSub}/v2ray"
+                                        </a>                  
+                                            <a href="https://github.com/2dust/v2rayNG/releases" target="_blank"
+                                                class="btn btn-cyan">
+                                                V2rayNG Github
+                                            </a>                                        <a data-clipboard-text="{$UniversalSub}/v2ray"
                                            class="copy btn btn-primary">
                                             复制 V2rayNG 订阅链接
                                         </a>                                        
@@ -482,6 +524,10 @@
                                             href="/clients/Hiddify.apk"
                                             {/if} class="btn btn-azure">
                                             下载 Hiddify
+                                        </a>
+                                        <a href="https://github.com/hiddify/hiddify-app/releases" target="_blank"
+                                            class="btn btn-cyan">
+                                            Hiddify Github
                                         </a>
                                         <a data-clipboard-text="{$UniversalSub}/singbox"
                                            class="copy btn btn-primary">
@@ -551,11 +597,16 @@
                                             {/if} class="btn btn-azure">
                                             下载 Clash Nyanpasu
                                         </a>
+                                        </a>
+                                        <a href="https://github.com/libnyanpasu/clash-nyanpasu/releases" target="_blank"
+                                            class="btn btn-cyan">
+                                            Clash Nyanpasu Github
+                                        </a>
                                         <a data-clipboard-text="{$UniversalSub}/clash"
                                            class="copy btn btn-primary">
                                             复制 Clash 订阅链接
                                         </a>
-                                        <a href="clash-nyanpasu://subscribe-remote-profile?url={$UniversalSub}&name={$config['appName']}"
+                                        <a href="clash-nyanpasu://subscribe-remote-profile?url={$UniversalSub}/clash&name={$config['appName']}"
                                            class="btn btn-indigo">
                                             导入 Clash Nyanpasu
                                         </a>
@@ -567,6 +618,10 @@
                                             href="/clients/Hiddify.AppImage"
                                             {/if} class="btn btn-azure">
                                             下载 Hiddify
+                                        </a>
+                                        <a href="https://github.com/hiddify/hiddify-app/releases" target="_blank"
+                                            class="btn btn-cyan">
+                                            Hiddify Github
                                         </a>
                                         <a data-clipboard-text="{$UniversalSub}/singbox"
                                            class="copy btn btn-primary">
