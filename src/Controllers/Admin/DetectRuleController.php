@@ -52,6 +52,35 @@ final class DetectRuleController extends BaseController
                     ],
                 ],
             ],
+            'edit_dialog' => [
+                [
+                    'id' => 'name',
+                    'info' => '规则名称',
+                    'type' => 'input',
+                    'placeholder' => '审计规则名称',
+                ],
+                [
+                    'id' => 'text',
+                    'info' => '规则介绍',
+                    'type' => 'input',
+                    'placeholder' => '简洁明了地描述审计规则',
+                ],
+                [
+                    'id' => 'regex',
+                    'info' => '正则表达式',
+                    'type' => 'input',
+                    'placeholder' => '用以匹配审计内容的正则表达式',
+                ],
+                [
+                    'id' => 'type',
+                    'info' => '规则类型',
+                    'type' => 'select',
+                    'select' => [
+                        '1' => '数据包明文匹配',
+                        '0' => '数据包十六进制匹配',
+                    ],
+                ],
+            ],
         ];
 
     /**
@@ -87,10 +116,83 @@ final class DetectRuleController extends BaseController
         ]);
     }
 
+    public function getRule(ServerRequest $request, Response $response, array $args): ResponseInterface
+    {
+        $id = $args['id'];
+        $rule = (new DetectRule())->find($id);
+
+        if ($rule === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '规则不存在',
+            ]);
+        }
+
+        return $response->withJson([
+            'ret' => 1,
+            'rule' => [
+                'id' => $rule->id,
+                'name' => $rule->name,
+                'text' => $rule->text,
+                'regex' => $rule->regex,
+                'type' => (string) $rule->type,
+            ],
+        ]);
+    }
+
+    public function update(ServerRequest $request, Response $response, array $args): ResponseInterface
+    {
+        $id = $args['id'];
+        $rule = (new DetectRule())->find($id);
+
+        if ($rule === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '规则不存在',
+            ]);
+        }
+
+        $name = (string) $request->getParam('name');
+        $text = (string) $request->getParam('text');
+        $regex = (string) $request->getParam('regex');
+        $type = $request->getParam('type');
+
+        if ($name === '' || $regex === '') {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '规则名称和正则表达式不能为空',
+            ]);
+        }
+
+        $rule->name = $name;
+        $rule->text = $text;
+        $rule->regex = $regex;
+        $rule->type = (int) $type;
+
+        if (! $rule->save()) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '修改失败',
+            ]);
+        }
+
+        return $response->withJson([
+            'ret' => 1,
+            'msg' => '修改成功',
+        ]);
+    }
+
     public function delete(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $id = $args['id'];
         $rule = (new DetectRule())->find($id);
+
+        if ($rule === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '规则不存在',
+            ]);
+        }
 
         if (! $rule->delete()) {
             return $response->withJson([
@@ -110,7 +212,9 @@ final class DetectRuleController extends BaseController
         $rules = (new DetectRule())->orderBy('id', 'desc')->get();
 
         foreach ($rules as $rule) {
-            $rule->op = '<button class="btn btn-red" id="delete-rule-' . $rule->id .
+            $rule->op = '<button class="btn btn-primary" id="edit-rule-' . $rule->id .
+                '" onclick="editRule(' . $rule->id . ')">编辑</button>
+                <button class="btn btn-red" id="delete-rule-' . $rule->id .
                 '" onclick="deleteRule(' . $rule->id . ')">删除</button>';
             $rule->type = $rule->type();
         }

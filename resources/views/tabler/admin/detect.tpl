@@ -94,6 +94,55 @@
         </div>
     </div>
 
+    <div class="modal modal-blur fade" id="edit-detect-dialog" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑审计规则</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input id="edit_rule_id" type="hidden">
+                    {foreach $details['edit_dialog'] as $from}
+                        {if $from['type'] === 'input'}
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">{$from['info']}</label>
+                                <div class="col">
+                                    <input id="edit_{$from['id']}" type="text" class="form-control"
+                                           placeholder="{$from['placeholder']}">
+                                </div>
+                            </div>
+                        {/if}
+                        {if $from['type'] === 'textarea'}
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">{$from['info']}</label>
+                                <textarea id="edit_{$from['id']}" class="col form-control" rows="{$from['rows']}"
+                                          placeholder="{$from['placeholder']}"></textarea>
+                            </div>
+                        {/if}
+                        {if $from['type'] === 'select'}
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">{$from['info']}</label>
+                                <div class="col">
+                                    <select id="edit_{$from['id']}" class="col form-select">
+                                        {foreach $from['select'] as $key => $value}
+                                            <option value="{$key}">{$value}</option>
+                                        {/foreach}
+                                    </select>
+                                </div>
+                            </div>
+                        {/if}
+                    {/foreach}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn me-auto" data-bs-dismiss="modal">取消</button>
+                    <button id="update-detect-button" type="button" class="btn btn-primary" onclick="updateRule()">提交
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {include file='datatable.tpl'}
 
     <script>
@@ -113,6 +162,73 @@
         ];
 
         let table = new DataTable('#data-table', tableConfig);
+
+        let editModal = null;
+        function getEditModal() {
+            if (!editModal) {
+                let M = (typeof bootstrap !== 'undefined' && bootstrap.Modal)
+                    || (typeof tabler !== 'undefined' && (tabler.Modal || (tabler.bootstrap && tabler.bootstrap.Modal)));
+                if (M) {
+                    editModal = new M(document.getElementById('edit-detect-dialog'));
+                }
+            }
+            return editModal;
+        }
+
+        function editRule(rule_id) {
+            $.ajax({
+                url: "/admin/detect/" + rule_id,
+                type: 'GET',
+                dataType: "json",
+                success: function (data) {
+                    if (data.ret === 1) {
+                        $('#edit_rule_id').val(data.rule.id);
+                        {foreach $details['edit_dialog'] as $from}
+                        $('#edit_{$from['id']}').val(data.rule['{$from['id']}']);
+                        {/foreach}
+                        let modal = getEditModal();
+                        if (modal) {
+                            modal.show();
+                        } else {
+                            $('#edit-detect-dialog').modal('show');
+                        }
+                    } else {
+                        $('#fail-message').text(data.msg);
+                        failDialog.show();
+                    }
+                }
+            });
+        }
+
+        function updateRule() {
+            let rule_id = $('#edit_rule_id').val();
+            $.ajax({
+                url: "/admin/detect/" + rule_id,
+                type: 'PUT',
+                dataType: "json",
+                data: {
+                    {foreach $details['edit_dialog'] as $from}
+                    {$from['id']}: $('#edit_{$from['id']}').val(),
+                    {/foreach}
+                },
+                success: function (data) {
+                    if (data.ret === 1) {
+                        let modal = getEditModal();
+                        if (modal) {
+                            modal.hide();
+                        } else {
+                            $('#edit-detect-dialog').modal('hide');
+                        }
+                        $('#success-message').text(data.msg);
+                        successDialog.show();
+                        reloadTableAjax();
+                    } else {
+                        $('#fail-message').text(data.msg);
+                        failDialog.show();
+                    }
+                }
+            });
+        }
 
         $("#add-detect-button").click(function () {
             $.ajax({

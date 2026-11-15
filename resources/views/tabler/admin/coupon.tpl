@@ -96,8 +96,11 @@
                     <div class="form-group mb-3 row">
                         <label class="form-label col-3 col-form-label">过期时间（留空则为不限制）</label>
                         <div class="col">
-                            <input id="expire_time" type="text" class="form-control"
-                                   placeholder="">
+                            <div class="input-group">
+                                <input id="expire_time" type="text" class="form-control"
+                                       placeholder="">
+                                <button class="btn btn-outline-secondary" type="button" onclick="createExpirePicker.clear()">清空</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -111,14 +114,81 @@
         </div>
     </div>
 
+    <div class="modal modal-blur fade" id="edit-dialog" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑优惠码</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input id="edit_coupon_id" type="hidden">
+                    {foreach $details['edit_dialog'] as $detail}
+                        {if $detail['type'] === 'input'}
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">{$detail['info']}</label>
+                                <div class="col">
+                                    <input id="edit_{$detail['id']}" type="text" class="form-control"
+                                           placeholder="{$detail['placeholder']}">
+                                </div>
+                            </div>
+                        {/if}
+                        {if $detail['type'] === 'textarea'}
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">{$detail['info']}</label>
+                                <textarea id="edit_{$detail['id']}" class="col form-control" rows="{$detail['rows']}"
+                                          placeholder="{$detail['placeholder']}"></textarea>
+                            </div>
+                        {/if}
+                        {if $detail['type'] === 'select'}
+                            <div class="form-group mb-3 row">
+                                <label class="form-label col-3 col-form-label">{$detail['info']}</label>
+                                <div class="col">
+                                    <select id="edit_{$detail['id']}" class="col form-select">
+                                        {foreach $detail['select'] as $key => $value}
+                                            <option value="{$key}">{$value}</option>
+                                        {/foreach}
+                                    </select>
+                                </div>
+                            </div>
+                        {/if}
+                    {/foreach}
+                    <div class="form-group mb-3 row">
+                        <label class="form-label col-3 col-form-label">过期时间（留空则为不限制）</label>
+                        <div class="col">
+                            <div class="input-group">
+                                <input id="edit_expire_time" type="text" class="form-control"
+                                       placeholder="">
+                                <button class="btn btn-outline-secondary" type="button" onclick="editExpirePicker.clear()">清空</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn me-auto" data-bs-dismiss="modal">取消</button>
+                    <button id="edit-button" onclick="updateCoupon()"
+                            type="button" class="btn btn-primary">提交
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {include file='datatable.tpl'}
 
     <script>
-        flatpickr("#expire_time", {
+        let createExpirePicker = flatpickr("#expire_time", {
             enableTime: true,
             dateFormat: "U",
             time_24hr: true,
             minDate: "today",
+            locale: "zh"
+        });
+
+        let editExpirePicker = flatpickr("#edit_expire_time", {
+            enableTime: true,
+            dateFormat: "U",
+            time_24hr: true,
             locale: "zh"
         });
 
@@ -138,6 +208,79 @@
         ];
 
         let table = new DataTable('#data-table', tableConfig);
+
+        let editModal = null;
+        function getEditModal() {
+            if (!editModal) {
+                let M = (typeof bootstrap !== 'undefined' && bootstrap.Modal)
+                    || (typeof tabler !== 'undefined' && (tabler.Modal || (tabler.bootstrap && tabler.bootstrap.Modal)));
+                if (M) {
+                    editModal = new M(document.getElementById('edit-dialog'));
+                }
+            }
+            return editModal;
+        }
+
+        function editCoupon(coupon_id) {
+            $.ajax({
+                url: "/admin/coupon/" + coupon_id,
+                type: 'GET',
+                dataType: "json",
+                success: function (data) {
+                    if (data.ret === 1) {
+                        $('#edit_coupon_id').val(data.coupon.id);
+                        {foreach $details['edit_dialog'] as $detail}
+                        $('#edit_{$detail['id']}').val(data.coupon['{$detail['id']}']);
+                        {/foreach}
+                        if (data.coupon.expire_time > 0) {
+                            editExpirePicker.setDate(new Date(data.coupon.expire_time * 1000));
+                        } else {
+                            editExpirePicker.clear();
+                        }
+                        let modal = getEditModal();
+                        if (modal) {
+                            modal.show();
+                        } else {
+                            $('#edit-dialog').modal('show');
+                        }
+                    } else {
+                        $('#fail-message').text(data.msg);
+                        failDialog.show();
+                    }
+                }
+            });
+        }
+
+        function updateCoupon() {
+            let coupon_id = $('#edit_coupon_id').val();
+            $.ajax({
+                url: '/admin/coupon/' + coupon_id,
+                type: 'PUT',
+                dataType: "json",
+                data: {
+                    {foreach $details['edit_dialog'] as $detail}
+                    {$detail['id']}: $('#edit_{$detail['id']}').val(),
+                    {/foreach}
+                    expire_time: $('#edit_expire_time').val(),
+                },
+                success: function (data) {
+                    if (data.ret === 1) {
+                        let modal = getEditModal();
+                        if (modal) {
+                            modal.hide();
+                        } else {
+                            $('#edit-dialog').modal('hide');
+                        }
+                        $('#success-message').text(data.msg);
+                        successDialog.show();
+                        reloadTableAjax();
+                    } else {
+                        $('#fail-message').text(data.msg);
+                        failDialog.show();
+                    }
+                }
+            });
+        }
 
         function loadTable() {
             table;

@@ -207,6 +207,8 @@ return static function (Slim\App $app): void {
         $group->get('/detect', App\Controllers\Admin\DetectRuleController::class . ':index');
         $group->get('/detect/create', App\Controllers\Admin\DetectRuleController::class . ':create');
         $group->post('/detect/add', App\Controllers\Admin\DetectRuleController::class . ':add');
+        $group->get('/detect/{id:[0-9]+}', App\Controllers\Admin\DetectRuleController::class . ':getRule');
+        $group->put('/detect/{id:[0-9]+}', App\Controllers\Admin\DetectRuleController::class . ':update');
         $group->delete('/detect/{id:[0-9]+}', App\Controllers\Admin\DetectRuleController::class . ':delete');
         $group->post('/detect/ajax', App\Controllers\Admin\DetectRuleController::class . ':ajax');
         // 审计触发日志
@@ -226,6 +228,8 @@ return static function (Slim\App $app): void {
         // Coupon
         $group->get('/coupon', App\Controllers\Admin\CouponController::class . ':index');
         $group->post('/coupon', App\Controllers\Admin\CouponController::class . ':add');
+        $group->get('/coupon/{id:[0-9]+}', App\Controllers\Admin\CouponController::class . ':getCoupon');
+        $group->put('/coupon/{id:[0-9]+}', App\Controllers\Admin\CouponController::class . ':update');
         $group->post('/coupon/ajax', App\Controllers\Admin\CouponController::class . ':ajax');
         $group->delete('/coupon/{id:[0-9]+}', App\Controllers\Admin\CouponController::class . ':delete');
         $group->post('/coupon/{id:[0-9]+}/disable', App\Controllers\Admin\CouponController::class . ':disable');
