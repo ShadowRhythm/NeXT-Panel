@@ -113,6 +113,10 @@ final class Config extends Model
 
     public static function set(string $item, mixed $value): bool
     {
+        if ($value === null) {
+            $value = '';
+        }
+
         $value = is_array($value) ? json_encode($value) : $value;
 
         try {

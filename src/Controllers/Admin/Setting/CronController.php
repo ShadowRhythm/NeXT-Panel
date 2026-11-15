@@ -10,6 +10,8 @@ use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
 use Smarty\Exception;
+use function array_diff;
+use function array_values;
 
 final class CronController extends BaseController
 {
@@ -19,7 +21,7 @@ final class CronController extends BaseController
     public function __construct()
     {
         parent::__construct();
-        $this->update_field = Config::getItemListByClass('cron');
+        $this->update_field = array_values(array_diff(Config::getItemListByClass('cron'), ['last_daily_job_time']));
         $this->settings = Config::getClass('cron');
     }
 
@@ -61,7 +63,16 @@ final class CronController extends BaseController
                 continue;
             }
 
-            if (! Config::set($item, $request->getParam($item))) {
+            if ($item === 'last_daily_job_time') {
+                continue;
+            }
+
+            $value = $request->getParam($item);
+            if ($value === null) {
+                continue;
+            }
+
+            if (! Config::set($item, $value)) {
                 return $response->withJson([
                     'ret' => 0,
                     'msg' => '保存 ' . $item . ' 时出错',

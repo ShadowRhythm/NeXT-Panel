@@ -1595,7 +1595,7 @@
     {
         "item": "last_daily_job_time",
         "value": "0",
-        "class": "cron",
+        "class": "system",
         "is_public": 0,
         "type": "int",
         "default": "0",
