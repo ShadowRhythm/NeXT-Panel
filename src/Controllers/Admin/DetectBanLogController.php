@@ -74,9 +74,11 @@ final class DetectBanLogController extends BaseController
         $bans = $detect_ban_log->paginate($length, '*', '', $page);
 
         foreach ($bans as $ban) {
-            $ban->start_time = Tools::toDateTime((int) $ban->start_time);
-            $ban->end_time = Tools::toDateTime((int) $ban->end_time);
             $ban->ban_end_time = $ban->banEndTime();
+            $ban->start_time = (int) $ban->start_time <= 612893100
+                ? '首次封禁'
+                : Tools::toDateTime((int) $ban->start_time);
+            $ban->end_time = Tools::toDateTime((int) $ban->end_time);
         }
 
         return $response->withJson([

@@ -166,11 +166,17 @@ final class Detect
                     $user->banned_reason = 'DetectBan';
                     $user->last_detect_ban_time = Tools::toDateTime(time());
                     $user->save();
+
+                    $startTime = strtotime((string) $last_detect_ban_time);
+                    if ($startTime <= 612893100 || $last_detect_ban_time === '1989-06-04 00:05:00') {
+                        $startTime = strtotime((string) $user->reg_date) ?: time();
+                    }
+
                     $DetectBanLog = new DetectBanLog();
                     $DetectBanLog->user_id = $user->id;
                     $DetectBanLog->detect_number = $detect_number;
                     $DetectBanLog->ban_time = $_ENV['auto_detect_ban_time'];
-                    $DetectBanLog->start_time = strtotime($last_detect_ban_time);
+                    $DetectBanLog->start_time = $startTime;
                     $DetectBanLog->end_time = time();
                     $DetectBanLog->all_detect_number = $user->all_detect_number;
                     $DetectBanLog->save();

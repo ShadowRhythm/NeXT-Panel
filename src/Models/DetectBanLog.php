@@ -6,6 +6,8 @@ namespace App\Models;
 
 use App\Utils\Tools;
 use Illuminate\Database\Query\Builder;
+use function is_numeric;
+use function strtotime;
 
 /**
  * @property int    $id                封禁记录ID
@@ -28,6 +30,8 @@ final class DetectBanLog extends Model
      */
     public function banEndTime(): string
     {
-        return Tools::toDateTime($this->end_time + $this->ban_time * 60);
+        $endTime = is_numeric($this->end_time) ? (int) $this->end_time : strtotime((string) $this->end_time);
+
+        return Tools::toDateTime($endTime + (int) $this->ban_time * 60);
     }
 }
