@@ -132,9 +132,6 @@ final class UserController extends BaseController
                     $details = [];
                 }
 
-                // 忽略已弃用的字段
-                unset($details['GoogleRegion']);
-
                 // 从 result JSON 中提取 IP 质量字段，剩余为流媒体解锁结果
                 $ip_info = [];
                 foreach ($ip_keys as $key) {
