@@ -102,24 +102,7 @@ $(document).ready(function(){
         }
         // education / government / other keep bg-blue-lt
     });
-    // Gemini region coloring: color based on country code embedded in badge text
-    var geminiBlockedRed = ['CN'];
-    var geminiBlockedOrange = ['HK', 'MO', 'RU', 'BY', 'CU', 'IR', 'KP', 'SY'];
-    $('td > span.badge').filter(function() {
-        var t = $(this).text().trim();
-        return t.startsWith('Yes (') || t.startsWith('No (');
-    }).each(function() {
-        var text = $(this).text().trim();
-        var match = text.match(/\(([A-Z]{2,3})\)/);
-        if (!match) return;
-        var cc = match[1];
-        if (geminiBlockedRed.indexOf(cc) !== -1) {
-            $(this).removeClass('bg-green-lt bg-red-lt').addClass('bg-red-lt');
-        } else if (geminiBlockedOrange.indexOf(cc) !== -1) {
-            $(this).removeClass('bg-green-lt bg-red-lt').addClass('bg-orange-lt');
-        }
-        // 其他地区保持 Yes=绿 / No=红 原色
-    });
+
 });
 </script>
 {include file='user/footer.tpl'}
