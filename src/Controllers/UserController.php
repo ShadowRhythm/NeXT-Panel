@@ -109,6 +109,10 @@ final class UserController extends BaseController
     public function media(ServerRequest $request, Response $response, array $args)
     {
         $results = [];
+        $default_unlock_keys = ['YouTube', 'Netflix', 'Disney+', 'OpenAI', 'Gemini', 'BBC', 'Abema'];
+        $ip_keys = ['IPType', 'IPattributes', 'IPRisk', 'GoogleRegion'];
+        $discovered_unlock_keys = [];
+
         try {
             $node_ids = StreamMedia::select('node_id')->distinct()->pluck('node_id')->toArray();
         } catch (\Throwable) {
@@ -124,8 +128,11 @@ final class UserController extends BaseController
 
             if ($unlock !== null && $node !== null) {
                 $details = \json_decode($unlock->result, true);
+                if (! \is_array($details)) {
+                    $details = [];
+                }
+
                 // 从 result JSON 中提取 IP 质量字段，剩余为流媒体解锁结果
-                $ip_keys = ['IPType', 'IPattributes', 'IPRisk', 'GoogleRegion'];
                 $ip_info = [];
                 foreach ($ip_keys as $key) {
                     if (isset($details[$key])) {
@@ -133,21 +140,32 @@ final class UserController extends BaseController
                         unset($details[$key]);
                     }
                 }
+
+                foreach (\array_keys($details) as $key) {
+                    if (! \in_array($key, $discovered_unlock_keys, true)) {
+                        $discovered_unlock_keys[] = $key;
+                    }
+                }
+
                 $info = [
-                    'node_name'  => $node->name,
-                    'created_at' => $unlock->created_at,
+                    'node_name'   => $node->name,
+                    'created_at'  => $unlock->created_at,
                     'unlock_item' => $details,
-                    'ip_info'    => $ip_info,
+                    'ip_info'     => $ip_info,
                 ];
-                array_push($results, $info);
+                $results[] = $info;
             }
         }
 		
         $node_names = array_column($results, 'node_name');
         array_multisort($node_names, SORT_ASC, $results);
 
+        $unlock_keys = \array_values(\array_unique(\array_merge($default_unlock_keys, $discovered_unlock_keys)));
+
         return $response->write($this->view()
             ->assign('results', $results)
+            ->assign('unlock_keys', $unlock_keys)
+            ->assign('ip_keys', $ip_keys)
             ->fetch('user/media.tpl'));
     }
 	

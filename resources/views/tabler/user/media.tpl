@@ -26,14 +26,12 @@
                                 <thead>
                                     <tr>
                                         <th>{trans key='user.node'}</th>
-                                        {foreach $results['0']['unlock_item'] as $key => $value}
+                                        {foreach $unlock_keys as $key}
                                             <th>{$key}</th>
                                         {/foreach}
-                                        {if $results['0']['ip_info']}
-                                            {foreach $results['0']['ip_info'] as $key => $value}
-                                                <th>{$key}</th>
-                                            {/foreach}
-                                        {/if}
+                                        {foreach $ip_keys as $key}
+                                            <th>{$key}</th>
+                                        {/foreach}
                                         <th>{trans key='user.update_time'}</th>
                                     </tr>
                                 </thead>
@@ -41,11 +39,23 @@
                                     {foreach $results as $result}
                                         <tr>
                                             <td>{$result['node_name']}</td>
-                                            {foreach $result['unlock_item'] as $key => $value}
-                                                <td><span class="">{$value}</span></td>
+                                            {foreach $unlock_keys as $key}
+                                                <td>
+                                                    {if isset($result['unlock_item'][$key])}
+                                                        <span>{$result['unlock_item'][$key]}</span>
+                                                    {else}
+                                                        <span class="text-secondary">-</span>
+                                                    {/if}
+                                                </td>
                                             {/foreach}
-                                            {foreach $result['ip_info'] as $key => $value}
-                                                <td><span class="badge bg-blue-lt">{$value}</span></td>
+                                            {foreach $ip_keys as $key}
+                                                <td>
+                                                    {if isset($result['ip_info'][$key]) && $result['ip_info'][$key] !== ''}
+                                                        <span class="badge bg-blue-lt">{$result['ip_info'][$key]}</span>
+                                                    {else}
+                                                        <span class="text-secondary">-</span>
+                                                    {/if}
+                                                </td>
                                             {/foreach}
                                             <td>{$result.created_at|date_format:"%Y-%m-%d %H:%M:%S"}</td>
                                         </tr>
