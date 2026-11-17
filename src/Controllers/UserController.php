@@ -110,7 +110,7 @@ final class UserController extends BaseController
     {
         $results = [];
         $default_unlock_keys = ['YouTube', 'Netflix', 'Disney+', 'OpenAI', 'Gemini', 'BBC', 'Abema'];
-        $ip_keys = ['IPType', 'IPattributes', 'IPRisk', 'GoogleRegion'];
+        $ip_keys = ['IPType', 'IPattributes', 'IPRisk'];
         $discovered_unlock_keys = [];
 
         try {
@@ -131,6 +131,9 @@ final class UserController extends BaseController
                 if (! \is_array($details)) {
                     $details = [];
                 }
+
+                // 忽略已弃用的字段
+                unset($details['GoogleRegion']);
 
                 // 从 result JSON 中提取 IP 质量字段，剩余为流媒体解锁结果
                 $ip_info = [];
