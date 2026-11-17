@@ -84,6 +84,22 @@ $(document).ready(function(){
             $(this).addClass('badge bg-yellow-lt');
         }
     });
+    // IP quality badge coloring
+    $('td > span.badge.bg-blue-lt').each(function() {
+        var text = $(this).text().trim();
+        if (text === 'High') {
+            $(this).removeClass('bg-blue-lt').addClass('bg-red-lt');
+        } else if (text === 'Medium' || text === 'Broadcast') {
+            $(this).removeClass('bg-blue-lt').addClass('bg-orange-lt');
+        } else if (text === 'business') {
+            $(this).removeClass('bg-blue-lt').addClass('bg-teal-lt');
+        } else if (text === 'Low' || text === 'isp' || text === 'mobile' || text === 'Native') {
+            $(this).removeClass('bg-blue-lt').addClass('bg-green-lt');
+        } else if (text === 'unknown' || text === 'host' || text === '') {
+            $(this).removeClass('bg-blue-lt').addClass('bg-secondary-lt');
+        }
+        // education / government / other keep bg-blue-lt
+    });
 });
 </script>
 {include file='user/footer.tpl'}
