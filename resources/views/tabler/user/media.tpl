@@ -29,6 +29,11 @@
                                         {foreach $results['0']['unlock_item'] as $key => $value}
                                             <th>{$key}</th>
                                         {/foreach}
+                                        {if $results['0']['ip_info']}
+                                            {foreach $results['0']['ip_info'] as $key => $value}
+                                                <th>{$key}</th>
+                                            {/foreach}
+                                        {/if}
                                         <th>{trans key='user.update_time'}</th>
                                     </tr>
                                 </thead>
@@ -36,12 +41,12 @@
                                     {foreach $results as $result}
                                         <tr>
                                             <td>{$result['node_name']}</td>
-                                            <td><span class="">{$result['unlock_item']['YouTube']}</span></td>
-                                            <td><span class="">{$result['unlock_item']['Netflix']}</span></td>
-                                            <td><span class="">{$result['unlock_item']['Disney+']}</span></td>
-                                            <td><span class="">{$result['unlock_item']['OpenAI']}</span></td>                                                                                      
-                                            <td><span class="">{$result['unlock_item']['BBC']}</span></td>
-                                            <td><span class="">{$result['unlock_item']['Abema']}</span></td>
+                                            {foreach $result['unlock_item'] as $key => $value}
+                                                <td><span class="">{$value}</span></td>
+                                            {/foreach}
+                                            {foreach $result['ip_info'] as $key => $value}
+                                                <td><span class="badge bg-blue-lt">{$value}</span></td>
+                                            {/foreach}
                                             <td>{$result.created_at|date_format:"%Y-%m-%d %H:%M:%S"}</td>
                                         </tr>
                                     {/foreach}
@@ -55,11 +60,20 @@
     </div>
 <script>
 $(document).ready(function(){
-    $('td > span:contains("Yes")').addClass('badge bg-green-lt');
-    $('td > span:contains("DNS")').removeClass('bg-green-lt').addClass('badge bg-cyan-lt');
-    $('td > span:contains("No")').addClass('badge bg-red-lt');
-    $('td > span:contains("Only")').addClass('badge bg-purple-lt');
-    $('td > span:contains("Failed")').addClass('badge bg-yellow-lt');
+    $('td > span').each(function() {
+        var text = $(this).text().trim();
+        if (text.indexOf('DNS') !== -1) {
+            $(this).addClass('badge bg-cyan-lt');
+        } else if (text === 'Yes' || text.startsWith('Yes ') || text.startsWith('Yes(')) {
+            $(this).addClass('badge bg-green-lt');
+        } else if (text === 'No' || text.startsWith('No ') || text.startsWith('No(')) {
+            $(this).addClass('badge bg-red-lt');
+        } else if (text.indexOf('Only') !== -1) {
+            $(this).addClass('badge bg-purple-lt');
+        } else if (text.indexOf('Failed') !== -1) {
+            $(this).addClass('badge bg-yellow-lt');
+        }
+    });
 });
-</script> 
+</script>
 {include file='user/footer.tpl'}

@@ -124,11 +124,20 @@ final class UserController extends BaseController
 
             if ($unlock !== null && $node !== null) {
                 $details = \json_decode($unlock->result, true);
-                $details = str_replace('Yes (Native)', 'Yes', $details);
+                // 从 result JSON 中提取 IP 质量字段，剩余为流媒体解锁结果
+                $ip_keys = ['IPType', 'IPattributes', 'IPRisk', 'GoogleRegion'];
+                $ip_info = [];
+                foreach ($ip_keys as $key) {
+                    if (isset($details[$key])) {
+                        $ip_info[$key] = $details[$key];
+                        unset($details[$key]);
+                    }
+                }
                 $info = [
-                    'node_name' => $node->name,
+                    'node_name'  => $node->name,
                     'created_at' => $unlock->created_at,
                     'unlock_item' => $details,
+                    'ip_info'    => $ip_info,
                 ];
                 array_push($results, $info);
             }
