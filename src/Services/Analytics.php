@@ -331,6 +331,45 @@ final class Analytics
     }
 
     /**
+     * 年视图：指定年份全年12个月汇总
+     */
+    public static function getSiteYearlyStats(string $year): array
+    {
+        $rows = SiteDailyStat::where('date', '>=', $year . '-01-01')
+            ->where('date', '<=', $year . '-12-31')
+            ->orderBy('date')
+            ->get();
+
+        $monthly = [];
+        foreach ($rows as $row) {
+            $ym = substr($row->date, 0, 7);
+            if (!isset($monthly[$ym])) {
+                $monthly[$ym] = ['income' => 0.0, 'new_users' => 0, 'traffic' => 0, 'class_snapshot' => []];
+            }
+            $monthly[$ym]['income']    += (float) $row->income;
+            $monthly[$ym]['new_users'] += (int)   $row->new_users;
+            $monthly[$ym]['traffic']   += (int)   $row->traffic;
+            $monthly[$ym]['class_snapshot'] = json_decode($row->class_snapshot, true) ?: [];
+        }
+
+        $months = $income = $newUsers = $trafficGb = [];
+        $classSeries = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $ym = $year . '-' . str_pad((string) $m, 2, '0', STR_PAD_LEFT);
+            $months[]    = $ym;
+            $d = $monthly[$ym] ?? ['income' => 0.0, 'new_users' => 0, 'traffic' => 0, 'class_snapshot' => []];
+            $income[]    = round($d['income'], 2);
+            $newUsers[]  = $d['new_users'];
+            $trafficGb[] = round($d['traffic'] / (1024 ** 3), 2);
+            foreach ($d['class_snapshot'] as $cls => $cnt) {
+                $classSeries[(string) $cls][] = (int) $cnt;
+            }
+        }
+
+        return compact('months', 'income', 'newUsers', 'trafficGb', 'classSeries');
+    }
+
+    /**
      * 本月 vs 上月同期收入对比
      */
     public static function getMonthlyIncomeComparison(): array
@@ -399,5 +438,24 @@ final class Analytics
         }
 
         return $query->get()->toArray();
+    }
+
+    /**
+     * 年视图：指定年份商品销量排行（直接查 order 表）
+     */
+    public static function getProductSalesRankingByYear(string $year): array
+    {
+        $start = strtotime($year . '-01-01 00:00:00');
+        $end   = strtotime($year . '-12-31 23:59:59');
+
+        return (new Order())
+            ->whereIn('status', ['activated', 'expired', 'superseded'])
+            ->whereBetween('create_time', [$start, $end])
+            ->groupBy('product_id', 'product_name', 'product_type')
+            ->selectRaw('product_id, product_name, product_type, COUNT(*) as order_count, SUM(price) as revenue')
+            ->orderByDesc('order_count')
+            ->limit(10)
+            ->get()
+            ->toArray();
     }
 }

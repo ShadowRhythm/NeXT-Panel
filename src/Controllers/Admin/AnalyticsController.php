@@ -29,17 +29,22 @@ final class AnalyticsController extends BaseController
     public function ajax(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $type  = $request->getQueryParam('type', '');
-        $mode  = $request->getQueryParam('mode', 'day');      // day | month
+        $mode  = $request->getQueryParam('mode', 'day');      // day | month | year
         $month = $request->getQueryParam('month', date('Y-m'));
+        $year  = $request->getQueryParam('year', date('Y'));
 
         $data = match ($type) {
-            'site_stats' => $mode === 'month'
-                ? Analytics::getSiteMonthlyStats()
-                : Analytics::getSiteDailyByMonth($month),
+            'site_stats' => match ($mode) {
+                'month' => Analytics::getSiteMonthlyStats(),
+                'year'  => Analytics::getSiteYearlyStats($year),
+                default => Analytics::getSiteDailyByMonth($month),
+            },
 
-            'product_sales' => Analytics::getProductSalesRanking(
-                $mode === 'month' ? null : $month
-            ),
+            'product_sales' => match ($mode) {
+                'month' => Analytics::getProductSalesRanking(null),
+                'year'  => Analytics::getProductSalesRanking(null), // whole-year ranking
+                default => Analytics::getProductSalesRanking($month),
+            },
 
             default => ['error' => 'unknown type'],
         };

@@ -28,6 +28,7 @@
                         <div class="btn-group btn-group-sm" role="group">
                             <button type="button" class="btn btn-primary active" id="btn-day">日</button>
                             <button type="button" class="btn btn-outline-primary" id="btn-month">月</button>
+                            <button type="button" class="btn btn-outline-primary" id="btn-year">年</button>
                         </div>
                         <div id="day-shortcuts" class="d-flex align-items-center gap-2">
                             <button type="button" class="btn btn-sm btn-outline-secondary day-shortcut" data-month="{$current_month}">本月</button>
@@ -63,6 +64,11 @@
                         </div>
                         <div id="month-shortcuts" class="d-flex align-items-center gap-2 d-none">
                             <span class="text-secondary small">最近 12 个月</span>
+                        </div>
+                        <div id="year-shortcuts" class="d-flex align-items-center gap-2 d-none">
+                            <button class="btn btn-sm btn-ghost-secondary px-2" id="year-prev" type="button"><i class="ti ti-chevron-left"></i></button>
+                            <span class="fw-semibold" id="year-label" style="min-width:4rem;text-align:center"></span>
+                            <button class="btn btn-sm btn-ghost-secondary px-2" id="year-next" type="button"><i class="ti ti-chevron-right"></i></button>
                         </div>
                         <!-- 右侧 KPI 摘要 -->
                         <div class="ms-auto d-flex align-items-center gap-4 text-nowrap">
@@ -303,7 +309,7 @@
         // ── 趋势图加载（收入/用户/流量/等级） ───────────────────────────
         async function loadCharts() {
             try {
-                const url = `/admin/analytics/ajax?type=site_stats&mode=${currentMode}&month=${currentMonth}`;
+                const url = `/admin/analytics/ajax?type=site_stats&mode=${currentMode}&month=${currentMonth}&year=${currentYear}`;
                 const data = await fetch(url).then(r => r.json());
                 const xLabels = currentMode === 'day' ? (data.dates || []) : (data.months || []);
 
@@ -322,7 +328,7 @@
         // ── 商品销量（随日期切换 AJAX 刷新） ────────────────────────────
         async function loadProductChart() {
             try {
-                const url = `/admin/analytics/ajax?type=product_sales&mode=${currentMode}&month=${currentMonth}`;
+                const url = `/admin/analytics/ajax?type=product_sales&mode=${currentMode}&month=${currentMonth}&year=${currentYear}`;
                 const items = (await fetch(url).then(r => r.json()) || []).slice(0, 10).reverse();
 
                 const categories = items.map(p => p.product_name || ('商品 #' + p.product_id));
@@ -351,18 +357,38 @@
             }
         }
 
+        // ── 年视图年份 ───────────────────────────────────────────────────
+        let currentYear = new Date().getFullYear();
+        function updateYearLabel() {
+            const el = document.getElementById('year-label');
+            if (el) el.textContent = currentYear + ' 年';
+        }
+        updateYearLabel();
+        document.getElementById('year-prev')?.addEventListener('click', () => { currentYear--; updateYearLabel(); reloadAll(); });
+        document.getElementById('year-next')?.addEventListener('click', () => { currentYear++; updateYearLabel(); reloadAll(); });
+
         // ── 切换维度 ─────────────────────────────────────────────────────
         function switchMode(mode) {
             currentMode = mode;
-            const isDay = mode === 'day';
+            const isDay   = mode === 'day';
+            const isMonth = mode === 'month';
+            const isYear  = mode === 'year';
+            // btn-day
             document.getElementById('btn-day').classList.toggle('active', isDay);
             document.getElementById('btn-day').classList.toggle('btn-primary', isDay);
             document.getElementById('btn-day').classList.toggle('btn-outline-primary', !isDay);
-            document.getElementById('btn-month').classList.toggle('active', !isDay);
-            document.getElementById('btn-month').classList.toggle('btn-primary', !isDay);
-            document.getElementById('btn-month').classList.toggle('btn-outline-primary', isDay);
+            // btn-month
+            document.getElementById('btn-month').classList.toggle('active', isMonth);
+            document.getElementById('btn-month').classList.toggle('btn-primary', !isMonth);
+            document.getElementById('btn-month').classList.toggle('btn-outline-primary', !isMonth);
+            // btn-year
+            document.getElementById('btn-year').classList.toggle('active', isYear);
+            document.getElementById('btn-year').classList.toggle('btn-primary', isYear);
+            document.getElementById('btn-year').classList.toggle('btn-outline-primary', !isYear);
+            // 显示/隐藏快捷栏
             document.getElementById('day-shortcuts').classList.toggle('d-none', !isDay);
-            document.getElementById('month-shortcuts').classList.toggle('d-none', isDay);
+            document.getElementById('month-shortcuts').classList.toggle('d-none', !isMonth);
+            document.getElementById('year-shortcuts').classList.toggle('d-none', !isYear);
             reloadAll();
         }
 
@@ -373,6 +399,7 @@
 
         document.getElementById('btn-day').addEventListener('click', () => switchMode('day'));
         document.getElementById('btn-month').addEventListener('click', () => switchMode('month'));
+        document.getElementById('btn-year').addEventListener('click', () => switchMode('year'));
 
         document.querySelectorAll('.day-shortcut').forEach(btn => {
             btn.addEventListener('click', () => {
