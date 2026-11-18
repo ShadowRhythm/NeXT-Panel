@@ -148,9 +148,6 @@ final class UserController extends BaseController
                     }
                 }
 
-                // 移除旧版 BBC 字段，统一展示为 TikTok
-                unset($details['BBC']);
-
                 foreach (\array_keys($details) as $key) {
                     if (! \in_array($key, $discovered_unlock_keys, true)) {
                         $discovered_unlock_keys[] = $key;
