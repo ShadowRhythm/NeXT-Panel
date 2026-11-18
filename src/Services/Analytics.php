@@ -6,7 +6,9 @@ namespace App\Services;
 
 use App\Models\HourlyUsage;
 use App\Models\Node;
+use App\Models\Order;
 use App\Models\Paylist;
+use App\Models\SiteDailyStat;
 use App\Models\User;
 use App\Models\UserTrafficStat;
 use App\Utils\Tools;
@@ -14,6 +16,7 @@ use DateTime;
 use function array_fill;
 use function array_shift;
 use function array_sum;
+use function compact;
 use function count;
 use function date;
 use function floatval;
@@ -22,6 +25,7 @@ use function is_null;
 use function json_decode;
 use function round;
 use function strtotime;
+use function substr;
 use function time;
 
 final class Analytics
@@ -241,5 +245,159 @@ final class Analytics
             'usage' => $monthly_usage,
             'labels' => $labels,
         ];
+    }
+
+    /**
+     * 日视图：查某月每天的全站统计
+     * $month 格式 'YYYY-MM'，返回该月每天一条记录
+     */
+    public static function getSiteDailyByMonth(string $month): array
+    {
+        $start = $month . '-01';
+        $end   = date('Y-m-t', strtotime($start)); // 该月最后一天
+
+        $rows = SiteDailyStat::whereBetween('date', [$start, $end])
+            ->orderBy('date')
+            ->get();
+
+        $dates       = [];
+        $income      = [];
+        $newUsers    = [];
+        $activeUsers = [];
+        $trafficGb   = [];
+        $classSeries = []; // ['0' => [n,n,...], '1' => [n,n,...]]
+
+        foreach ($rows as $row) {
+            $dates[]       = $row->date;
+            $income[]      = (float) $row->income;
+            $newUsers[]    = (int)   $row->new_users;
+            $activeUsers[] = (int)   $row->active_users;
+            $trafficGb[]   = round($row->traffic / (1024 ** 3), 2);
+
+            $snapshot = json_decode($row->class_snapshot, true) ?: [];
+            foreach ($snapshot as $cls => $cnt) {
+                $classSeries[(string) $cls][] = (int) $cnt;
+            }
+        }
+
+        return compact('dates', 'income', 'newUsers', 'activeUsers', 'trafficGb', 'classSeries');
+    }
+
+    /**
+     * 月视图：最近12个月汇总
+     * 返回每月 SUM(income), SUM(new_users), SUM(traffic)，class_snapshot 取该月最后一天
+     */
+    public static function getSiteMonthlyStats(): array
+    {
+        $rows = SiteDailyStat::where('date', '>=', date('Y-m-d', strtotime('-12 months')))
+            ->orderBy('date')
+            ->get();
+
+        $monthly = [];
+        foreach ($rows as $row) {
+            $ym = substr($row->date, 0, 7); // 'YYYY-MM'
+            if (!isset($monthly[$ym])) {
+                $monthly[$ym] = [
+                    'income'      => 0.0,
+                    'new_users'   => 0,
+                    'traffic'     => 0,
+                    'class_snapshot' => [],
+                ];
+            }
+            $monthly[$ym]['income']    += (float) $row->income;
+            $monthly[$ym]['new_users'] += (int)   $row->new_users;
+            $monthly[$ym]['traffic']   += (int)   $row->traffic;
+            // 取该月最后一天的快照（后面的会覆盖前面的，最终是月末值）
+            $monthly[$ym]['class_snapshot'] = json_decode($row->class_snapshot, true) ?: [];
+        }
+
+        $months      = [];
+        $income      = [];
+        $newUsers    = [];
+        $trafficGb   = [];
+        $classSeries = [];
+
+        foreach ($monthly as $ym => $data) {
+            $months[]    = $ym;
+            $income[]    = round($data['income'], 2);
+            $newUsers[]  = $data['new_users'];
+            $trafficGb[] = round($data['traffic'] / (1024 ** 3), 2);
+            foreach ($data['class_snapshot'] as $cls => $cnt) {
+                $classSeries[(string) $cls][] = (int) $cnt;
+            }
+        }
+
+        return compact('months', 'income', 'newUsers', 'trafficGb', 'classSeries');
+    }
+
+    /**
+     * 本月 vs 上月同期收入对比
+     */
+    public static function getMonthlyIncomeComparison(): array
+    {
+        $thisMonthStart          = strtotime('first day of this month 00:00:00');
+        $now                     = time();
+        $elapsed                 = $now - $thisMonthStart;
+        $lastMonthStart          = strtotime('first day of last month 00:00:00');
+        $lastMonthSamePeriodEnd  = $lastMonthStart + $elapsed;
+
+        $paylist = new Paylist();
+
+        $thisMonth = (float) ($paylist->where('status', 1)
+            ->whereBetween('datetime', [$thisMonthStart, $now])
+            ->sum('total') ?? 0);
+
+        $lastMonthSame = (float) ($paylist->where('status', 1)
+            ->whereBetween('datetime', [$lastMonthStart, $lastMonthSamePeriodEnd])
+            ->sum('total') ?? 0);
+
+        $diffPercent = $lastMonthSame > 0
+            ? round(($thisMonth - $lastMonthSame) / $lastMonthSame * 100, 1)
+            : 0.0;
+
+        return [
+            'this_month'             => round($thisMonth, 2),
+            'last_month_same_period' => round($lastMonthSame, 2),
+            'diff_percent'           => $diffPercent,
+        ];
+    }
+
+    /**
+     * 各等级用户数（实时）
+     */
+    public static function getUserClassDistribution(): array
+    {
+        $rows = (new User())->groupBy('class')
+            ->selectRaw('`class`, COUNT(*) as cnt')
+            ->orderBy('class')
+            ->get();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[(string) $row->class] = (int) $row->cnt;
+        }
+        return $result;
+    }
+
+    /**
+     * 商品销量排行（直接查 order 表）
+     * $month: 'YYYY-MM' 或 null（查全部）
+     */
+    public static function getProductSalesRanking(?string $month = null): array
+    {
+        $query = (new Order())
+            ->whereIn('status', ['activated', 'expired', 'superseded'])
+            ->groupBy('product_id', 'product_name', 'product_type')
+            ->selectRaw('product_id, product_name, product_type, COUNT(*) as order_count, SUM(price) as revenue')
+            ->orderByDesc('order_count')
+            ->limit(10);
+
+        if ($month !== null) {
+            $start = strtotime($month . '-01 00:00:00');
+            $end   = strtotime('last day of ' . $month . ' 23:59:59');
+            $query->whereBetween('create_time', [$start, $end]);
+        }
+
+        return $query->get()->toArray();
     }
 }

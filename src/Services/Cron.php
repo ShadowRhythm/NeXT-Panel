@@ -17,6 +17,7 @@ use App\Models\OnlineLog;
 use App\Models\Order;
 use App\Models\Paylist;
 use App\Models\Product;
+use App\Models\SiteDailyStat;
 use App\Models\StreamMedia;
 use App\Models\SubscribeLog;
 use App\Models\User;
@@ -32,12 +33,15 @@ use Psr\Http\Client\ClientExceptionInterface;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Throwable;
 use function array_merge;
+use function array_sum;
 use function array_unique;
 use function date;
 use function in_array;
+use function is_array;
 use function json_decode;
 use function json_encode;
 use function max;
+use function round;
 use function str_replace;
 use function strtotime;
 use function time;
@@ -1247,5 +1251,63 @@ final class Cron
         }
 
         echo Tools::toDateTime(time()) . ' 更新节点 IP 完成' . PHP_EOL;
+    }
+
+    public function aggregateDailyStat(): void
+    {
+        $yesterday = date('Y-m-d', strtotime('-1 day'));
+
+        // 幂等：已存在则跳过
+        if (SiteDailyStat::where('date', $yesterday)->exists()) {
+            echo 'Site daily stat for ' . $yesterday . ' already exists, skipping.' . PHP_EOL;
+            return;
+        }
+
+        $dayStart = strtotime($yesterday . ' 00:00:00');
+        $dayEnd   = strtotime($yesterday . ' 23:59:59');
+
+        // 收入
+        $income = (float) (Paylist::where('status', 1)
+            ->whereBetween('datetime', [$dayStart, $dayEnd])
+            ->sum('total') ?? 0);
+
+        // 新注册用户
+        $newUsers = User::whereDate('reg_date', $yesterday)->count();
+
+        // 活跃用户快照
+        $activeUsers = User::where('is_inactive', 0)->count();
+
+        // 全站流量（逐块读 hourly_usage，避免内存溢出）
+        $traffic = 0;
+        HourlyUsage::where('date', $yesterday)->chunk(500, function ($records) use (&$traffic): void {
+            foreach ($records as $record) {
+                $hours = json_decode($record->usage, true);
+                if (is_array($hours)) {
+                    $traffic += (int) array_sum($hours);
+                }
+            }
+        });
+
+        // 等级分布快照
+        $classRows = User::groupBy('class')
+            ->selectRaw('`class`, COUNT(*) as cnt')
+            ->orderBy('class')
+            ->get();
+        $classSnapshot = [];
+        foreach ($classRows as $row) {
+            $classSnapshot[(string) $row->class] = (int) $row->cnt;
+        }
+
+        // 写入
+        $stat                 = new SiteDailyStat();
+        $stat->date           = $yesterday;
+        $stat->income         = round($income, 2);
+        $stat->new_users      = $newUsers;
+        $stat->active_users   = $activeUsers;
+        $stat->traffic        = $traffic;
+        $stat->class_snapshot = json_encode($classSnapshot);
+        $stat->save();
+
+        echo 'Aggregated daily stat for ' . $yesterday . PHP_EOL;
     }
 }

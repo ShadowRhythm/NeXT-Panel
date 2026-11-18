@@ -343,6 +343,9 @@ return static function (Slim\App $app): void {
         $group->get('/invoice/{id:[0-9]+}/view', App\Controllers\Admin\InvoiceController::class . ':detail');
         $group->post('/invoice/{id:[0-9]+}/mark_paid', App\Controllers\Admin\InvoiceController::class . ':markPaid');
         $group->post('/invoice/ajax', App\Controllers\Admin\InvoiceController::class . ':ajax');
+        // Analytics
+        $group->get('/analytics', App\Controllers\Admin\AnalyticsController::class . ':index');
+        $group->get('/analytics/ajax', App\Controllers\Admin\AnalyticsController::class . ':ajax');
     })->add(new Admin());
     // WebAPI
     $app->group('/mod_mu', static function (RouteCollectorProxy $group): void {

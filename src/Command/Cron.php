@@ -97,6 +97,7 @@ EOL;
                 $dailySucceeded = $this->runJob('daily-diary-notification', static fn () => $jobs->sendDiaryNotification()) && $dailySucceeded;
             }
 
+            $dailySucceeded = $this->runJob('aggregate-daily-stat', static fn () => $jobs->aggregateDailyStat()) && $dailySucceeded;
             $dailySucceeded = $this->runJob('reset-today-bandwidth', static fn () => $jobs->resetTodayBandwidth()) && $dailySucceeded;
 
             if (Config::obtain('im_bot_group_notify_daily_job')) {
