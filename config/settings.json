@@ -1593,6 +1593,15 @@
         "mark": "每日任务执行时间(分钟)"
     },
     {
+        "item": "cancelled_order_retention_days",
+        "value": "30",
+        "class": "cron",
+        "is_public": 0,
+        "type": "int",
+        "default": "30",
+        "mark": "已取消订单及账单保留天数(天，0为不清理)"
+    },
+    {
         "item": "last_daily_job_time",
         "value": "0",
         "class": "system",

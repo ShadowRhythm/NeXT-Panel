@@ -65,6 +65,14 @@
                                                        value="{$settings['daily_job_minute']}">
                                             </div>
                                         </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">已取消订单及账单保留天数</label>
+                                            <div class="col">
+                                                <input id="cancelled_order_retention_days" type="text" class="form-control"
+                                                       value="{$settings['cancelled_order_retention_days']}">
+                                                <small class="form-hint">每日任务将自动清理已取消超过此天数的订单与账单。设置为 0 则不清理，默认 30 天</small>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="tab-pane show" id="finance_mail">
