@@ -498,6 +498,18 @@
             }
         };
 
+        function getThemeColor() {
+            if (window.tabler) {
+                if (typeof window.tabler.getColor === 'function') {
+                    return window.tabler.getColor('primary');
+                }
+                if (window.tabler.tabler && typeof window.tabler.tabler.getColor === 'function') {
+                    return window.tabler.tabler.getColor('primary');
+                }
+            }
+            return '#206bc4';
+        }
+
         function getTrafficChartConfig(rangeKey) {
             const conf = trafficRanges[rangeKey] || trafficRanges['24h'];
             return {
@@ -567,7 +579,7 @@
                         padding: 14
                     }
                 },
-                colors: ["#FF4500"],
+                colors: [getThemeColor()],
                 legend: {
                     show: false
                 }
@@ -581,6 +593,7 @@
             const conf = trafficRanges[rangeKey];
 
             trafficChart.updateOptions({
+                colors: [getThemeColor()],
                 series: [
                     {
                         name: conf.yTitle,
