@@ -502,7 +502,7 @@
             const conf = trafficRanges[rangeKey] || trafficRanges['24h'];
             return {
                 chart: {
-                    type: "line",
+                    type: "bar",
                     fontFamily: "inherit",
                     height: '100%',
                     parentHeightOffset: 0,
@@ -513,8 +513,14 @@
                         enabled: true
                     }
                 },
-                stroke: {
-                    curve: "smooth"
+                plotOptions: {
+                    bar: {
+                        columnWidth: "60%",
+                        borderRadius: 3
+                    }
+                },
+                dataLabels: {
+                    enabled: false
                 },
                 fill: {
                     opacity: 1
