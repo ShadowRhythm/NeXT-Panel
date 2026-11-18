@@ -69,7 +69,7 @@
                                             <label class="form-label col-3 col-form-label">已取消订单及账单保留天数</label>
                                             <div class="col">
                                                 <input id="cancelled_order_retention_days" type="text" class="form-control"
-                                                       value="{if isset($settings['cancelled_order_retention_days']) && $settings['cancelled_order_retention_days'] !== ''}{$settings['cancelled_order_retention_days']}{else}30{/if}">
+                                                       value="{$settings['cancelled_order_retention_days']}">
                                                 <small class="form-hint">每日任务将自动清理已取消超过此天数的订单与账单。设置为 0 则不清理，默认 30 天</small>
                                             </div>
                                         </div>

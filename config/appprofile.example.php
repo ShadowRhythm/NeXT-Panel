@@ -150,7 +150,7 @@ $_ENV['SingBox_Config'] = [
                 'server' => 'fakeip',
             ],
         ],
-        'final' => $_ENV['dns_select'] ?? 'cloudflare',
+        'final' => 'cloudflare',
         'strategy' => 'prefer_ipv4',
     ],
     'inbounds' => [
