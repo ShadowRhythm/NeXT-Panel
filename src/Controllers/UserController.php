@@ -109,7 +109,7 @@ final class UserController extends BaseController
     public function media(ServerRequest $request, Response $response, array $args)
     {
         $results = [];
-        $default_unlock_keys = ['YouTube', 'Netflix', 'Disney+', 'OpenAI', 'Gemini', 'BBC', 'Abema'];
+        $default_unlock_keys = ['YouTube', 'Netflix', 'Disney+', 'OpenAI', 'Gemini', 'TikTok', 'Abema'];
         $ip_keys = ['IPType', 'IPattributes', 'IPRisk'];
         $discovered_unlock_keys = [];
 
@@ -147,6 +147,9 @@ final class UserController extends BaseController
                         $details[$k] = \trim(\str_replace([' (Native)', '(Native)'], '', $v));
                     }
                 }
+
+                // 移除旧版 BBC 字段，统一展示为 TikTok
+                unset($details['BBC']);
 
                 foreach (\array_keys($details) as $key) {
                     if (! \in_array($key, $discovered_unlock_keys, true)) {
