@@ -141,6 +141,13 @@ final class UserController extends BaseController
                     }
                 }
 
+                // 移除解锁结果中多余的 (Native) 标识（如 OpenAI 的 Yes (Native) -> Yes）
+                foreach ($details as $k => $v) {
+                    if (\is_string($v)) {
+                        $details[$k] = \trim(\str_replace([' (Native)', '(Native)'], '', $v));
+                    }
+                }
+
                 foreach (\array_keys($details) as $key) {
                     if (! \in_array($key, $discovered_unlock_keys, true)) {
                         $discovered_unlock_keys[] = $key;
