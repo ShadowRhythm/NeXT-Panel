@@ -42,6 +42,7 @@ final class CronController extends BaseController
     {
         $daily_job_hour = (int) $request->getParam('daily_job_hour');
         $daily_job_minute = (int) $request->getParam('daily_job_minute');
+        $cancelled_order_retention_days = $request->getParam('cancelled_order_retention_days');
 
         if ($daily_job_hour < 0 || $daily_job_hour > 23) {
             return $response->withJson([
@@ -54,6 +55,13 @@ final class CronController extends BaseController
             return $response->withJson([
                 'ret' => 0,
                 'msg' => '每日任务执行时间的分钟数必须在 0-59 之间',
+            ]);
+        }
+
+        if ($cancelled_order_retention_days !== null && (int) $cancelled_order_retention_days < 0) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '已取消订单保留天数不能小于 0',
             ]);
         }
 

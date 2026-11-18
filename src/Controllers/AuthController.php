@@ -64,7 +64,7 @@ final class AuthController extends BaseController
     {
         $locale = I18n::getCurrentLocale();
 
-        if (($_ENV['enable_rate_limit'] ?? false) &&
+        if (Config::obtain('enable_rate_limit') &&
             ! (new RateLimit())->checkRateLimit('login_ip', $request->getServerParam('REMOTE_ADDR') ?? '')
         ) {
             return $response->withJson([
@@ -128,7 +128,7 @@ final class AuthController extends BaseController
                 ]);
         }
 
-        $time = $rememberMe ? 86400 * ($_ENV['rememberMeDuration'] ?? 7) : 3600; // Cookie 过期时间
+        $time = $rememberMe ? 86400 * (int) (Config::obtain('rememberMeDuration') ?? 7) : 3600; // Cookie 过期时间
 
         Auth::login($user->id, $time);
         if (! empty($user->locale) && I18n::isValidLocale($user->locale)) {
@@ -370,7 +370,7 @@ final class AuthController extends BaseController
         }
 
         try {
-            if (($_ENV['enable_rate_limit'] ?? false) &&
+            if (Config::obtain('enable_rate_limit') &&
                 ! (new RateLimit())->checkRateLimit('register_ip', $request->getServerParam('REMOTE_ADDR') ?? '')
             ) {
                 return ResponseHelper::error($response, I18n::trans('user.request_too_frequent', $locale));
@@ -491,7 +491,7 @@ final class AuthController extends BaseController
                 ]);
             }
             $rememberMe = $request->getParam('remember_me') === 'true';
-            $time = $rememberMe ? 86400 * ($_ENV['rememberMeDuration'] ?? 7) : 3600;
+            $time = $rememberMe ? 86400 * (int) (Config::obtain('rememberMeDuration') ?? 7) : 3600;
             Auth::login($user->id, $time);
             $loginIp = new LoginIp();
             $loginIp->collectLoginIP($_SERVER['REMOTE_ADDR'], 0, $user->id);
@@ -524,7 +524,7 @@ final class AuthController extends BaseController
         if ($result['ret'] === 1) {
             $redis->del('mfa_login_' . session_id());
             $rememberMe = $login_session['remember_me'];
-            $time = $rememberMe ? 86400 * ($_ENV['rememberMeDuration'] ?? 7) : 3600;
+            $time = $rememberMe ? 86400 * (int) (Config::obtain('rememberMeDuration') ?? 7) : 3600;
             Auth::login($user->id, $time);
             $loginIp = new LoginIp();
             $loginIp->collectLoginIP($_SERVER['REMOTE_ADDR'], 0, $user->id);
@@ -571,7 +571,7 @@ final class AuthController extends BaseController
         if ($result['ret'] === 1) {
             $redis->del('mfa_login_' . session_id());
             $rememberMe = $login_session['remember_me'];
-            $time = $rememberMe ? 86400 * ($_ENV['rememberMeDuration'] ?? 7) : 3600;
+            $time = $rememberMe ? 86400 * (int) (Config::obtain('rememberMeDuration') ?? 7) : 3600;
             Auth::login($user->id, $time);
             $loginIp = new LoginIp();
             $loginIp->collectLoginIP($_SERVER['REMOTE_ADDR'], 0, $user->id);

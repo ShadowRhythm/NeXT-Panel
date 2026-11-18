@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Config;
 use App\Utils\Tools;
 use function explode;
 use function in_array;
@@ -18,8 +19,8 @@ final class Filter
 
         $res = false;
         $mail_suffix = explode('@', $email)[1];
-        $mail_filter = $_ENV['mail_filter'] ?? 0;
-        $mail_filter_list = $_ENV['mail_filter_list'] ?? [];
+        $mail_filter = (int) (Config::obtain('mail_filter') ?? 0);
+        $mail_filter_list = (array) (Config::obtain('mail_filter_list') ?? []);
 
         switch ($mail_filter) {
             case 1:

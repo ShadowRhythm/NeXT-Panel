@@ -56,7 +56,7 @@ final class Tools
         $country = null;
         $state = null;
 
-        if ($_ENV['maxmind_license_key'] !== '') {
+        if (Config::obtain('maxmind_license_key') !== '') {
             try {
                 $geoip = new GeoIP2();
             } catch (InvalidDatabaseException) {
@@ -241,7 +241,7 @@ final class Tools
 
     public static function genSubToken(): string
     {
-        return self::genRandomChar(max($_ENV['sub_token_len'], 8));
+        return self::genRandomChar(max((int) Config::obtain('sub_token_len'), 8));
     }
 
     public static function genRandomChar(int $length = 8): string

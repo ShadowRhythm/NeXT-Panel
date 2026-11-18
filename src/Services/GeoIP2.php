@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Config;
 use GeoIp2\Database\Reader;
 use GeoIp2\Exception\AddressNotFoundException;
 use MaxMind\Db\Reader\InvalidDatabaseException;
@@ -30,13 +31,13 @@ final class GeoIP2
     public function getCity(string $ip): ?string
     {
         $record = $this?->city_reader?->city($ip);
-        return $record?->city?->names[$_ENV['geoip_locale']] ?? $record?->city?->name;
+        return $record?->city?->names[Config::obtain('geoip_locale')] ?? $record?->city?->name;
     }
 	
     public function getState(string $ip): ?string
     {
         $record = $this?->city_reader?->city($ip);
-        return $record?->mostSpecificSubdivision?->names[$_ENV['geoip_locale']] ?? $record?->mostSpecificSubdivision?->name;
+        return $record?->mostSpecificSubdivision?->names[Config::obtain('geoip_locale')] ?? $record?->mostSpecificSubdivision?->name;
     }
     /**
      * @throws AddressNotFoundException
@@ -45,6 +46,6 @@ final class GeoIP2
     public function getCountry(string $ip): ?string
     {
         $record = $this?->country_reader?->country($ip);
-        return $record?->country?->names[$_ENV['geoip_locale']] ?? $record?->country?->name;
+        return $record?->country?->names[Config::obtain('geoip_locale')] ?? $record?->country?->name;
     }
 }

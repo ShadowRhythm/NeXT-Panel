@@ -100,7 +100,94 @@ final class Cron
             echo 'Clean StreamMedia failed: ' . $e->getMessage() . PHP_EOL;
         }
 
+        try {
+            self::cleanCancelledOrdersAndInvoices();
+        } catch (Throwable $e) {
+            echo 'Clean Cancelled Orders and Invoices failed: ' . $e->getMessage() . PHP_EOL;
+        }
+
         echo Tools::toDateTime(time()) . ' 数据库清理完成' . PHP_EOL;
+    }
+
+    public static function cleanCancelledOrdersAndInvoices(): void
+    {
+        $retentionDays = (int) Config::obtain('cancelled_order_retention_days');
+        if ($retentionDays <= 0) {
+            return;
+        }
+
+        $timeLimit = time() - 86400 * $retentionDays;
+
+        // 1. Clean cancelled invoices and their associated unpaid paylists
+        do {
+            $invoices = (new Invoice())
+                ->where('status', 'cancelled')
+                ->where(static function ($query) use ($timeLimit): void {
+                    $query->where('update_time', '<', $timeLimit)
+                        ->where('update_time', '>', 0)
+                        ->orWhere(static function ($subQuery) use ($timeLimit): void {
+                            $subQuery->where('update_time', '<=', 0)
+                                ->where('create_time', '<', $timeLimit);
+                        });
+                })
+                ->whereNotExists(static function ($subQuery): void {
+                    $subQuery->selectRaw(1)
+                        ->from('order')
+                        ->whereColumn('order.id', 'invoice.order_id')
+                        ->where('order.status', '!=', 'cancelled');
+                })
+                ->limit(500)
+                ->get();
+
+            if ($invoices->isEmpty()) {
+                break;
+            }
+
+            $invoiceIds = $invoices->pluck('id')->all();
+
+            (new Paylist())
+                ->whereIn('invoice_id', $invoiceIds)
+                ->where('status', 0)
+                ->delete();
+
+            (new Invoice())
+                ->whereIn('id', $invoiceIds)
+                ->where('status', 'cancelled')
+                ->delete();
+        } while (count($invoiceIds) >= 500);
+
+        // 2. Clean cancelled orders (ensuring no non-cancelled invoice exists for the order)
+        do {
+            $orders = (new Order())
+                ->where('status', 'cancelled')
+                ->where(static function ($query) use ($timeLimit): void {
+                    $query->where('update_time', '<', $timeLimit)
+                        ->where('update_time', '>', 0)
+                        ->orWhere(static function ($subQuery) use ($timeLimit): void {
+                            $subQuery->where('update_time', '<=', 0)
+                                ->where('create_time', '<', $timeLimit);
+                        });
+                })
+                ->whereNotExists(static function ($subQuery): void {
+                    $subQuery->selectRaw(1)
+                        ->from('invoice')
+                        ->whereColumn('invoice.order_id', 'order.id')
+                        ->where('invoice.status', '!=', 'cancelled');
+                })
+                ->limit(500)
+                ->get();
+
+            if ($orders->isEmpty()) {
+                break;
+            }
+
+            $orderIds = $orders->pluck('id')->all();
+
+            (new Order())
+                ->whereIn('id', $orderIds)
+                ->where('status', 'cancelled')
+                ->delete();
+        } while (count($orderIds) >= 500);
     }
 
     public static function detectInactiveUser(): void
@@ -217,7 +304,7 @@ final class Cron
         foreach ($paidUsers as $user) {
             try {
                 $text = '你好，系统发现你的账号等级已经过期了。';
-                $reset_traffic = $_ENV['class_expire_reset_traffic'];
+                $reset_traffic = (int) Config::obtain('class_expire_reset_traffic');
 
                 if ($reset_traffic >= 0) {
                     $user->transfer_enable = Tools::gbToB($reset_traffic);
@@ -1029,14 +1116,14 @@ final class Cron
                 $under_limit = false;
                 $unit_text = '';
 
-                if ($_ENV['notify_limit_mode'] === 'per' &&
+                if (Config::obtain('notify_limit_mode') === 'per' &&
                     $user->transfer_enable > 0 &&
-                    $user_traffic_left / $user->transfer_enable * 100 < $_ENV['notify_limit_value']
+                    $user_traffic_left / $user->transfer_enable * 100 < Config::obtain('notify_limit_value')
                 ) {
                     $under_limit = true;
                     $unit_text = '%';
-                } elseif ($_ENV['notify_limit_mode'] === 'mb' &&
-                    Tools::bToMB($user_traffic_left) < $_ENV['notify_limit_value']
+                } elseif (Config::obtain('notify_limit_mode') === 'mb' &&
+                    Tools::bToMB($user_traffic_left) < Config::obtain('notify_limit_value')
                 ) {
                     $under_limit = true;
                     $unit_text = 'MB';
@@ -1047,7 +1134,7 @@ final class Cron
                         Notification::notifyUser(
                             $user,
                             $_ENV['appName'] . '-你的剩余流量过低',
-                            '你好，系统发现你剩余流量已经低于 ' . $_ENV['notify_limit_value'] . $unit_text . ' 。',
+                            '你好，系统发现你剩余流量已经低于 ' . Config::obtain('notify_limit_value') . $unit_text . ' 。',
                         );
 
                         $user->traffic_notified = true;

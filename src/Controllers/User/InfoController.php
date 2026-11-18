@@ -61,7 +61,7 @@ final class InfoController extends BaseController
         $user = $this->user;
         $old_email = $user->email;
 
-        if (! $_ENV['enable_change_email'] || $user->is_shadow_banned) {
+        if (! Config::obtain('enable_change_email') || $user->is_shadow_banned) {
             return ResponseHelper::error($response, I18n::trans('user.update_failed', $locale));
         }
 
@@ -341,7 +341,7 @@ final class InfoController extends BaseController
             return ResponseHelper::error($response, I18n::trans('user.wrong_password', $locale));
         }
 
-        if ($_ENV['enable_kill']) {
+        if (Config::obtain('enable_kill')) {
             Auth::logout();
             $user->kill();
 

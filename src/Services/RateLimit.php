@@ -59,7 +59,7 @@ final class RateLimit
     public function getSubIpLimiter(): RedisRateLimiter
     {
         return new RedisRateLimiter(
-            Rate::perMinute((int) $_ENV['rate_limit_sub_ip']),
+            Rate::perMinute((int) Config::obtain('rate_limit_sub_ip')),
             $this->redis,
             'sspanel_sub_ip:'
         );
@@ -68,7 +68,7 @@ final class RateLimit
     public function getSubTokenLimiter(): RedisRateLimiter
     {
         return new RedisRateLimiter(
-            Rate::perMinute((int) $_ENV['rate_limit_sub']),
+            Rate::perMinute((int) Config::obtain('rate_limit_sub')),
             $this->redis,
             'sspanel_sub_token:'
         );
@@ -77,7 +77,7 @@ final class RateLimit
     public function getWebApiIpLimiter(): RedisRateLimiter
     {
         return new RedisRateLimiter(
-            Rate::perMinute((int) $_ENV['rate_limit_webapi_ip']),
+            Rate::perMinute((int) Config::obtain('rate_limit_webapi_ip')),
             $this->redis,
             'sspanel_webapi_ip:'
         );
@@ -86,7 +86,7 @@ final class RateLimit
     public function getWebApiKeyLimiter(): RedisRateLimiter
     {
         return new RedisRateLimiter(
-            Rate::perMinute((int) $_ENV['rate_limit_webapi']),
+            Rate::perMinute((int) Config::obtain('rate_limit_webapi')),
             $this->redis,
             'sspanel_webapi_key:'
         );
@@ -95,7 +95,7 @@ final class RateLimit
     public function getUserApiIpLimiter(): RedisRateLimiter
     {
         return new RedisRateLimiter(
-            Rate::perMinute((int) $_ENV['rate_limit_user_api_ip']),
+            Rate::perMinute((int) Config::obtain('rate_limit_user_api_ip')),
             $this->redis,
             'sspanel_user_api_ip:'
         );
@@ -104,7 +104,7 @@ final class RateLimit
     public function getUserApiKeyLimiter(): RedisRateLimiter
     {
         return new RedisRateLimiter(
-            Rate::perMinute((int) $_ENV['rate_limit_user_api']),
+            Rate::perMinute((int) Config::obtain('rate_limit_user_api')),
             $this->redis,
             'sspanel_user_api_key:'
         );
@@ -113,7 +113,7 @@ final class RateLimit
     public function getAdminApiIpLimiter(): RedisRateLimiter
     {
         return new RedisRateLimiter(
-            Rate::perMinute((int) $_ENV['rate_limit_admin_api_ip']),
+            Rate::perMinute((int) Config::obtain('rate_limit_admin_api_ip')),
             $this->redis,
             'sspanel_admin_api_ip:'
         );
@@ -122,7 +122,7 @@ final class RateLimit
     public function getAdminApiKeyLimiter(): RedisRateLimiter
     {
         return new RedisRateLimiter(
-            Rate::perMinute((int) $_ENV['rate_limit_admin_api']),
+            Rate::perMinute((int) Config::obtain('rate_limit_admin_api')),
             $this->redis,
             'sspanel_admin_api_key:'
         );
@@ -131,7 +131,7 @@ final class RateLimit
     public function getNodeApiIpLimiter(): RedisRateLimiter
     {
         return new RedisRateLimiter(
-            Rate::perMinute((int) $_ENV['rate_limit_node_api_ip']),
+            Rate::perMinute((int) Config::obtain('rate_limit_node_api_ip')),
             $this->redis,
             'sspanel_node_api_ip:'
         );
@@ -140,7 +140,7 @@ final class RateLimit
     public function getNodeApiKeyLimiter(): RedisRateLimiter
     {
         return new RedisRateLimiter(
-            Rate::perMinute((int) $_ENV['rate_limit_node_api']),
+            Rate::perMinute((int) Config::obtain('rate_limit_node_api')),
             $this->redis,
             'sspanel_node_api_key:'
         );
@@ -175,7 +175,7 @@ final class RateLimit
 
     public function getLoginIpLimiter(): RedisRateLimiter
     {
-        $rate = (int) ($_ENV['rate_limit_login_ip'] ?? 15);
+        $rate = (int) (Config::obtain('rate_limit_login_ip') ?? 15);
         if ($rate <= 0) {
             $rate = 15;
         }
@@ -189,7 +189,7 @@ final class RateLimit
 
     public function getRegisterIpLimiter(): RedisRateLimiter
     {
-        $rate = (int) ($_ENV['rate_limit_register_ip'] ?? 10);
+        $rate = (int) (Config::obtain('rate_limit_register_ip') ?? 10);
         if ($rate <= 0) {
             $rate = 10;
         }

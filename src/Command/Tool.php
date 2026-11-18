@@ -378,12 +378,12 @@ EOL;
 
     public function updateGeoIP2(): void
     {
-        if ($_ENV['maxmind_account_id'] !== '' && $_ENV['maxmind_license_key'] !== '') {
+        if (Config::obtain('maxmind_account_id') !== '' && Config::obtain('maxmind_license_key') !== '') {
             echo 'Updating GeoIP2 database...' . PHP_EOL;
 
             $client = new Client([
-                'account_id' => $_ENV['maxmind_account_id'],
-                'license_key' => $_ENV['maxmind_license_key'],
+                'account_id' => Config::obtain('maxmind_account_id'),
+                'license_key' => Config::obtain('maxmind_license_key'),
                 'dir' => BASE_PATH . '/storage/',
                 'editions' => ['GeoLite2-City', 'GeoLite2-Country'],
             ]);

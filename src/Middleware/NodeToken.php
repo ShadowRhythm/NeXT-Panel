@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Middleware;
 
+use App\Models\Config;
 use App\Models\Node;
 use App\Services\RateLimit;
 use Psr\Http\Message\ResponseInterface;
@@ -33,7 +34,7 @@ final class NodeToken implements MiddlewareInterface
 
         $antiXss = new AntiXSS();
 
-        if ($_ENV['enable_rate_limit'] &&
+        if (Config::obtain('enable_rate_limit') &&
             (! (new RateLimit())->checkRateLimit('webapi_ip', $request->getServerParam('REMOTE_ADDR')) ||
                 ! (new RateLimit())->checkRateLimit('webapi_key', $antiXss->xss_clean($key)))
         ) {

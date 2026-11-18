@@ -64,7 +64,7 @@ EOL;
         // Run node related jobs
         $this->runJob('update-node-ip', static fn () => $jobs->updateNodeIp());
 
-        if ($_ENV['enable_detect_offline']) {
+        if (Config::obtain('enable_detect_offline')) {
             $this->runJob('detect-node-offline', static fn () => $jobs->detectNodeOffline());
         }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Models\Config;
 use App\Services\Cloudflare;
 use App\Utils\Tools;
 use GuzzleHttp\Client;
@@ -108,7 +109,7 @@ final class ClientDownload extends Command
     private function getLatestReleaseTagName(string $repo): string
     {
         $url = 'https://api.github.com/repos/' . $repo . '/releases/latest' .
-            ($_ENV['github_access_token'] !== '' ? '?access_token=' . $_ENV['github_access_token'] : '');
+            (Config::obtain('github_access_token') !== '' ? '?access_token=' . Config::obtain('github_access_token') : '');
         $request = $this->client->get($url);
 
         return json_decode(
@@ -125,7 +126,7 @@ final class ClientDownload extends Command
     private function getLatestPreReleaseTagName(string $repo): string
     {
         $url = 'https://api.github.com/repos/' . $repo . '/releases' .
-            ($_ENV['github_access_token'] !== '' ? '?access_token=' . $_ENV['github_access_token'] : '');
+            (Config::obtain('github_access_token') !== '' ? '?access_token=' . Config::obtain('github_access_token') : '');
         $request = $this->client->get($url);
         $latest = json_decode(
             $request->getBody()->getContents(),
@@ -277,7 +278,7 @@ final class ClientDownload extends Command
                 $this->setLocalVersions($this->version);
             }
 
-            if ($_ENV['enable_r2_client_download']) {
+            if (Config::obtain('enable_r2_client_download')) {
                 Cloudflare::uploadR2($fileName, file_get_contents($filePath));
                 unlink($filePath);
             }

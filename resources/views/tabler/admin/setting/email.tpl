@@ -63,6 +63,9 @@
                                 <li class="nav-item">
                                     <a href="#resend" class="nav-link" data-bs-toggle="tab">Resend</a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="#mail_filter" class="nav-link" data-bs-toggle="tab">邮件过滤</a>
+                                </li>
                             </ul>
                         </div>
                         <div class="card-body">
@@ -472,6 +475,32 @@
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                                <div class="tab-pane" id="mail_filter">
+                                    <div class="card-body">
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">邮件域名过滤</label>
+                                            <div class="col">
+                                                <select id="mail_filter" class="col form-select"
+                                                        value="{$settings['mail_filter']}">
+                                                    <option value="0" {if $settings['mail_filter'] == 0}selected{/if}>关闭
+                                                    </option>
+                                                    <option value="1" {if $settings['mail_filter'] == 1}selected{/if}>白名单
+                                                    </option>
+                                                    <option value="2" {if $settings['mail_filter'] == 2}selected{/if}>黑名单
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">域名过滤列表（填域名逗号分隔）</label>
+                                            <div class="col">
+                                                <input id="mail_filter_list" type="text" class="form-control"
+                                                       value="{$settings['mail_filter_list']}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

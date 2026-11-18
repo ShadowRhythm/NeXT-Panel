@@ -36,8 +36,8 @@ final class Detect
             try {
                 $api_url = str_replace(
                     ['{ip}', '{port}'],
-                    [$node->ipv4, $_ENV['detect_gfw_port']],
-                    $_ENV['detect_gfw_url']
+                    [$node->ipv4, Config::obtain('detect_gfw_port')],
+                    Config::obtain('detect_gfw_url')
                 );
 
                 $response_content = @file_get_contents($api_url);
@@ -148,8 +148,8 @@ final class Detect
                 }
 
                 if ($user->is_banned === 1 ||
-                    ($user->is_admin && $_ENV['auto_detect_ban_allow_admin']) ||
-                    in_array($user->id, $_ENV['auto_detect_ban_allow_users'])) {
+                    ($user->is_admin && Config::obtain('auto_detect_ban_allow_admin')) ||
+                    in_array($user->id, (array) Config::obtain('auto_detect_ban_allow_users'))) {
                     continue;
                 }
 
@@ -160,7 +160,7 @@ final class Detect
                 $last_all_detect_number = ((int) $last_DetectBanLog?->all_detect_number);
                 $detect_number = $user->all_detect_number - $last_all_detect_number;
 
-                if ($detect_number >= $_ENV['auto_detect_ban_number']) {
+                if ($detect_number >= Config::obtain('auto_detect_ban_number')) {
                     $last_detect_ban_time = $user->last_detect_ban_time;
                     $user->is_banned = 1;
                     $user->banned_reason = 'DetectBan';
@@ -175,7 +175,7 @@ final class Detect
                     $DetectBanLog = new DetectBanLog();
                     $DetectBanLog->user_id = $user->id;
                     $DetectBanLog->detect_number = $detect_number;
-                    $DetectBanLog->ban_time = $_ENV['auto_detect_ban_time'];
+                    $DetectBanLog->ban_time = Config::obtain('auto_detect_ban_time');
                     $DetectBanLog->start_time = $startTime;
                     $DetectBanLog->end_time = time();
                     $DetectBanLog->all_detect_number = $user->all_detect_number;

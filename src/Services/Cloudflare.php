@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Config;
 use Aws\Credentials\Credentials;
 use Aws\S3\S3Client;
 use Exception;
@@ -12,11 +13,11 @@ final class Cloudflare
 {
     public static function initR2(): S3Client
     {
-        $credentials = new Credentials($_ENV['r2_access_key_id'], $_ENV['r2_access_key_secret']);
+        $credentials = new Credentials(Config::obtain('r2_access_key_id'), Config::obtain('r2_access_key_secret'));
 
         $options = [
             'region' => 'auto',
-            'endpoint' => 'https://' . $_ENV['r2_account_id'] . '.r2.cloudflarestorage.com',
+            'endpoint' => 'https://' . Config::obtain('r2_account_id') . '.r2.cloudflarestorage.com',
             'version' => 'latest',
             'credentials' => $credentials,
         ];
@@ -30,7 +31,7 @@ final class Cloudflare
 
         try {
             $r2->upload(
-                $_ENV['r2_bucket_name'],
+                Config::obtain('r2_bucket_name'),
                 $name,
                 $file,
             );
@@ -44,13 +45,13 @@ final class Cloudflare
         $r2 = self::initR2();
 
         $cmd = $r2->getCommand('GetObject', [
-            'Bucket' => $_ENV['r2_bucket_name'],
+            'Bucket' => Config::obtain('r2_bucket_name'),
             'Key' => $fileName,
         ]);
 
         return (string) $r2->createPresignedRequest(
             $cmd,
-            '+' . $_ENV['r2_client_download_timeout'] . ' minutes'
+            '+' . Config::obtain('r2_client_download_timeout') . ' minutes'
         )->getUri();
     }
 }

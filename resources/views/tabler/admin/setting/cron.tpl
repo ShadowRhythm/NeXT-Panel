@@ -42,6 +42,9 @@
                                 <li class="nav-item">
                                     <a href="#inactive" class="nav-link" data-bs-toggle="tab">闲置账号检测</a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="#node_detect" class="nav-link" data-bs-toggle="tab">节点检测</a>
+                                </li>
                             </ul>
                         </div>
                         <div class="card-body">
@@ -144,6 +147,41 @@
                                                 </select>
                                             </div>
                                         </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">管理员不受审计封禁限制</label>
+                                            <div class="col">
+                                                <select id="auto_detect_ban_allow_admin" class="col form-select"
+                                                        value="{$settings['auto_detect_ban_allow_admin']}">
+                                                    <option value="0"
+                                                            {if ! $settings['auto_detect_ban_allow_admin']}selected{/if}>关闭
+                                                    </option>
+                                                    <option value="1"
+                                                            {if $settings['auto_detect_ban_allow_admin']}selected{/if}>开启
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">审计封禁例外用户ID（填用户ID逗号分隔）</label>
+                                            <div class="col">
+                                                <input id="auto_detect_ban_allow_users" type="text" class="form-control"
+                                                       value="{$settings['auto_detect_ban_allow_users']}">
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">触发封禁次数</label>
+                                            <div class="col">
+                                                <input id="auto_detect_ban_number" type="text" class="form-control"
+                                                       value="{$settings['auto_detect_ban_number']}">
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">封禁时长(分钟)</label>
+                                            <div class="col">
+                                                <input id="auto_detect_ban_time" type="text" class="form-control"
+                                                       value="{$settings['auto_detect_ban_time']}">
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="tab-pane show" id="inactive">
@@ -202,6 +240,38 @@
                                                         开启
                                                     </option>
                                                 </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane" id="node_detect">
+                                    <div class="card-body">
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">开启节点离线检测</label>
+                                            <div class="col">
+                                                <select id="enable_detect_offline" class="col form-select"
+                                                        value="{$settings['enable_detect_offline']}">
+                                                    <option value="0"
+                                                            {if ! $settings['enable_detect_offline']}selected{/if}>关闭
+                                                    </option>
+                                                    <option value="1"
+                                                            {if $settings['enable_detect_offline']}selected{/if}>开启
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">GFW检测TCP端口</label>
+                                            <div class="col">
+                                                <input id="detect_gfw_port" type="text" class="form-control"
+                                                       value="{$settings['detect_gfw_port']}">
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">GFW检测API URL</label>
+                                            <div class="col">
+                                                <input id="detect_gfw_url" type="text" class="form-control"
+                                                       value="{$settings['detect_gfw_url']}">
                                             </div>
                                         </div>
                                     </div>

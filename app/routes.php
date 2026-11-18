@@ -277,6 +277,8 @@ return static function (Slim\App $app): void {
         $group->post('/setting/email', App\Controllers\Admin\Setting\EmailController::class . ':save');
         $group->get('/setting/feature', App\Controllers\Admin\Setting\FeatureController::class . ':index');
         $group->post('/setting/feature', App\Controllers\Admin\Setting\FeatureController::class . ':save');
+        $group->get('/setting/system', App\Controllers\Admin\Setting\SystemController::class . ':index');
+        $group->post('/setting/system', App\Controllers\Admin\Setting\SystemController::class . ':save');
         $group->get('/setting/im', App\Controllers\Admin\Setting\ImController::class . ':index');
         $group->post('/setting/im', App\Controllers\Admin\Setting\ImController::class . ':save');
         $group->post(

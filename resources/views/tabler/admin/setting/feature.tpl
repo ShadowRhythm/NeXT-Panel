@@ -39,6 +39,12 @@
                                 <li class="nav-item">
                                     <a href="#checkin" class="nav-link" data-bs-toggle="tab">签到</a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="#account" class="nav-link" data-bs-toggle="tab">用户账号</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="#login_security" class="nav-link" data-bs-toggle="tab">登录安全</a>
+                                </li>
                             </ul>
                         </div>
                         <div class="card-body">
@@ -204,6 +210,108 @@
                                                 <input id="checkin_max" type="text"
                                                        class="form-control"
                                                        value="{$settings['checkin_max']}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane" id="account">
+                                    <div class="card-body">
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">等级到期重置为的流量(GB，小于0不重置)</label>
+                                            <div class="col">
+                                                <input id="class_expire_reset_traffic" type="text" class="form-control"
+                                                       value="{$settings['class_expire_reset_traffic']}">
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">允许用户注销账户</label>
+                                            <div class="col">
+                                                <select id="enable_kill" class="col form-select"
+                                                        value="{$settings['enable_kill']}">
+                                                    <option value="0" {if ! $settings['enable_kill']}selected{/if}>关闭
+                                                    </option>
+                                                    <option value="1" {if $settings['enable_kill']}selected{/if}>开启
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">允许用户修改账户邮箱</label>
+                                            <div class="col">
+                                                <select id="enable_change_email" class="col form-select"
+                                                        value="{$settings['enable_change_email']}">
+                                                    <option value="0"
+                                                            {if ! $settings['enable_change_email']}selected{/if}>关闭
+                                                    </option>
+                                                    <option value="1"
+                                                            {if $settings['enable_change_email']}selected{/if}>开启
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">流量不足提醒模式（可填 false/per/mb）</label>
+                                            <div class="col">
+                                                <input id="notify_limit_mode" type="text" class="form-control"
+                                                       value="{$settings['notify_limit_mode']}">
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">流量不足提醒阈值(百分比或MB)</label>
+                                            <div class="col">
+                                                <input id="notify_limit_value" type="text" class="form-control"
+                                                       value="{$settings['notify_limit_value']}">
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">流量耗尽用户限速至1Mbps</label>
+                                            <div class="col">
+                                                <select id="keep_connect" class="col form-select"
+                                                        value="{$settings['keep_connect']}">
+                                                    <option value="0" {if ! $settings['keep_connect']}selected{/if}>关闭
+                                                    </option>
+                                                    <option value="1" {if $settings['keep_connect']}selected{/if}>开启
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane" id="login_security">
+                                    <div class="card-body">
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">登录绑定IP</label>
+                                            <div class="col">
+                                                <select id="enable_login_bind_ip" class="col form-select"
+                                                        value="{$settings['enable_login_bind_ip']}">
+                                                    <option value="0"
+                                                            {if ! $settings['enable_login_bind_ip']}selected{/if}>关闭
+                                                    </option>
+                                                    <option value="1"
+                                                            {if $settings['enable_login_bind_ip']}selected{/if}>开启
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">登录绑定设备</label>
+                                            <div class="col">
+                                                <select id="enable_login_bind_device" class="col form-select"
+                                                        value="{$settings['enable_login_bind_device']}">
+                                                    <option value="0"
+                                                            {if ! $settings['enable_login_bind_device']}selected{/if}>关闭
+                                                    </option>
+                                                    <option value="1"
+                                                            {if $settings['enable_login_bind_device']}selected{/if}>开启
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">记住登录天数</label>
+                                            <div class="col">
+                                                <input id="rememberMeDuration" type="text" class="form-control"
+                                                       value="{$settings['rememberMeDuration']}">
                                             </div>
                                         </div>
                                     </div>

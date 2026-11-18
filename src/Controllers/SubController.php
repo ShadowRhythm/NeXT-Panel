@@ -45,7 +45,7 @@ final class SubController extends BaseController
 
         $token = $this->antiXss->xss_clean($args['token']);
 
-        if ($_ENV['enable_rate_limit']) {
+        if (Config::obtain('enable_rate_limit')) {
             $rateLimit = new RateLimit();
             if (! $rateLimit->checkRateLimit('sub_ip', $request->getServerParam('REMOTE_ADDR')) ||
                 ! $rateLimit->checkRateLimit('sub_token', $token)

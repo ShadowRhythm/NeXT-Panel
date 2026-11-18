@@ -134,7 +134,7 @@
         "default": "",
         "mark": "易支付url"
     },
-	{
+    {
         "item": "epay_pid",
         "value": "",
         "class": "billing",
@@ -143,7 +143,7 @@
         "default": "",
         "mark": "易支付商户ID"
     },
-	{
+    {
         "item": "epay_key",
         "value": "",
         "class": "billing",
@@ -348,7 +348,7 @@
         "is_public": 0,
         "type": "bool",
         "default": "1",
-        "mark": "是否使用 TLS\/SSL 发信"
+        "mark": "是否使用 TLS/SSL 发信"
     },
     {
         "item": "smtp_bbc",
@@ -1879,5 +1879,491 @@
         "type": "string",
         "default": "meta.llama3-8b-instruct-v1:0",
         "mark": "AWS Bedrock Model ID"
+    },
+    {
+        "item": "class_expire_reset_traffic",
+        "value": "0",
+        "class": "feature",
+        "is_public": 0,
+        "type": "int",
+        "default": "0",
+        "mark": "等级到期重置流量(GB，<0不重置)"
+    },
+    {
+        "item": "enable_kill",
+        "value": "0",
+        "class": "feature",
+        "is_public": 0,
+        "type": "bool",
+        "default": "0",
+        "mark": "允许用户注销账户"
+    },
+    {
+        "item": "enable_change_email",
+        "value": "1",
+        "class": "feature",
+        "is_public": 0,
+        "type": "bool",
+        "default": "1",
+        "mark": "允许用户修改账户邮箱"
+    },
+    {
+        "item": "notify_limit_mode",
+        "value": "",
+        "class": "feature",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "流量不足提醒模式(留空关闭/per百分比/mb固定值)"
+    },
+    {
+        "item": "notify_limit_value",
+        "value": "500",
+        "class": "feature",
+        "is_public": 0,
+        "type": "int",
+        "default": "500",
+        "mark": "流量不足提醒阈值"
+    },
+    {
+        "item": "enable_login_bind_ip",
+        "value": "1",
+        "class": "feature",
+        "is_public": 0,
+        "type": "bool",
+        "default": "1",
+        "mark": "登录绑定IP"
+    },
+    {
+        "item": "enable_login_bind_device",
+        "value": "1",
+        "class": "feature",
+        "is_public": 0,
+        "type": "bool",
+        "default": "1",
+        "mark": "登录绑定设备"
+    },
+    {
+        "item": "rememberMeDuration",
+        "value": "7",
+        "class": "feature",
+        "is_public": 0,
+        "type": "int",
+        "default": "7",
+        "mark": "记住登录天数"
+    },
+    {
+        "item": "keep_connect",
+        "value": "0",
+        "class": "feature",
+        "is_public": 0,
+        "type": "bool",
+        "default": "0",
+        "mark": "流量耗尽用户限速至1Mbps"
+    },
+    {
+        "item": "auto_detect_ban_allow_admin",
+        "value": "1",
+        "class": "cron",
+        "is_public": 0,
+        "type": "bool",
+        "default": "1",
+        "mark": "管理员不受审计封禁限制"
+    },
+    {
+        "item": "auto_detect_ban_allow_users",
+        "value": "[]",
+        "class": "cron",
+        "is_public": 0,
+        "type": "array",
+        "default": "[]",
+        "mark": "审计封禁例外用户ID列表"
+    },
+    {
+        "item": "auto_detect_ban_number",
+        "value": "30",
+        "class": "cron",
+        "is_public": 0,
+        "type": "int",
+        "default": "30",
+        "mark": "触发封禁次数"
+    },
+    {
+        "item": "auto_detect_ban_time",
+        "value": "60",
+        "class": "cron",
+        "is_public": 0,
+        "type": "int",
+        "default": "60",
+        "mark": "封禁时长(分钟)"
+    },
+    {
+        "item": "detect_gfw_port",
+        "value": "443",
+        "class": "cron",
+        "is_public": 0,
+        "type": "int",
+        "default": "443",
+        "mark": "GFW检测TCP端口"
+    },
+    {
+        "item": "detect_gfw_url",
+        "value": "",
+        "class": "cron",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "GFW检测API URL"
+    },
+    {
+        "item": "enable_detect_offline",
+        "value": "1",
+        "class": "cron",
+        "is_public": 0,
+        "type": "bool",
+        "default": "1",
+        "mark": "开启节点离线检测"
+    },
+    {
+        "item": "mail_filter",
+        "value": "0",
+        "class": "email",
+        "is_public": 0,
+        "type": "int",
+        "default": "0",
+        "mark": "邮件域名过滤(0关闭/1白名单/2黑名单)"
+    },
+    {
+        "item": "mail_filter_list",
+        "value": "[]",
+        "class": "email",
+        "is_public": 0,
+        "type": "array",
+        "default": "[]",
+        "mark": "邮件域名过滤列表"
+    },
+    {
+        "item": "subscribe_enable",
+        "value": "1",
+        "class": "subscribe",
+        "is_public": 0,
+        "type": "bool",
+        "default": "1",
+        "mark": "是否提供订阅功能"
+    },
+    {
+        "item": "sub_url",
+        "value": "",
+        "class": "subscribe",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "订阅地址(留空与baseUrl相同)"
+    },
+    {
+        "item": "sub_token_len",
+        "value": "16",
+        "class": "subscribe",
+        "is_public": 0,
+        "type": "int",
+        "default": "16",
+        "mark": "订阅Token长度"
+    },
+    {
+        "item": "dns_select",
+        "value": "google",
+        "class": "subscribe",
+        "is_public": 0,
+        "type": "string",
+        "default": "google",
+        "mark": "DNS预设方案(mine_853/mine_443/google/cloudflare/opendns/alidns)"
+    },
+    {
+        "item": "dns_server_853",
+        "value": "dns.google",
+        "class": "subscribe",
+        "is_public": 0,
+        "type": "string",
+        "default": "dns.google",
+        "mark": "DoT DNS服务器地址"
+    },
+    {
+        "item": "dns_server_port_853",
+        "value": "853",
+        "class": "subscribe",
+        "is_public": 0,
+        "type": "int",
+        "default": "853",
+        "mark": "DoT DNS端口"
+    },
+    {
+        "item": "dns_type_853",
+        "value": "tls",
+        "class": "subscribe",
+        "is_public": 0,
+        "type": "string",
+        "default": "tls",
+        "mark": "DoT协议类型(tls/quic)"
+    },
+    {
+        "item": "dns_server_443",
+        "value": "dns.google",
+        "class": "subscribe",
+        "is_public": 0,
+        "type": "string",
+        "default": "dns.google",
+        "mark": "DoH DNS服务器地址"
+    },
+    {
+        "item": "dns_server_port_443",
+        "value": "443",
+        "class": "subscribe",
+        "is_public": 0,
+        "type": "int",
+        "default": "443",
+        "mark": "DoH DNS端口"
+    },
+    {
+        "item": "dns_path_443",
+        "value": "/dns-query",
+        "class": "subscribe",
+        "is_public": 0,
+        "type": "string",
+        "default": "/dns-query",
+        "mark": "DoH路径"
+    },
+    {
+        "item": "dns_type_443",
+        "value": "https",
+        "class": "subscribe",
+        "is_public": 0,
+        "type": "string",
+        "default": "https",
+        "mark": "DoH协议类型(https/h3)"
+    },
+    {
+        "item": "tcp_concurrent",
+        "value": "1",
+        "class": "subscribe",
+        "is_public": 0,
+        "type": "bool",
+        "default": "1",
+        "mark": "Clash Meta TCP并发"
+    },
+    {
+        "item": "enable_rate_limit",
+        "value": "1",
+        "class": "system",
+        "is_public": 0,
+        "type": "bool",
+        "default": "1",
+        "mark": "开启API访问限流"
+    },
+    {
+        "item": "rate_limit_sub_ip",
+        "value": "10",
+        "class": "system",
+        "is_public": 0,
+        "type": "int",
+        "default": "10",
+        "mark": "订阅-每IP每分钟请求限制"
+    },
+    {
+        "item": "rate_limit_sub",
+        "value": "10",
+        "class": "system",
+        "is_public": 0,
+        "type": "int",
+        "default": "10",
+        "mark": "订阅-每用户每分钟请求限制"
+    },
+    {
+        "item": "rate_limit_webapi_ip",
+        "value": "120",
+        "class": "system",
+        "is_public": 0,
+        "type": "int",
+        "default": "120",
+        "mark": "WebAPI-每IP每分钟请求限制"
+    },
+    {
+        "item": "rate_limit_webapi",
+        "value": "1200",
+        "class": "system",
+        "is_public": 0,
+        "type": "int",
+        "default": "1200",
+        "mark": "WebAPI全局每分钟请求限制"
+    },
+    {
+        "item": "rate_limit_user_api_ip",
+        "value": "60",
+        "class": "system",
+        "is_public": 0,
+        "type": "int",
+        "default": "60",
+        "mark": "用户API-每IP每分钟请求限制"
+    },
+    {
+        "item": "rate_limit_user_api",
+        "value": "60",
+        "class": "system",
+        "is_public": 0,
+        "type": "int",
+        "default": "60",
+        "mark": "用户API-每用户每分钟请求限制"
+    },
+    {
+        "item": "rate_limit_admin_api_ip",
+        "value": "60",
+        "class": "system",
+        "is_public": 0,
+        "type": "int",
+        "default": "60",
+        "mark": "管理API-每IP每分钟请求限制"
+    },
+    {
+        "item": "rate_limit_admin_api",
+        "value": "60",
+        "class": "system",
+        "is_public": 0,
+        "type": "int",
+        "default": "60",
+        "mark": "管理API-每管理员每分钟请求限制"
+    },
+    {
+        "item": "rate_limit_node_api_ip",
+        "value": "60",
+        "class": "system",
+        "is_public": 0,
+        "type": "int",
+        "default": "60",
+        "mark": "节点API-每IP每分钟请求限制"
+    },
+    {
+        "item": "rate_limit_node_api",
+        "value": "60",
+        "class": "system",
+        "is_public": 0,
+        "type": "int",
+        "default": "60",
+        "mark": "节点API-每节点每分钟请求限制"
+    },
+    {
+        "item": "rate_limit_login_ip",
+        "value": "15",
+        "class": "system",
+        "is_public": 0,
+        "type": "int",
+        "default": "15",
+        "mark": "登录-每IP每分钟请求限制"
+    },
+    {
+        "item": "rate_limit_register_ip",
+        "value": "10",
+        "class": "system",
+        "is_public": 0,
+        "type": "int",
+        "default": "10",
+        "mark": "注册-每IP每小时请求限制"
+    },
+    {
+        "item": "maxmind_account_id",
+        "value": "",
+        "class": "system",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "Maxmind GeoIP2 Account ID"
+    },
+    {
+        "item": "maxmind_license_key",
+        "value": "",
+        "class": "system",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "Maxmind GeoIP2 License Key"
+    },
+    {
+        "item": "geoip_locale",
+        "value": "en",
+        "class": "system",
+        "is_public": 0,
+        "type": "string",
+        "default": "en",
+        "mark": "GeoIP显示语言"
+    },
+    {
+        "item": "github_access_token",
+        "value": "",
+        "class": "system",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "GitHub Access Token(客户端下载用)"
+    },
+    {
+        "item": "jsdelivr_url",
+        "value": "fastly.jsdelivr.net",
+        "class": "system",
+        "is_public": 0,
+        "type": "string",
+        "default": "fastly.jsdelivr.net",
+        "mark": "jsDelivr CDN节点"
+    },
+    {
+        "item": "enable_r2_client_download",
+        "value": "0",
+        "class": "system",
+        "is_public": 0,
+        "type": "bool",
+        "default": "0",
+        "mark": "使用Cloudflare R2存储客户端"
+    },
+    {
+        "item": "r2_bucket_name",
+        "value": "",
+        "class": "system",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "R2 Bucket名称"
+    },
+    {
+        "item": "r2_account_id",
+        "value": "",
+        "class": "system",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "R2 Account ID"
+    },
+    {
+        "item": "r2_access_key_id",
+        "value": "",
+        "class": "system",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "R2 Access Key ID"
+    },
+    {
+        "item": "r2_access_key_secret",
+        "value": "",
+        "class": "system",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "R2 Access Key Secret"
+    },
+    {
+        "item": "r2_client_download_timeout",
+        "value": "10",
+        "class": "system",
+        "is_public": 0,
+        "type": "int",
+        "default": "10",
+        "mark": "R2下载超时(秒)"
     }
 ]

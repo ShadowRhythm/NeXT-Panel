@@ -60,7 +60,7 @@ final class UserController extends BaseController
         $subUrlParts = explode('/sub/', $universalSub, 2);
         $subUrlPrefix = count($subUrlParts) === 2 ? $subUrlParts[0] . '/sub/' : $universalSub;
         $subUrlToken = count($subUrlParts) === 2 ? $subUrlParts[1] : '';
-        $r2Enabled = filter_var($_ENV['enable_r2_client_download'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
+        $r2Enabled = (bool) Config::obtain('enable_r2_client_download');
         $clientData = ClientConfig::getClients(
             $universalSub,
             $_ENV['appName'] ?? 'SSPanel',
