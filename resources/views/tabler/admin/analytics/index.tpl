@@ -20,136 +20,51 @@
     </div>
     <div class="page-body">
         <div class="container-xl">
-            <!-- 顶部 KPI 卡片（4列） -->
-            <div class="row row-cards mb-3">
-                <div class="col-sm-6 col-lg-3">
-                    <div class="card card-sm">
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-auto">
-                                    <span class="bg-info text-white avatar">
-                                        <i class="ti ti-calendar-event icon"></i>
-                                    </span>
-                                </div>
-                                <div class="col">
-                                    <div class="font-weight-medium">
-                                        ￥{$today_income}
-                                    </div>
-                                    <div class="text-secondary">
-                                        今日流水
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-sm-6 col-lg-3">
-                    <div class="card card-sm">
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-auto">
-                                    <span class="bg-warning text-white avatar">
-                                        <i class="ti ti-calendar-stats icon"></i>
-                                    </span>
-                                </div>
-                                <div class="col">
-                                    <div class="font-weight-medium">
-                                        ￥{$this_month_income}
-                                        {if isset($monthly_comparison.diff_percent)}
-                                            {if $monthly_comparison.diff_percent >= 0}
-                                                <span class="text-green d-inline-flex align-items-center lh-1 ms-1" title="较上月同期">
-                                                    +{$monthly_comparison.diff_percent}% ↑
-                                                </span>
-                                            {else}
-                                                <span class="text-danger d-inline-flex align-items-center lh-1 ms-1" title="较上月同期">
-                                                    {$monthly_comparison.diff_percent}% ↓
-                                                </span>
-                                            {/if}
-                                        {/if}
-                                    </div>
-                                    <div class="text-secondary">
-                                        本月流水
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-sm-6 col-lg-3">
-                    <div class="card card-sm">
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-auto">
-                                    <span class="bg-blue text-white avatar">
-                                        <i class="ti ti-users icon"></i>
-                                    </span>
-                                </div>
-                                <div class="col">
-                                    <div class="font-weight-medium">
-                                        {$total_user}
-                                    </div>
-                                    <div class="text-secondary">
-                                        总用户数
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-sm-6 col-lg-3">
-                    <div class="card card-sm">
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-auto">
-                                    <span class="bg-green text-white avatar">
-                                        <i class="ti ti-user-check icon"></i>
-                                    </span>
-                                </div>
-                                <div class="col">
-                                    <div class="font-weight-medium">
-                                        {$active_user}
-                                    </div>
-                                    <div class="text-secondary">
-                                        活跃用户
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- 时间维度切换器（KPI 卡片下方） -->
+            <!-- 时间维度切换器 -->
             <div class="card mb-3">
                 <div class="card-body py-2">
-                    <div class="d-flex align-items-center gap-3">
-                        <!-- 维度切换 -->
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
                         <div class="btn-group btn-group-sm" role="group">
                             <button type="button" class="btn btn-primary active" id="btn-day">日</button>
                             <button type="button" class="btn btn-outline-primary" id="btn-month">月</button>
                         </div>
-                        <!-- 日视图快捷 -->
                         <div id="day-shortcuts" class="d-flex align-items-center gap-2">
                             <button type="button" class="btn btn-sm btn-outline-secondary day-shortcut" data-month="{$current_month}">本月</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary day-shortcut" data-month="{$last_month}">上月</button>
                             <input type="month" class="form-control form-control-sm" id="month-picker" style="width:150px" value="{$current_month}">
                         </div>
-                        <!-- 月视图快捷（默认隐藏） -->
                         <div id="month-shortcuts" class="d-flex align-items-center gap-2 d-none">
-                            <span class="text-secondary small">最近12个月</span>
+                            <span class="text-secondary small">最近 12 个月</span>
+                        </div>
+                        <!-- 右侧 KPI 摘要 -->
+                        <div class="ms-auto d-flex align-items-center gap-4 text-nowrap">
+                            <div>
+                                <span class="text-secondary small">期间流水</span>
+                                <span class="ms-1 fw-medium" id="kpi-income">—</span>
+                            </div>
+                            <div>
+                                <span class="text-secondary small">新增用户</span>
+                                <span class="ms-1 fw-medium" id="kpi-users">—</span>
+                            </div>
+                            <div>
+                                <span class="text-secondary small">期间流量</span>
+                                <span class="ms-1 fw-medium" id="kpi-traffic">—</span>
+                            </div>
+                            <div>
+                                <span class="text-secondary small">当前活跃</span>
+                                <span class="ms-1 fw-medium" id="kpi-active">—</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 图表区域（3行） -->
-            <!-- 第一行（各占50%）：左 收入趋势折线图，右 新增用户柱状图 -->
+            <!-- 第一行：收入 + 新增用户 -->
             <div class="row row-cards mb-3">
                 <div class="col-12 col-lg-6">
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">收入趋势</h3>
-                        </div>
+                        <div class="card-header"><h3 class="card-title">收入趋势</h3></div>
                         <div class="card-body">
                             <div id="chart-income" style="min-height: 300px;"></div>
                         </div>
@@ -157,9 +72,7 @@
                 </div>
                 <div class="col-12 col-lg-6">
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">新增用户</h3>
-                        </div>
+                        <div class="card-header"><h3 class="card-title">新增用户</h3></div>
                         <div class="card-body">
                             <div id="chart-users" style="min-height: 300px;"></div>
                         </div>
@@ -167,13 +80,11 @@
                 </div>
             </div>
 
-            <!-- 第二行（全宽）：用户等级分布堆叠柱状图 -->
+            <!-- 第二行：用户等级分布（全宽堆叠柱状） -->
             <div class="row row-cards mb-3">
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">用户等级分布</h3>
-                        </div>
+                        <div class="card-header"><h3 class="card-title">用户等级分布</h3></div>
                         <div class="card-body">
                             <div id="chart-class" style="min-height: 350px;"></div>
                         </div>
@@ -181,13 +92,11 @@
                 </div>
             </div>
 
-            <!-- 第三行（各占50%）：左 流量趋势面积图，右 商品销量排行横向柱状图 -->
+            <!-- 第三行：流量 + 商品销量 -->
             <div class="row row-cards mb-3">
                 <div class="col-12 col-lg-6">
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">流量趋势</h3>
-                        </div>
+                        <div class="card-header"><h3 class="card-title">流量趋势</h3></div>
                         <div class="card-body">
                             <div id="chart-traffic" style="min-height: 300px;"></div>
                         </div>
@@ -195,15 +104,14 @@
                 </div>
                 <div class="col-12 col-lg-6">
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">商品销量排行</h3>
-                        </div>
+                        <div class="card-header"><h3 class="card-title">商品销量排行</h3></div>
                         <div class="card-body">
                             <div id="chart-products" style="min-height: 300px;"></div>
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -212,441 +120,189 @@
     <script>
         let currentMode = 'day';
         let currentMonth = '{$current_month}';
-        const rawProductSales = {if !empty($product_sales)}{$product_sales|json_encode}{else}[]{/if};
 
         {literal}
         const chartInstances = {};
 
-        function getOrRenderChart(id, options) {
+        function destroyAndRender(id, options) {
             const el = document.getElementById(id);
             if (!el || !window.ApexCharts) return;
-            if (chartInstances[id]) {
-                chartInstances[id].destroy();
-            }
+            if (chartInstances[id]) { chartInstances[id].destroy(); }
             chartInstances[id] = new ApexCharts(el, options);
             chartInstances[id].render();
         }
 
-        // 请求图表数据并渲染
+        // ── KPI 摘要更新 ────────────────────────────────────────────────
+        function updateKpi(income, newUsers, trafficGb, activeUsers) {
+            const sum = arr => (arr || []).reduce((a, b) => a + b, 0);
+            const last = arr => (arr && arr.length > 0) ? arr[arr.length - 1] : 0;
+
+            const totalIncome  = sum(income);
+            const totalUsers   = sum(newUsers);
+            const totalTraffic = sum(trafficGb);
+            const lastActive   = last(activeUsers);
+
+            document.getElementById('kpi-income').textContent  = '¥' + totalIncome.toFixed(2);
+            document.getElementById('kpi-users').textContent   = totalUsers + ' 人';
+            document.getElementById('kpi-traffic').textContent = totalTraffic.toFixed(2) + ' GB';
+            document.getElementById('kpi-active').textContent  = lastActive + ' 人';
+        }
+
+        // ── 趋势图加载（收入/用户/流量/等级） ───────────────────────────
         async function loadCharts() {
             try {
                 const url = `/admin/analytics/ajax?type=site_stats&mode=${currentMode}&month=${currentMonth}`;
-                const resp = await fetch(url);
-                if (!resp.ok) {
-                    console.error('Failed to fetch analytics data:', resp.statusText);
-                    return;
-                }
-                const data = await resp.json();
-
+                const data = await fetch(url).then(r => r.json());
                 const xLabels = currentMode === 'day' ? (data.dates || []) : (data.months || []);
 
-                // 收入折线
                 renderLineChart('chart-income', '收入 (¥)', xLabels, data.income || []);
-                // 用户柱状
                 renderBarChart('chart-users', '新增用户', xLabels, data.newUsers || []);
-                // 流量面积
                 renderAreaChart('chart-traffic', '流量 (GB)', xLabels, data.trafficGb || []);
-                // 等级堆叠
                 renderStackedBar('chart-class', xLabels, data.classSeries || {});
+
+                // 更新右侧 KPI 摘要
+                updateKpi(data.income, data.newUsers, data.trafficGb, data.activeUsers);
             } catch (err) {
                 console.error('Error loading charts:', err);
             }
         }
 
-        // 切换维度
-        const btnDay = document.getElementById('btn-day');
-        const btnMonth = document.getElementById('btn-month');
-        const dayShortcuts = document.getElementById('day-shortcuts');
-        const monthShortcuts = document.getElementById('month-shortcuts');
-        const monthPicker = document.getElementById('month-picker');
+        // ── 商品销量（随日期切换 AJAX 刷新） ────────────────────────────
+        async function loadProductChart() {
+            try {
+                const url = `/admin/analytics/ajax?type=product_sales&mode=${currentMode}&month=${currentMonth}`;
+                const items = (await fetch(url).then(r => r.json()) || []).slice(0, 10).reverse();
 
-        if (btnDay) {
-            btnDay.addEventListener('click', () => {
-                currentMode = 'day';
-                btnDay.classList.add('active', 'btn-primary');
-                btnDay.classList.remove('btn-outline-primary');
-                btnMonth.classList.remove('active', 'btn-primary');
-                btnMonth.classList.add('btn-outline-primary');
-                dayShortcuts.classList.remove('d-none');
-                monthShortcuts.classList.add('d-none');
-                loadCharts();
-            });
+                const categories = items.map(p => p.product_name || ('商品 #' + p.product_id));
+                const data = items.map(p => Number(p.order_count) || 0);
+
+                destroyAndRender('chart-products', {
+                    chart: { type: 'bar', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
+                    plotOptions: { bar: { horizontal: true, barHeight: '55%', borderRadius: 3 } },
+                    dataLabels: { enabled: true, formatter: v => v + ' 单', style: { colors: ['#fff'] } },
+                    series: [{ name: '销量', data }],
+                    colors: ['#206bc4'],
+                    grid: { strokeDashArray: 4, padding: { top: -20, right: 10, left: 10, bottom: 0 } },
+                    xaxis: { categories, labels: { formatter: v => Math.round(v) } },
+                    yaxis: { labels: { style: { fontSize: '12px' } } },
+                    tooltip: {
+                        theme: 'dark',
+                        y: { formatter: (val, opt) => {
+                            const item = items[opt.dataPointIndex];
+                            return item ? val + ' 单 (¥' + Number(item.revenue || 0).toFixed(2) + ')' : val + ' 单';
+                        }}
+                    },
+                    noData: { text: '暂无销售数据' }
+                });
+            } catch (err) {
+                console.error('Error loading product chart:', err);
+            }
         }
 
-        if (btnMonth) {
-            btnMonth.addEventListener('click', () => {
-                currentMode = 'month';
-                btnMonth.classList.add('active', 'btn-primary');
-                btnMonth.classList.remove('btn-outline-primary');
-                btnDay.classList.remove('active', 'btn-primary');
-                btnDay.classList.add('btn-outline-primary');
-                dayShortcuts.classList.add('d-none');
-                monthShortcuts.classList.remove('d-none');
-                loadCharts();
-            });
+        // ── 切换维度 ─────────────────────────────────────────────────────
+        function switchMode(mode) {
+            currentMode = mode;
+            const isDay = mode === 'day';
+            document.getElementById('btn-day').classList.toggle('active', isDay);
+            document.getElementById('btn-day').classList.toggle('btn-primary', isDay);
+            document.getElementById('btn-day').classList.toggle('btn-outline-primary', !isDay);
+            document.getElementById('btn-month').classList.toggle('active', !isDay);
+            document.getElementById('btn-month').classList.toggle('btn-primary', !isDay);
+            document.getElementById('btn-month').classList.toggle('btn-outline-primary', isDay);
+            document.getElementById('day-shortcuts').classList.toggle('d-none', !isDay);
+            document.getElementById('month-shortcuts').classList.toggle('d-none', isDay);
+            reloadAll();
         }
 
-        // 月份选择器
-        if (monthPicker) {
-            monthPicker.addEventListener('change', (e) => {
-                currentMonth = e.target.value;
-                loadCharts();
-            });
+        function reloadAll() {
+            loadCharts();
+            loadProductChart();
         }
 
-        // 日视图快捷按钮
+        document.getElementById('btn-day').addEventListener('click', () => switchMode('day'));
+        document.getElementById('btn-month').addEventListener('click', () => switchMode('month'));
+
+        document.getElementById('month-picker').addEventListener('change', e => {
+            currentMonth = e.target.value;
+            reloadAll();
+        });
+
         document.querySelectorAll('.day-shortcut').forEach(btn => {
             btn.addEventListener('click', () => {
                 currentMonth = btn.dataset.month;
-                if (monthPicker) {
-                    monthPicker.value = currentMonth;
-                }
-                loadCharts();
+                document.getElementById('month-picker').value = currentMonth;
+                reloadAll();
             });
         });
 
-        // 收入折线图
+        // ── 图表渲染函数 ─────────────────────────────────────────────────
         function renderLineChart(id, name, labels, data) {
-            const options = {
-                chart: {
-                    type: 'line',
-                    fontFamily: 'inherit',
-                    height: 300,
-                    parentHeightOffset: 0,
-                    toolbar: { show: false },
-                    animations: { enabled: true }
-                },
-                stroke: {
-                    curve: 'smooth',
-                    width: 2
-                },
-                grid: {
-                    strokeDashArray: 4,
-                    padding: { top: -20, right: 0, left: 10, bottom: 0 }
-                },
-                series: [{
-                    name: name,
-                    data: data
-                }],
+            destroyAndRender(id, {
+                chart: { type: 'line', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
+                stroke: { curve: 'smooth', width: 2 },
+                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
+                series: [{ name, data }],
                 colors: ['#206bc4'],
-                xaxis: {
-                    categories: labels,
-                    labels: {
-                        style: { fontSize: '12px' },
-                        rotate: -45,
-                        rotateAlways: false
-                    },
-                    tooltip: { enabled: false }
-                },
-                yaxis: {
-                    labels: {
-                        formatter: function (val) {
-                            return '¥' + (val !== null && val !== undefined ? Number(val).toFixed(2) : '0');
-                        }
-                    }
-                },
-                tooltip: {
-                    theme: 'dark',
-                    y: {
-                        formatter: function (val) {
-                            return '¥' + (val !== null && val !== undefined ? Number(val).toFixed(2) : '0');
-                        }
-                    }
-                },
-                noData: {
-                    text: '暂无数据'
-                }
-            };
-            getOrRenderChart(id, options);
-        }
-
-        // 新增用户柱状图
-        function renderBarChart(id, name, labels, data) {
-            const options = {
-                chart: {
-                    type: 'bar',
-                    fontFamily: 'inherit',
-                    height: 300,
-                    parentHeightOffset: 0,
-                    toolbar: { show: false },
-                    animations: { enabled: true }
-                },
-                plotOptions: {
-                    bar: {
-                        columnWidth: '50%',
-                        borderRadius: 3
-                    }
-                },
-                dataLabels: { enabled: false },
-                grid: {
-                    strokeDashArray: 4,
-                    padding: { top: -20, right: 0, left: 10, bottom: 0 }
-                },
-                series: [{
-                    name: name,
-                    data: data
-                }],
-                colors: ['#2fb344'],
-                xaxis: {
-                    categories: labels,
-                    labels: {
-                        style: { fontSize: '12px' },
-                        rotate: -45,
-                        rotateAlways: false
-                    },
-                    tooltip: { enabled: false }
-                },
-                yaxis: {
-                    labels: {
-                        formatter: function (val) {
-                            return Math.round(val);
-                        }
-                    }
-                },
-                tooltip: {
-                    theme: 'dark',
-                    y: {
-                        formatter: function (val) {
-                            return val + ' 人';
-                        }
-                    }
-                },
-                noData: {
-                    text: '暂无数据'
-                }
-            };
-            getOrRenderChart(id, options);
-        }
-
-        // 流量面积图
-        function renderAreaChart(id, name, labels, data) {
-            const options = {
-                chart: {
-                    type: 'area',
-                    fontFamily: 'inherit',
-                    height: 300,
-                    parentHeightOffset: 0,
-                    toolbar: { show: false },
-                    animations: { enabled: true }
-                },
-                stroke: {
-                    curve: 'smooth',
-                    width: 2
-                },
-                fill: {
-                    type: 'gradient',
-                    gradient: {
-                        shadeIntensity: 1,
-                        opacityFrom: 0.45,
-                        opacityTo: 0.05,
-                        stops: [0, 90, 100]
-                    }
-                },
-                grid: {
-                    strokeDashArray: 4,
-                    padding: { top: -20, right: 0, left: 10, bottom: 0 }
-                },
-                series: [{
-                    name: name,
-                    data: data
-                }],
-                colors: ['#f76707'],
-                xaxis: {
-                    categories: labels,
-                    labels: {
-                        style: { fontSize: '12px' },
-                        rotate: -45,
-                        rotateAlways: false
-                    },
-                    tooltip: { enabled: false }
-                },
-                yaxis: {
-                    labels: {
-                        formatter: function (val) {
-                            return (val !== null && val !== undefined ? Number(val).toFixed(2) : '0') + ' GB';
-                        }
-                    }
-                },
-                tooltip: {
-                    theme: 'dark',
-                    y: {
-                        formatter: function (val) {
-                            return (val !== null && val !== undefined ? Number(val).toFixed(2) : '0') + ' GB';
-                        }
-                    }
-                },
-                noData: {
-                    text: '暂无数据'
-                }
-            };
-            getOrRenderChart(id, options);
-        }
-
-        // 等级堆叠柱状图
-        function renderStackedBar(id, labels, classSeries) {
-            const classColorMap = {
-                '0': '#6c757d',
-                '1': '#206bc4',
-                '2': '#2fb344',
-                '3': '#f76707'
-            };
-            function getClassColor(cls) {
-                if (classColorMap[cls]) return classColorMap[cls];
-                return '#ae3ec9';
-            }
-
-            const sortedClasses = Object.keys(classSeries || {}).sort((a, b) => Number(a) - Number(b));
-            const series = sortedClasses.map(cls => ({
-                name: '等级 ' + cls,
-                data: classSeries[cls] || []
-            }));
-            const colors = sortedClasses.map(cls => getClassColor(cls));
-
-            const options = {
-                chart: {
-                    type: 'bar',
-                    stacked: true,
-                    fontFamily: 'inherit',
-                    height: 350,
-                    parentHeightOffset: 0,
-                    toolbar: { show: false },
-                    animations: { enabled: true }
-                },
-                plotOptions: {
-                    bar: {
-                        columnWidth: '50%',
-                        borderRadius: 2
-                    }
-                },
-                dataLabels: { enabled: false },
-                series: series,
-                colors: colors.length > 0 ? colors : ['#6c757d', '#206bc4', '#2fb344', '#f76707', '#ae3ec9'],
-                grid: {
-                    strokeDashArray: 4,
-                    padding: { top: -20, right: 0, left: 10, bottom: 0 }
-                },
-                xaxis: {
-                    categories: labels,
-                    labels: {
-                        style: { fontSize: '12px' },
-                        rotate: -45,
-                        rotateAlways: false
-                    },
-                    tooltip: { enabled: false }
-                },
-                yaxis: {
-                    labels: {
-                        formatter: function (val) {
-                            return Math.round(val);
-                        }
-                    }
-                },
-                tooltip: {
-                    theme: 'dark',
-                    y: {
-                        formatter: function (val) {
-                            return val + ' 人';
-                        }
-                    }
-                },
-                legend: {
-                    position: 'top',
-                    horizontalAlign: 'right',
-                    markers: {
-                        width: 10,
-                        height: 10,
-                        radius: 100
-                    }
-                },
-                noData: {
-                    text: '暂无数据'
-                }
-            };
-            getOrRenderChart(id, options);
-        }
-
-        // 商品销量（静态渲染，来自 Smarty 变量）
-        function renderProductChart() {
-            const items = (rawProductSales || []).slice(0, 10).reverse();
-            const categories = items.map(p => p.product_name || ('商品 #' + p.product_id));
-            const data = items.map(p => Number(p.order_count) || 0);
-
-            const options = {
-                chart: {
-                    type: 'bar',
-                    fontFamily: 'inherit',
-                    height: 300,
-                    parentHeightOffset: 0,
-                    toolbar: { show: false },
-                    animations: { enabled: true }
-                },
-                plotOptions: {
-                    bar: {
-                        horizontal: true,
-                        barHeight: '55%',
-                        borderRadius: 3
-                    }
-                },
-                dataLabels: {
-                    enabled: true,
-                    formatter: function (val) {
-                        return val + ' 单';
-                    },
-                    style: {
-                        colors: ['#fff']
-                    }
-                },
-                series: [{
-                    name: '销量',
-                    data: data
-                }],
-                colors: ['#206bc4'],
-                grid: {
-                    strokeDashArray: 4,
-                    padding: { top: -20, right: 10, left: 10, bottom: 0 }
-                },
-                xaxis: {
-                    categories: categories,
-                    labels: {
-                        formatter: function (val) {
-                            return Math.round(val);
-                        }
-                    }
-                },
-                yaxis: {
-                    labels: {
-                        style: { fontSize: '12px' }
-                    }
-                },
-                tooltip: {
-                    theme: 'dark',
-                    y: {
-                        formatter: function (val, opt) {
-                            const idx = opt.dataPointIndex;
-                            const item = items[idx];
-                            if (item && item.revenue !== undefined) {
-                                return val + ' 单 (销售额: ￥' + Number(item.revenue).toFixed(2) + ')';
-                            }
-                            return val + ' 单';
-                        }
-                    }
-                },
-                noData: {
-                    text: '暂无销售数据'
-                }
-            };
-            getOrRenderChart('chart-products', options);
-        }
-
-        // 页面加载时初始化
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function () {
-                loadCharts();
-                renderProductChart();
+                xaxis: { categories: labels, labels: { style: { fontSize: '12px' }, rotate: -45 }, tooltip: { enabled: false } },
+                yaxis: { labels: { formatter: v => '¥' + Number(v || 0).toFixed(2) } },
+                tooltip: { theme: 'dark', y: { formatter: v => '¥' + Number(v || 0).toFixed(2) } },
+                noData: { text: '暂无数据' }
             });
+        }
+
+        function renderBarChart(id, name, labels, data) {
+            destroyAndRender(id, {
+                chart: { type: 'bar', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
+                plotOptions: { bar: { columnWidth: '50%', borderRadius: 3 } },
+                dataLabels: { enabled: false },
+                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
+                series: [{ name, data }],
+                colors: ['#2fb344'],
+                xaxis: { categories: labels, labels: { style: { fontSize: '12px' }, rotate: -45 }, tooltip: { enabled: false } },
+                yaxis: { labels: { formatter: v => Math.round(v) } },
+                tooltip: { theme: 'dark', y: { formatter: v => v + ' 人' } },
+                noData: { text: '暂无数据' }
+            });
+        }
+
+        function renderAreaChart(id, name, labels, data) {
+            destroyAndRender(id, {
+                chart: { type: 'area', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
+                stroke: { curve: 'smooth', width: 2 },
+                fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05, stops: [0, 90, 100] } },
+                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
+                series: [{ name, data }],
+                colors: ['#f76707'],
+                xaxis: { categories: labels, labels: { style: { fontSize: '12px' }, rotate: -45 }, tooltip: { enabled: false } },
+                yaxis: { labels: { formatter: v => Number(v || 0).toFixed(2) + ' GB' } },
+                tooltip: { theme: 'dark', y: { formatter: v => Number(v || 0).toFixed(2) + ' GB' } },
+                noData: { text: '暂无数据' }
+            });
+        }
+
+        function renderStackedBar(id, labels, classSeries) {
+            const colorMap = { '0': '#6c757d', '1': '#206bc4', '2': '#2fb344', '3': '#f76707' };
+            const sorted = Object.keys(classSeries || {}).sort((a, b) => Number(a) - Number(b));
+            destroyAndRender(id, {
+                chart: { type: 'bar', stacked: true, fontFamily: 'inherit', height: 350, parentHeightOffset: 0, toolbar: { show: false } },
+                plotOptions: { bar: { columnWidth: '50%', borderRadius: 2 } },
+                dataLabels: { enabled: false },
+                series: sorted.map(cls => ({ name: '等级 ' + cls, data: classSeries[cls] || [] })),
+                colors: sorted.map(cls => colorMap[cls] || '#ae3ec9'),
+                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
+                xaxis: { categories: labels, labels: { style: { fontSize: '12px' }, rotate: -45 }, tooltip: { enabled: false } },
+                yaxis: { labels: { formatter: v => Math.round(v) } },
+                tooltip: { theme: 'dark', y: { formatter: v => v + ' 人' } },
+                legend: { position: 'top', horizontalAlign: 'right' },
+                noData: { text: '暂无数据' }
+            });
+        }
+
+        // ── 初始化 ───────────────────────────────────────────────────────
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', reloadAll);
         } else {
-            loadCharts();
-            renderProductChart();
+            reloadAll();
         }
         {/literal}
     </script>

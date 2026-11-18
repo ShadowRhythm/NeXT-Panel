@@ -9,7 +9,6 @@ use App\Services\Analytics;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
-use function date;
 
 final class AnalyticsController extends BaseController
 {
@@ -18,25 +17,8 @@ final class AnalyticsController extends BaseController
      */
     public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
-        $monthlyComparison     = Analytics::getMonthlyIncomeComparison();
-        $userClassDistribution = Analytics::getUserClassDistribution();
-        $todayIncome           = Analytics::getIncome('today');
-        $thisMonthIncome       = Analytics::getIncome('this month');
-        $totalIncome           = Analytics::getIncome('total');
-        $totalUser             = Analytics::getTotalUser();
-        $activeUser            = Analytics::getActiveUser();
-        $productSales          = Analytics::getProductSalesRanking(date('Y-m'));
-
         return $response->write(
             $this->view()
-                ->assign('monthly_comparison', $monthlyComparison)
-                ->assign('user_class_distribution', $userClassDistribution)
-                ->assign('today_income', $todayIncome)
-                ->assign('this_month_income', $thisMonthIncome)
-                ->assign('total_income', $totalIncome)
-                ->assign('total_user', $totalUser)
-                ->assign('active_user', $activeUser)
-                ->assign('product_sales', $productSales)
                 ->fetch('admin/analytics/index.tpl')
         );
     }
