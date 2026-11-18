@@ -1216,6 +1216,27 @@ final class Cron
 
     public static function sendDiaryNotification(): void
     {
+        $yesterday      = date('Y-m-d', strtotime('-1 day'));
+        $yesterdayStart = strtotime($yesterday . ' 00:00:00');
+        $yesterdayEnd   = strtotime($yesterday . ' 23:59:59');
+
+        // 昨日签到人数（避免 00:00 时 "today" 是新的一天导致返回 0）
+        $checkinCount = (new User())
+            ->whereBetween('last_check_in_time', [$yesterdayStart, $yesterdayEnd])
+            ->count();
+
+        // 昨日总流量（从 hourly_usage 读取，不受 resetTodayBandwidth 影响）
+        $trafficBytes = 0;
+        HourlyUsage::where('date', $yesterday)->chunk(500, function ($records) use (&$trafficBytes): void {
+            foreach ($records as $record) {
+                $hours = json_decode($record->usage, true);
+                if (is_array($hours)) {
+                    $trafficBytes += (int) array_sum($hours);
+                }
+            }
+        });
+        $trafficFormatted = Tools::autoBytes($trafficBytes);
+
         try {
             Notification::notifyUserGroup(
                 str_replace(
@@ -1224,8 +1245,8 @@ final class Cron
                         '%lastday_total%',
                     ],
                     [
-                        Analytics::getTodayCheckinUser(),
-                        Analytics::getTodayTrafficUsage(),
+                        $checkinCount,
+                        $trafficFormatted,
                     ],
                     I18n::trans('bot.diary', $_ENV['locale'])
                 )
