@@ -8,10 +8,16 @@ use App\Models\HourlyUsage;
 use App\Models\Node;
 use App\Models\Paylist;
 use App\Models\User;
+use App\Models\UserTrafficStat;
 use App\Utils\Tools;
+use DateTime;
 use function array_fill;
+use function array_shift;
+use function array_sum;
+use function count;
 use function date;
 use function floatval;
+use function is_array;
 use function is_null;
 use function json_decode;
 use function round;
@@ -155,5 +161,85 @@ final class Analytics
         $date = date('Y-m-d');
 
         return self::getUserHourlyUsage($user_id, $date);
+    }
+
+    public static function getUserPast24HoursUsage(int $user_id): array
+    {
+        $usage_cache = [];
+        $usage = [];
+        $labels = [];
+
+        for ($i = 23; $i >= 0; $i--) {
+            $timestamp = time() - $i * 3600;
+            $date = date('Y-m-d', $timestamp);
+            $hour = (int) date('H', $timestamp);
+            $labels[] = date('H', $timestamp);
+
+            if (! isset($usage_cache[$date])) {
+                $usage_cache[$date] = self::getUserHourlyUsage($user_id, $date);
+            }
+
+            $usage[] = $usage_cache[$date][$hour] ?? 0;
+        }
+
+        return [
+            'usage' => $usage,
+            'labels' => $labels,
+        ];
+    }
+
+    public static function getUserPast30DaysUsage(int $user_id): array
+    {
+        $stat = UserTrafficStat::getOrUpdate($user_id);
+        $daily_usage = json_decode($stat->daily_usage, true);
+        if (! is_array($daily_usage) || count($daily_usage) !== 30) {
+            $daily_usage = array_fill(0, 30, 0);
+        }
+
+        array_shift($daily_usage);
+        $daily_usage[] = 0;
+
+        $today_traffic = (int) array_sum(self::getUserTodayHourlyUsage($user_id));
+        $daily_usage[29] += $today_traffic;
+
+        $labels = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $labels[] = date('m-d', strtotime("-{$i} days"));
+        }
+
+        return [
+            'usage' => $daily_usage,
+            'labels' => $labels,
+        ];
+    }
+
+    public static function getUserPast12MonthsUsage(int $user_id): array
+    {
+        $stat = UserTrafficStat::getOrUpdate($user_id);
+        $monthly_usage = json_decode($stat->monthly_usage, true);
+        if (! is_array($monthly_usage) || count($monthly_usage) !== 12) {
+            $monthly_usage = array_fill(0, 12, 0);
+        }
+
+        if ($stat->monthly_last_month !== date('Y-m')) {
+            array_shift($monthly_usage);
+            $monthly_usage[] = 0;
+        }
+
+        $today_traffic = (int) array_sum(self::getUserTodayHourlyUsage($user_id));
+        $monthly_usage[11] += $today_traffic;
+
+        $labels = [];
+        $dt = new DateTime('first day of this month');
+        $dt->modify('-11 months');
+        for ($i = 0; $i < 12; $i++) {
+            $labels[] = $dt->format('Y-m');
+            $dt->modify('+1 month');
+        }
+
+        return [
+            'usage' => $monthly_usage,
+            'labels' => $labels,
+        ];
     }
 }

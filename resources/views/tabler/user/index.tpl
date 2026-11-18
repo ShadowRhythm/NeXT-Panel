@@ -380,8 +380,17 @@
                         {if $public_setting['traffic_log']}
                         <div class="col-12">
                             <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title" id="traffic-chart-title">{trans key='user.hourly_usage'}</h3>
+                                    <div class="card-actions">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-primary active" id="btn-traffic-24h">{trans key='user.24_hours'}</button>
+                                            <button type="button" class="btn btn-outline-primary" id="btn-traffic-30d">{trans key='user.30_days'}</button>
+                                            <button type="button" class="btn btn-outline-primary" id="btn-traffic-12m">{trans key='user.12_months'}</button>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="card-body">
-                                    <h3 class="card-title">{trans key='user.hourly_usage'}</h3>
                                     <div id="traffic-log"></div>
                                 </div>
                             </div>
@@ -465,7 +474,32 @@
     {if $public_setting['traffic_log']}
     <script src="//{$config['jsdelivr_url']}/npm/@tabler/core@latest/dist/libs/apexcharts/dist/apexcharts.min.js"></script>
     <script>
-        function getTrafficChartConfig(trafficData) {
+        const trafficRanges = {
+            '24h': {
+                title: "{trans key='user.hourly_usage' escape='js'}",
+                data: {$traffic_logs},
+                categories: {$traffic_logs_labels},
+                yTitle: "{trans key='user.traffic_used_mb' escape='js'}",
+                xTitle: "{trans key='user.hour' escape='js'}"
+            },
+            '30d': {
+                title: "{trans key='user.daily_usage' escape='js'}",
+                data: {$daily_traffic_logs},
+                categories: {$daily_traffic_labels},
+                yTitle: "{trans key='user.traffic_used_mb' escape='js'}",
+                xTitle: "{trans key='user.day' escape='js'}"
+            },
+            '12m': {
+                title: "{trans key='user.monthly_usage' escape='js'}",
+                data: {$monthly_traffic_logs},
+                categories: {$monthly_traffic_labels},
+                yTitle: "{trans key='user.traffic_used_gb' escape='js'}",
+                xTitle: "{trans key='user.month' escape='js'}"
+            }
+        };
+
+        function getTrafficChartConfig(rangeKey) {
+            const conf = trafficRanges[rangeKey] || trafficRanges['24h'];
             return {
                 chart: {
                     type: "line",
@@ -476,7 +510,7 @@
                         show: false
                     },
                     animations: {
-                        enabled: false
+                        enabled: true
                     }
                 },
                 stroke: {
@@ -487,8 +521,8 @@
                 },
                 series: [
                     {
-                        name: "{trans key='user.traffic_used_mb' escape='js'}",
-                        data: trafficData
+                        name: conf.yTitle,
+                        data: conf.data
                     }
                 ],
                 tooltip: {
@@ -505,7 +539,7 @@
                 },
                 xaxis: {
                     title: {
-                        text: "{trans key='user.hour' escape='js'}"
+                        text: conf.xTitle
                     },
                     labels: {
                         padding: 0
@@ -516,14 +550,11 @@
                     axisBorder: {
                         show: false
                     },
-                    categories: [
-                        "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11",
-                        "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"
-                    ]
+                    categories: (conf.categories && conf.categories.length > 0) ? conf.categories : []
                 },
                 yaxis: {
                     title: {
-                        text: "{trans key='user.traffic_used_mb' escape='js'}",
+                        text: conf.yTitle,
                         rotate: -90
                     },
                     labels: {
@@ -536,19 +567,91 @@
                 }
             };
         }
-        
+
+        let trafficChart = null;
+
+        function switchTrafficRange(rangeKey) {
+            if (!trafficChart || !trafficRanges[rangeKey]) return;
+            const conf = trafficRanges[rangeKey];
+
+            trafficChart.updateOptions({
+                series: [
+                    {
+                        name: conf.yTitle,
+                        data: conf.data
+                    }
+                ],
+                xaxis: {
+                    title: {
+                        text: conf.xTitle
+                    },
+                    categories: conf.categories
+                },
+                yaxis: {
+                    title: {
+                        text: conf.yTitle,
+                        rotate: -90
+                    }
+                }
+            });
+
+            const titleEl = document.getElementById('traffic-chart-title');
+            if (titleEl) {
+                titleEl.textContent = conf.title;
+            }
+
+            const buttons = {
+                '24h': document.getElementById('btn-traffic-24h'),
+                '30d': document.getElementById('btn-traffic-30d'),
+                '12m': document.getElementById('btn-traffic-12m')
+            };
+
+            for (const key in buttons) {
+                const btn = buttons[key];
+                if (btn) {
+                    if (key === rangeKey) {
+                        btn.classList.add('btn-primary', 'active');
+                        btn.classList.remove('btn-outline-primary');
+                    } else {
+                        btn.classList.remove('btn-primary', 'active');
+                        btn.classList.add('btn-outline-primary');
+                    }
+                }
+            }
+        }
+
         function initTrafficChart() {
             const chartElement = document.getElementById('traffic-log');
             if (!chartElement || !window.ApexCharts) return;
-            
+
             try {
-                const chart = new ApexCharts(chartElement, getTrafficChartConfig({$traffic_logs}));
-                chart.render();
+                trafficChart = new ApexCharts(chartElement, getTrafficChartConfig('24h'));
+                trafficChart.render();
+
+                const btn24h = document.getElementById('btn-traffic-24h');
+                const btn30d = document.getElementById('btn-traffic-30d');
+                const btn12m = document.getElementById('btn-traffic-12m');
+
+                if (btn24h) {
+                    btn24h.addEventListener('click', function () {
+                        switchTrafficRange('24h');
+                    });
+                }
+                if (btn30d) {
+                    btn30d.addEventListener('click', function () {
+                        switchTrafficRange('30d');
+                    });
+                }
+                if (btn12m) {
+                    btn12m.addEventListener('click', function () {
+                        switchTrafficRange('12m');
+                    });
+                }
             } catch (error) {
                 console.error('Failed to initialize traffic chart:', error);
             }
         }
-        
+
         document.addEventListener("DOMContentLoaded", function () {
             initTrafficChart();
         });

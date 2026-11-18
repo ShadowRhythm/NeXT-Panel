@@ -35,6 +35,11 @@ final class UserController extends BaseController
     {
         $captcha = [];
         $traffic_logs = [];
+        $traffic_logs_labels = [];
+        $daily_traffic_logs = [];
+        $daily_traffic_labels = [];
+        $monthly_traffic_logs = [];
+        $monthly_traffic_labels = [];
         $class_expire_days = $this->user->class > 0 ?
             round((strtotime($this->user->class_expire) - time()) / 86400) : 0;
         $ann = (new Ann())->where('status', '>', 0)
@@ -49,11 +54,29 @@ final class UserController extends BaseController
         }
 
         if (Config::obtain('traffic_log')) {
-            $hourly_usage = Analytics::getUserTodayHourlyUsage($this->user->id);
+            $hourly_usage_data = Analytics::getUserPast24HoursUsage($this->user->id);
 
-            foreach ($hourly_usage as $hour => $usage) {
+            foreach ($hourly_usage_data['usage'] as $usage) {
                 $traffic_logs[] = Tools::bToMB((int) $usage);
             }
+
+            $traffic_logs_labels = $hourly_usage_data['labels'];
+
+            $daily_usage_data = Analytics::getUserPast30DaysUsage($this->user->id);
+
+            foreach ($daily_usage_data['usage'] as $usage) {
+                $daily_traffic_logs[] = Tools::bToMB((int) $usage);
+            }
+
+            $daily_traffic_labels = $daily_usage_data['labels'];
+
+            $monthly_usage_data = Analytics::getUserPast12MonthsUsage($this->user->id);
+
+            foreach ($monthly_usage_data['usage'] as $usage) {
+                $monthly_traffic_logs[] = Tools::bToGB((int) $usage);
+            }
+
+            $monthly_traffic_labels = $monthly_usage_data['labels'];
         }
 
         $universalSub = Subscribe::getUniversalSubLink($this->user);
@@ -72,6 +95,11 @@ final class UserController extends BaseController
                 ->assign('ann', $ann)
                 ->assign('captcha', $captcha)
                 ->assign('traffic_logs', json_encode($traffic_logs))
+                ->assign('traffic_logs_labels', json_encode($traffic_logs_labels))
+                ->assign('daily_traffic_logs', json_encode($daily_traffic_logs))
+                ->assign('daily_traffic_labels', json_encode($daily_traffic_labels))
+                ->assign('monthly_traffic_logs', json_encode($monthly_traffic_logs))
+                ->assign('monthly_traffic_labels', json_encode($monthly_traffic_labels))
                 ->assign('class_expire_days', $class_expire_days)
                 ->assign('UniversalSub', $universalSub)
                 ->assign('subUrlPrefix', $subUrlPrefix)

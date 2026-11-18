@@ -22,6 +22,7 @@ use App\Models\SubscribeLog;
 use App\Models\User;
 use App\Models\UserCoupon;
 use App\Models\UserMoneyLog;
+use App\Models\UserTrafficStat;
 use App\Services\DB;
 use App\Utils\Tools;
 use DateTime;
@@ -30,6 +31,8 @@ use GuzzleHttp\Exception\GuzzleException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Throwable;
+use function array_merge;
+use function array_unique;
 use function date;
 use function in_array;
 use function json_decode;
@@ -964,6 +967,19 @@ final class Cron
 
     public static function resetTodayBandwidth(): void
     {
+        $yesterday = date('Y-m-d', strtotime('-1 day'));
+        $userIdsFromHourly = (new HourlyUsage())->where('date', $yesterday)->pluck('user_id')->toArray();
+        $userIdsFromUser = (new User())->where('transfer_today', '>', 0)->pluck('id')->toArray();
+        $activeUserIds = array_unique(array_merge($userIdsFromHourly, $userIdsFromUser));
+
+        foreach ($activeUserIds as $userId) {
+            try {
+                UserTrafficStat::getOrUpdate((int) $userId);
+            } catch (Throwable $e) {
+                echo 'Archive user traffic stat failed for user ' . $userId . ': ' . $e->getMessage() . PHP_EOL;
+            }
+        }
+
         (new User())->query()->update(['transfer_today' => 0]);
 
         echo Tools::toDateTime(time()) . ' 重设用户每日流量完成' . PHP_EOL;
