@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Subscribe;
 
+use App\Models\Config;
 use App\Services\Subscribe;
 use App\Utils\Tools;
 use function array_merge;
@@ -17,6 +18,11 @@ final class Clash extends Base
     {
         $nodes = [];
         $clash_config = $_ENV['Clash_Config'];
+
+        $tcpConcurrent = Config::obtain('tcp_concurrent');
+        if ($tcpConcurrent !== '') {
+            $clash_config['tcp-concurrent'] = (bool) $tcpConcurrent;
+        }
         $clash_group_indexes = $_ENV['Clash_Group_Indexes'];
         $clash_group_config = $_ENV['Clash_Group_Config'];
         $nodes_raw = Subscribe::getUserNodes($user);
