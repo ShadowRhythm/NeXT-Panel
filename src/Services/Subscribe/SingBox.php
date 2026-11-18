@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Subscribe;
 
-use App\Models\Config;
 use App\Services\Subscribe;
 use App\Utils\Tools;
 use function array_filter;
@@ -20,54 +19,6 @@ final class SingBox extends Base
     {
         $nodes = [];
         $singbox_config = $_ENV['SingBox_Config'];
-
-        $dnsSelect = (string) Config::obtain('dns_select');
-        if ($dnsSelect === '') {
-            $dnsSelect = (string) ($_ENV['dns_select'] ?? 'cloudflare');
-        }
-        if ($dnsSelect !== '' && isset($singbox_config['dns'])) {
-            $singbox_config['dns']['final'] = $dnsSelect;
-        }
-
-        if (isset($singbox_config['dns']['servers']) && is_array($singbox_config['dns']['servers'])) {
-            foreach ($singbox_config['dns']['servers'] as &$server) {
-                if (! isset($server['tag'])) {
-                    continue;
-                }
-                if ($server['tag'] === 'mine_853') {
-                    $s = (string) (Config::obtain('dns_server_853') ?: ($_ENV['dns_server_853'] ?? ''));
-                    if ($s !== '') {
-                        $server['server'] = $s;
-                    }
-                    $p = Config::obtain('dns_server_port_853') ?: ($_ENV['dns_server_port_853'] ?? 0);
-                    if ((int) $p > 0) {
-                        $server['server_port'] = (int) $p;
-                    }
-                    $t = (string) (Config::obtain('dns_type_853') ?: ($_ENV['dns_type_853'] ?? ''));
-                    if ($t !== '') {
-                        $server['type'] = $t;
-                    }
-                } elseif ($server['tag'] === 'mine_443') {
-                    $s = (string) (Config::obtain('dns_server_443') ?: ($_ENV['dns_server_443'] ?? ''));
-                    if ($s !== '') {
-                        $server['server'] = $s;
-                    }
-                    $p = Config::obtain('dns_server_port_443') ?: ($_ENV['dns_server_port_443'] ?? 0);
-                    if ((int) $p > 0) {
-                        $server['server_port'] = (int) $p;
-                    }
-                    $path = (string) (Config::obtain('dns_path_443') ?: ($_ENV['dns_path_443'] ?? ''));
-                    if ($path !== '') {
-                        $server['path'] = $path;
-                    }
-                    $t = (string) (Config::obtain('dns_type_443') ?: ($_ENV['dns_type_443'] ?? ''));
-                    if ($t !== '') {
-                        $server['type'] = $t;
-                    }
-                }
-            }
-            unset($server);
-        }
         $singbox_group_indexes = $_ENV['SingBox_Group_Indexes'] ?? [0, 1];
         $nodes_raw = Subscribe::getUserNodes($user);
 

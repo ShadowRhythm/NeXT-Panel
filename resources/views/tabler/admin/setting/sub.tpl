@@ -36,9 +36,6 @@
                                 <li class="nav-item">
                                     <a href="#sub_basic" class="nav-link" data-bs-toggle="tab">基础设置</a>
                                 </li>
-                                <li class="nav-item">
-                                    <a href="#dns_config" class="nav-link" data-bs-toggle="tab">DNS 配置</a>
-                                </li>
                             </ul>
                         </div>
                         <div class="card-body">
@@ -139,66 +136,6 @@
                                             <div class="col">
                                                 <input id="sub_token_len" type="text" class="form-control"
                                                        value="{$settings['sub_token_len']}">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="tab-pane" id="dns_config">
-                                    <div class="card-body">
-                                        <div class="form-group mb-3 row">
-                                            <label class="form-label col-3 col-form-label">DNS预设方案（可选 google/cloudflare/opendns/alidns/mine_853/mine_443）</label>
-                                            <div class="col">
-                                                <input id="dns_select" type="text" class="form-control"
-                                                       value="{$settings['dns_select']}">
-                                            </div>
-                                        </div>
-                                        <div class="form-group mb-3 row">
-                                            <label class="form-label col-3 col-form-label">DoT DNS服务器地址</label>
-                                            <div class="col">
-                                                <input id="dns_server_853" type="text" class="form-control"
-                                                       value="{$settings['dns_server_853']}">
-                                            </div>
-                                        </div>
-                                        <div class="form-group mb-3 row">
-                                            <label class="form-label col-3 col-form-label">DoT DNS端口</label>
-                                            <div class="col">
-                                                <input id="dns_server_port_853" type="text" class="form-control"
-                                                       value="{$settings['dns_server_port_853']}">
-                                            </div>
-                                        </div>
-                                        <div class="form-group mb-3 row">
-                                            <label class="form-label col-3 col-form-label">DoT协议类型（tls/quic）</label>
-                                            <div class="col">
-                                                <input id="dns_type_853" type="text" class="form-control"
-                                                       value="{$settings['dns_type_853']}">
-                                            </div>
-                                        </div>
-                                        <div class="form-group mb-3 row">
-                                            <label class="form-label col-3 col-form-label">DoH DNS服务器地址</label>
-                                            <div class="col">
-                                                <input id="dns_server_443" type="text" class="form-control"
-                                                       value="{$settings['dns_server_443']}">
-                                            </div>
-                                        </div>
-                                        <div class="form-group mb-3 row">
-                                            <label class="form-label col-3 col-form-label">DoH DNS端口</label>
-                                            <div class="col">
-                                                <input id="dns_server_port_443" type="text" class="form-control"
-                                                       value="{$settings['dns_server_port_443']}">
-                                            </div>
-                                        </div>
-                                        <div class="form-group mb-3 row">
-                                            <label class="form-label col-3 col-form-label">DoH路径</label>
-                                            <div class="col">
-                                                <input id="dns_path_443" type="text" class="form-control"
-                                                       value="{$settings['dns_path_443']}">
-                                            </div>
-                                        </div>
-                                        <div class="form-group mb-3 row">
-                                            <label class="form-label col-3 col-form-label">DoH协议类型（https/h3）</label>
-                                            <div class="col">
-                                                <input id="dns_type_443" type="text" class="form-control"
-                                                       value="{$settings['dns_type_443']}">
                                             </div>
                                         </div>
                                         <div class="form-group mb-3 row">
