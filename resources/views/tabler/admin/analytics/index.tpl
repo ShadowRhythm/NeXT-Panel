@@ -32,7 +32,34 @@
                         <div id="day-shortcuts" class="d-flex align-items-center gap-2">
                             <button type="button" class="btn btn-sm btn-outline-secondary day-shortcut" data-month="{$current_month}">本月</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary day-shortcut" data-month="{$last_month}">上月</button>
-                            <input type="month" class="form-control form-control-sm" id="month-picker" style="width:150px" value="{$current_month}">
+                            <!-- 自定义月份选择器 -->
+                            <div class="dropdown" id="month-picker-wrap">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1"
+                                        type="button" id="month-picker-btn" data-bs-toggle="dropdown"
+                                        data-bs-auto-close="outside" aria-expanded="false">
+                                    <i class="ti ti-calendar icon"></i>
+                                    <span id="month-picker-label">{$current_month|date_format:"%Y年%-m月"}</span>
+                                </button>
+                                <div class="dropdown-menu p-3 shadow" style="min-width:260px;" id="month-picker-panel">
+                                    <!-- 年份导航 -->
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <button class="btn btn-sm btn-ghost-secondary px-2" id="picker-prev-year" type="button">
+                                            <i class="ti ti-chevron-left"></i>
+                                        </button>
+                                        <span class="fw-semibold fs-4" id="picker-year-label">2026</span>
+                                        <button class="btn btn-sm btn-ghost-secondary px-2" id="picker-next-year" type="button">
+                                            <i class="ti ti-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                    <!-- 月份网格 -->
+                                    <div class="row g-1" id="picker-month-grid"></div>
+                                    <!-- 底部操作 -->
+                                    <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+                                        <button class="btn btn-sm btn-link text-secondary px-0" id="picker-clear" type="button">清除</button>
+                                        <button class="btn btn-sm btn-link px-0" id="picker-this-month" type="button">本月</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div id="month-shortcuts" class="d-flex align-items-center gap-2 d-none">
                             <span class="text-secondary small">最近 12 个月</span>
@@ -123,6 +150,87 @@
 
         {literal}
         const chartInstances = {};
+
+        // ── 10色板，相邻等级颜色差异明显 ──────────────────────────────────
+        const CLASS_COLORS = [
+            '#6c757d',  // 0: 灰
+            '#206bc4',  // 1: 蓝
+            '#2fb344',  // 2: 绿
+            '#f76707',  // 3: 橙
+            '#d63939',  // 4: 红
+            '#17a589',  // 5: 青绿
+            '#ae3ec9',  // 6: 紫
+            '#fab005',  // 7: 黄
+            '#e8368f',  // 8: 玫红
+            '#4263eb',  // 9: 靛蓝
+        ];
+        function classColor(cls) {
+            return CLASS_COLORS[Number(cls)] ?? CLASS_COLORS[CLASS_COLORS.length - 1];
+        }
+
+        // ── 自定义月份选择器 ──────────────────────────────────────────────
+        const MONTHS_ZH = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+        let pickerYear = parseInt(currentMonth.split('-')[0]);
+        let pickerMonth = parseInt(currentMonth.split('-')[1]); // 1-based
+
+        function pickerFmtLabel(ym) {
+            const [y, m] = ym.split('-');
+            return y + '年' + parseInt(m) + '月';
+        }
+
+        function renderPickerGrid() {
+            const grid = document.getElementById('picker-month-grid');
+            if (!grid) return;
+            const selYear = parseInt(currentMonth.split('-')[0]);
+            const selMon  = parseInt(currentMonth.split('-')[1]);
+            grid.innerHTML = MONTHS_ZH.map((name, i) => {
+                const mon = i + 1;
+                const isSelected = pickerYear === selYear && mon === selMon;
+                const cls = isSelected
+                    ? 'col-3 p-0'
+                    : 'col-3 p-0';
+                const btnCls = isSelected
+                    ? 'btn btn-primary btn-sm w-100'
+                    : 'btn btn-ghost-secondary btn-sm w-100';
+                return `<div class="${cls}"><button type="button" class="${btnCls} picker-mon-btn" data-mon="${mon}">${name}</button></div>`;
+            }).join('');
+            document.getElementById('picker-year-label').textContent = pickerYear;
+            document.querySelectorAll('.picker-mon-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const m = String(btn.dataset.mon).padStart(2, '0');
+                    currentMonth = pickerYear + '-' + m;
+                    document.getElementById('month-picker-label').textContent = pickerFmtLabel(currentMonth);
+                    // 关闭 dropdown
+                    const dd = bootstrap.Dropdown.getInstance(document.getElementById('month-picker-btn'));
+                    if (dd) dd.hide();
+                    reloadAll();
+                });
+            });
+        }
+
+        document.getElementById('picker-prev-year')?.addEventListener('click', () => { pickerYear--; renderPickerGrid(); });
+        document.getElementById('picker-next-year')?.addEventListener('click', () => { pickerYear++; renderPickerGrid(); });
+        document.getElementById('picker-this-month')?.addEventListener('click', () => {
+            const now = new Date();
+            pickerYear = now.getFullYear();
+            currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('month-picker-label').textContent = pickerFmtLabel(currentMonth);
+            renderPickerGrid();
+            const dd = bootstrap.Dropdown.getInstance(document.getElementById('month-picker-btn'));
+            if (dd) dd.hide();
+            reloadAll();
+        });
+        document.getElementById('picker-clear')?.addEventListener('click', () => {
+            const dd = bootstrap.Dropdown.getInstance(document.getElementById('month-picker-btn'));
+            if (dd) dd.hide();
+        });
+        document.getElementById('month-picker-btn')?.addEventListener('show.bs.dropdown', () => {
+            pickerYear = parseInt(currentMonth.split('-')[0]);
+            renderPickerGrid();
+        });
+
+        // 初始渲染 label
+        document.getElementById('month-picker-label').textContent = pickerFmtLabel(currentMonth);
 
         function destroyAndRender(id, options) {
             const el = document.getElementById(id);
@@ -222,15 +330,10 @@
         document.getElementById('btn-day').addEventListener('click', () => switchMode('day'));
         document.getElementById('btn-month').addEventListener('click', () => switchMode('month'));
 
-        document.getElementById('month-picker').addEventListener('change', e => {
-            currentMonth = e.target.value;
-            reloadAll();
-        });
-
         document.querySelectorAll('.day-shortcut').forEach(btn => {
             btn.addEventListener('click', () => {
                 currentMonth = btn.dataset.month;
-                document.getElementById('month-picker').value = currentMonth;
+                document.getElementById('month-picker-label').textContent = pickerFmtLabel(currentMonth);
                 reloadAll();
             });
         });
@@ -281,14 +384,13 @@
         }
 
         function renderStackedBar(id, labels, classSeries) {
-            const colorMap = { '0': '#6c757d', '1': '#206bc4', '2': '#2fb344', '3': '#f76707' };
             const sorted = Object.keys(classSeries || {}).sort((a, b) => Number(a) - Number(b));
             destroyAndRender(id, {
                 chart: { type: 'bar', stacked: true, fontFamily: 'inherit', height: 350, parentHeightOffset: 0, toolbar: { show: false } },
                 plotOptions: { bar: { columnWidth: '50%', borderRadius: 2 } },
                 dataLabels: { enabled: false },
                 series: sorted.map(cls => ({ name: '等级 ' + cls, data: classSeries[cls] || [] })),
-                colors: sorted.map(cls => colorMap[cls] || '#ae3ec9'),
+                colors: sorted.map(cls => classColor(cls)),
                 grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
                 xaxis: { categories: labels, labels: { style: { fontSize: '12px' }, rotate: -45 }, tooltip: { enabled: false } },
                 yaxis: { labels: { formatter: v => Math.round(v) } },
