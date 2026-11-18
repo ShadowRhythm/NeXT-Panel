@@ -168,17 +168,20 @@
             return CLASS_COLORS[Number(cls)] ?? CLASS_COLORS[CLASS_COLORS.length - 1];
         }
 
-        // ── 自定义月份选择器 ──────────────────────────────────────────────
+        // ── 自定义月份选择器（月视图 + 年视图）────────────────────────────
         const MONTHS_ZH = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-        let pickerYear = parseInt(currentMonth.split('-')[0]);
-        let pickerMonth = parseInt(currentMonth.split('-')[1]); // 1-based
+        let pickerYear  = parseInt(currentMonth.split('-')[0]);
+        let pickerView  = 'month'; // 'month' | 'year'
+        let pickerDecadeStart = Math.floor(pickerYear / 12) * 12;
 
         function pickerFmtLabel(ym) {
             const [y, m] = ym.split('-');
             return y + '年' + parseInt(m) + '月';
         }
 
-        function renderPickerGrid() {
+        // ── 月份网格 ──────────────────────────────────────────────────────
+        function renderMonthView() {
+            pickerView = 'month';
             const grid = document.getElementById('picker-month-grid');
             if (!grid) return;
             const selYear = parseInt(currentMonth.split('-')[0]);
@@ -186,21 +189,22 @@
             grid.innerHTML = MONTHS_ZH.map((name, i) => {
                 const mon = i + 1;
                 const isSelected = pickerYear === selYear && mon === selMon;
-                const cls = isSelected
-                    ? 'col-3 p-0'
-                    : 'col-3 p-0';
                 const btnCls = isSelected
                     ? 'btn btn-primary btn-sm w-100'
                     : 'btn btn-ghost-secondary btn-sm w-100';
-                return `<div class="${cls}"><button type="button" class="${btnCls} picker-mon-btn" data-mon="${mon}">${name}</button></div>`;
+                return `<div class="col-3 p-0"><button type="button" class="${btnCls} picker-mon-btn" data-mon="${mon}">${name}</button></div>`;
             }).join('');
-            document.getElementById('picker-year-label').textContent = pickerYear;
-            document.querySelectorAll('.picker-mon-btn').forEach(btn => {
+            // 年份标题：可点击切换到年格视图
+            document.getElementById('picker-year-label').textContent = pickerYear + ' ▾';
+            document.getElementById('picker-year-label').style.cursor = 'pointer';
+            // 箭头：切换年
+            document.getElementById('picker-prev-year').onclick = () => { pickerYear--; renderMonthView(); };
+            document.getElementById('picker-next-year').onclick = () => { pickerYear++; renderMonthView(); };
+            grid.querySelectorAll('.picker-mon-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const m = String(btn.dataset.mon).padStart(2, '0');
                     currentMonth = pickerYear + '-' + m;
                     document.getElementById('month-picker-label').textContent = pickerFmtLabel(currentMonth);
-                    // 关闭 dropdown
                     const dd = bootstrap.Dropdown.getInstance(document.getElementById('month-picker-btn'));
                     if (dd) dd.hide();
                     reloadAll();
@@ -208,14 +212,53 @@
             });
         }
 
-        document.getElementById('picker-prev-year')?.addEventListener('click', () => { pickerYear--; renderPickerGrid(); });
-        document.getElementById('picker-next-year')?.addEventListener('click', () => { pickerYear++; renderPickerGrid(); });
+        // ── 年份网格（12格一组） ──────────────────────────────────────────
+        function renderYearView() {
+            pickerView = 'year';
+            const grid = document.getElementById('picker-month-grid');
+            if (!grid) return;
+            const selYear = parseInt(currentMonth.split('-')[0]);
+            const years = Array.from({ length: 12 }, (_, i) => pickerDecadeStart + i);
+            grid.innerHTML = years.map(y => {
+                const isSelected = y === selYear;
+                const isFaded    = y < pickerDecadeStart || y > pickerDecadeStart + 11;
+                const btnCls = isSelected
+                    ? 'btn btn-primary btn-sm w-100'
+                    : (isFaded ? 'btn btn-ghost-secondary btn-sm w-100 text-muted' : 'btn btn-ghost-secondary btn-sm w-100');
+                return `<div class="col-3 p-0"><button type="button" class="${btnCls} picker-yr-btn" data-year="${y}">${y}</button></div>`;
+            }).join('');
+            // 年份标题：显示范围
+            document.getElementById('picker-year-label').textContent = pickerDecadeStart + '–' + (pickerDecadeStart + 11);
+            document.getElementById('picker-year-label').style.cursor = 'default';
+            // 箭头：切换 12 年组
+            document.getElementById('picker-prev-year').onclick = () => { pickerDecadeStart -= 12; renderYearView(); };
+            document.getElementById('picker-next-year').onclick = () => { pickerDecadeStart += 12; renderYearView(); };
+            grid.querySelectorAll('.picker-yr-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    pickerYear = parseInt(btn.dataset.year);
+                    pickerDecadeStart = Math.floor(pickerYear / 12) * 12;
+                    renderMonthView();
+                });
+            });
+        }
+
+        // 点击年份标题 → 切换视图
+        document.getElementById('picker-year-label')?.addEventListener('click', () => {
+            if (pickerView === 'month') {
+                pickerDecadeStart = Math.floor(pickerYear / 12) * 12;
+                renderYearView();
+            } else {
+                renderMonthView();
+            }
+        });
+
         document.getElementById('picker-this-month')?.addEventListener('click', () => {
             const now = new Date();
             pickerYear = now.getFullYear();
+            pickerDecadeStart = Math.floor(pickerYear / 12) * 12;
             currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
             document.getElementById('month-picker-label').textContent = pickerFmtLabel(currentMonth);
-            renderPickerGrid();
+            renderMonthView();
             const dd = bootstrap.Dropdown.getInstance(document.getElementById('month-picker-btn'));
             if (dd) dd.hide();
             reloadAll();
@@ -226,7 +269,8 @@
         });
         document.getElementById('month-picker-btn')?.addEventListener('show.bs.dropdown', () => {
             pickerYear = parseInt(currentMonth.split('-')[0]);
-            renderPickerGrid();
+            pickerDecadeStart = Math.floor(pickerYear / 12) * 12;
+            renderMonthView();
         });
 
         // 初始渲染 label
