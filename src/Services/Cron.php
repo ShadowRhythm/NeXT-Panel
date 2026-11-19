@@ -984,7 +984,7 @@ final class Cron
             }
         }
 
-        (new User())->query()->update(['transfer_today' => 0]);
+        User::where('transfer_today', '>', 0)->update(['transfer_today' => 0]);
 
         echo Tools::toDateTime(time()) . ' 重设用户每日流量完成' . PHP_EOL;
     }
@@ -1293,7 +1293,7 @@ final class Cron
             ->sum('total') ?? 0);
 
         // 新注册用户
-        $newUsers = User::whereDate('reg_date', $yesterday)->count();
+        $newUsers = User::whereBetween('reg_date', [$yesterday . ' 00:00:00', $yesterday . ' 23:59:59'])->count();
 
         // 活跃用户快照
         $activeUsers = User::where('is_inactive', 0)->count();
