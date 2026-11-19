@@ -112,11 +112,14 @@ final class Tools
                 $map = $ipdb->findMap($ip, 'CN');
                 if ($map !== null) {
                     $parts = array_filter([
-                        $map['country_name'] ?? '',
-                        $map['region_name']  ?? '',
-                        $map['city_name']    ?? '',
-                        $map['isp_domain']   ?? '',
+                        $map['country_name']  ?? '',
+                        $map['region_name']   ?? '',
+                        $map['city_name']     ?? '',
+                        $map['district_name'] ?? '',
+                        $map['owner_domain']  ?? '',
+                        $map['isp_domain']    ?? '',
                     ]);
+                    $parts = array_unique($parts);
                     if ($parts !== []) {
                         return implode(' ', $parts);
                     }
