@@ -1611,6 +1611,15 @@
         "mark": "上次执行每日任务的时间"
     },
     {
+        "item": "last_daily_job_status",
+        "value": "success",
+        "class": "system",
+        "is_public": 0,
+        "type": "string",
+        "default": "success",
+        "mark": "上次每日任务执行状态"
+    },
+    {
         "item": "db_version",
         "value": "2023020100",
         "class": "db",

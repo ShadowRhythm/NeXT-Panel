@@ -26,12 +26,17 @@ final class SystemController extends BaseController
     public function index(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $last_daily_job_time = Tools::toDateTime(Config::obtain('last_daily_job_time'));
+        $last_daily_job_status = (string) Config::obtain('last_daily_job_status');
+        if ($last_daily_job_status === '') {
+            $last_daily_job_status = 'success';
+        }
         $db_version = Config::obtain('db_version');
 
         return $response->write(
             $this->view()
                 ->assign('version', VERSION)
                 ->assign('last_daily_job_time', $last_daily_job_time)
+                ->assign('last_daily_job_status', $last_daily_job_status)
                 ->assign('db_version', $db_version)
                 ->fetch('admin/system.tpl')
         );

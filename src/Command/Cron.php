@@ -8,11 +8,17 @@ use App\Models\Config;
 use App\Services\DB;
 use App\Services\Cron as CronService;
 use App\Services\Detect;
+use App\Services\Notification;
 use Exception;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Throwable;
+use function array_keys;
+use function array_map;
 use function date;
+use function implode;
+use function microtime;
 use function mktime;
+use function sprintf;
 use function time;
 
 final class Cron extends Command
@@ -70,42 +76,68 @@ EOL;
 
         // Run daily job
         $targetDailyTime = mktime(
-            Config::obtain('daily_job_hour'),
-            Config::obtain('daily_job_minute'),
+            (int) Config::obtain('daily_job_hour'),
+            (int) Config::obtain('daily_job_minute'),
             0,
             (int) date('m'),
             (int) date('d'),
             (int) date('Y')
         );
 
-        if (time() >= $targetDailyTime && Config::obtain('last_daily_job_time') < $targetDailyTime) {
-            $dailySucceeded = true;
-            $dailySucceeded = $this->runJob('clean-db', static fn () => $jobs->cleanDb()) && $dailySucceeded;
-            $dailySucceeded = $this->runJob('reset-node-bandwidth', static fn () => $jobs->resetNodeBandwidth()) && $dailySucceeded;
-            $dailySucceeded = $this->runJob('reset-free-user-bandwidth', static fn () => $jobs->resetFreeUserBandwidth()) && $dailySucceeded;
-            $dailySucceeded = $this->runJob('daily-traffic-report', static fn () => $jobs->sendDailyTrafficReport()) && $dailySucceeded;
+        $today = date('Y-m-d');
+        $lastDailyTime = (int) Config::obtain('last_daily_job_time');
+        $lastRunDate = $lastDailyTime > 0 ? date('Y-m-d', $lastDailyTime) : '';
+
+        if ($today !== $lastRunDate && time() >= $targetDailyTime) {
+            // 立即记录执行时间锁定当天，确保每天只触发一次，彻底杜绝非设置时间重复执行
+            Config::set('last_daily_job_time', time());
+            $this->failedDailyJobs = [];
+
+            $this->runDailyJob('clean-db', static fn () => $jobs->cleanDb());
+            $this->runDailyJob('reset-node-bandwidth', static fn () => $jobs->resetNodeBandwidth());
+            $this->runDailyJob('reset-free-user-bandwidth', static fn () => $jobs->resetFreeUserBandwidth());
+            $this->runDailyJob('daily-traffic-report', static fn () => $jobs->sendDailyTrafficReport());
 
             if (Config::obtain('enable_detect_inactive_user')) {
-                $dailySucceeded = $this->runJob('detect-inactive-users', static fn () => $jobs->detectInactiveUser()) && $dailySucceeded;
+                $this->runDailyJob('detect-inactive-users', static fn () => $jobs->detectInactiveUser());
             }
 
             if (Config::obtain('remove_inactive_user_link_and_invite')) {
-                $dailySucceeded = $this->runJob('remove-inactive-user-links', static fn () => $jobs->removeInactiveUserLinkAndInvite()) && $dailySucceeded;
+                $this->runDailyJob('remove-inactive-user-links', static fn () => $jobs->removeInactiveUserLinkAndInvite());
             }
 
             if (Config::obtain('im_bot_group_notify_diary')) {
-                $dailySucceeded = $this->runJob('daily-diary-notification', static fn () => $jobs->sendDiaryNotification()) && $dailySucceeded;
+                $this->runDailyJob('daily-diary-notification', static fn () => $jobs->sendDiaryNotification());
             }
 
-            $dailySucceeded = $this->runJob('aggregate-daily-stat', static fn () => $jobs->aggregateDailyStat()) && $dailySucceeded;
-            $dailySucceeded = $this->runJob('reset-today-bandwidth', static fn () => $jobs->resetTodayBandwidth()) && $dailySucceeded;
+            $this->runDailyJob('aggregate-daily-stat', static fn () => $jobs->aggregateDailyStat());
+            $this->runDailyJob('reset-today-bandwidth', static fn () => $jobs->resetTodayBandwidth());
 
-            if (Config::obtain('im_bot_group_notify_daily_job')) {
-                $dailySucceeded = $this->runJob('daily-job-notification', static fn () => $jobs->sendDailyJobNotification()) && $dailySucceeded;
-            }
+            if (empty($this->failedDailyJobs)) {
+                Config::set('last_daily_job_status', 'success');
+                if (Config::obtain('im_bot_group_notify_daily_job')) {
+                    $this->runDailyJob('daily-job-notification', static fn () => $jobs->sendDailyJobNotification());
+                }
+            } else {
+                $failedInfo = [];
+                foreach ($this->failedDailyJobs as $name => $err) {
+                    $failedInfo[] = "{$name}: {$err}";
+                }
+                $statusText = implode('; ', $failedInfo);
+                Config::set('last_daily_job_status', $statusText);
 
-            if ($dailySucceeded) {
-                Config::set('last_daily_job_time', time());
+                // 发送错误通知给管理员
+                try {
+                    $lines = array_map(
+                        static fn ($k, $v) => "• {$k}: {$v}",
+                        array_keys($this->failedDailyJobs),
+                        $this->failedDailyJobs
+                    );
+                    $adminMsg = "系统每日任务部分子任务执行失败：\n" . implode("\n", $lines);
+                    Notification::notifyAdmin($_ENV['appName'] . '-每日任务执行异常', $adminMsg);
+                } catch (Throwable $e) {
+                    error_log('Failed to notify admin of daily job error: ' . $e->getMessage());
+                }
             }
         }
 
@@ -151,6 +183,23 @@ EOL;
 
         // Run email queue
         $this->runJob('process-email-queue', static fn () => $jobs->processEmailQueue());
+    }
+
+    private array $failedDailyJobs = [];
+
+    private function runDailyJob(string $name, callable $job): bool
+    {
+        $started = microtime(true);
+        try {
+            $job();
+            error_log(sprintf('Daily cron job %s completed in %.3fs', $name, microtime(true) - $started));
+            return true;
+        } catch (Throwable $e) {
+            $errorMsg = $e->getMessage();
+            error_log(sprintf('Daily cron job %s failed after %.3fs: %s', $name, microtime(true) - $started, $e));
+            $this->failedDailyJobs[$name] = $errorMsg;
+            return false;
+        }
     }
 
     private function runJob(string $name, callable $job): bool

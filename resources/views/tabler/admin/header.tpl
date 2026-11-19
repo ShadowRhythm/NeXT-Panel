@@ -80,14 +80,6 @@
                                     </span>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/admin/analytics">
-                                <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                    <i class="ti ti-chart-bar icon"></i>
-                                </span>
-                                <span class="nav-link-title">运营分析</span>
-                            </a>
-                        </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#navbar-base" data-bs-toggle="dropdown"
                                data-bs-auto-close="outside" role="button" aria-expanded="false">
@@ -170,6 +162,10 @@
                                     </span>
                             </a>
                             <div class="dropdown-menu">
+                                <a class="dropdown-item" href="/admin/analytics">
+                                    <i class="ti ti-chart-bar"></i>&nbsp;
+                                    分析
+                                </a>
                                 <a class="dropdown-item" href="/admin/announcement">
                                     <i class="ti ti-speakerphone"></i>&nbsp;
                                     公告

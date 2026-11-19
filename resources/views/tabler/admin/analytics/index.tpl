@@ -185,6 +185,42 @@
             return y + '年' + parseInt(m) + '月';
         }
 
+        // 安全关闭月份下拉面板
+        function hideMonthPicker() {
+            const btn = document.getElementById('month-picker-btn');
+            const panel = document.getElementById('month-picker-panel');
+            let closed = false;
+
+            try {
+                const B = window.bootstrap
+                    || (typeof bootstrap !== 'undefined' ? bootstrap : null)
+                    || window.tabler?.bootstrap
+                    || window.tabler;
+                const Dropdown = B?.Dropdown;
+                if (Dropdown && btn) {
+                    const inst = (Dropdown.getInstance ? Dropdown.getInstance(btn) : null)
+                        || (Dropdown.getOrCreateInstance ? Dropdown.getOrCreateInstance(btn) : null);
+                    if (inst && typeof inst.hide === 'function') {
+                        inst.hide();
+                        closed = true;
+                    }
+                }
+            } catch (e) {
+                console.warn('Error hiding dropdown via API:', e);
+            }
+
+            if (!closed && btn && panel) {
+                if (panel.classList.contains('show')) {
+                    btn.click();
+                }
+                if (panel.classList.contains('show')) {
+                    panel.classList.remove('show');
+                    btn.classList.remove('show');
+                    btn.setAttribute('aria-expanded', 'false');
+                }
+            }
+        }
+
         // ── 月份网格 ──────────────────────────────────────────────────────
         function renderMonthView() {
             pickerView = 'month';
@@ -211,8 +247,7 @@
                     const m = String(btn.dataset.mon).padStart(2, '0');
                     currentMonth = pickerYear + '-' + m;
                     document.getElementById('month-picker-label').textContent = pickerFmtLabel(currentMonth);
-                    const dd = bootstrap.Dropdown.getInstance(document.getElementById('month-picker-btn'));
-                    if (dd) dd.hide();
+                    hideMonthPicker();
                     reloadAll();
                 });
             });
@@ -265,13 +300,11 @@
             currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
             document.getElementById('month-picker-label').textContent = pickerFmtLabel(currentMonth);
             renderMonthView();
-            const dd = bootstrap.Dropdown.getInstance(document.getElementById('month-picker-btn'));
-            if (dd) dd.hide();
+            hideMonthPicker();
             reloadAll();
         });
         document.getElementById('picker-clear')?.addEventListener('click', () => {
-            const dd = bootstrap.Dropdown.getInstance(document.getElementById('month-picker-btn'));
-            if (dd) dd.hide();
+            hideMonthPicker();
         });
         document.getElementById('month-picker-btn')?.addEventListener('show.bs.dropdown', () => {
             pickerYear = parseInt(currentMonth.split('-')[0]);
@@ -279,8 +312,9 @@
             renderMonthView();
         });
 
-        // 初始渲染 label
+        // 初始渲染 label 和月份网格
         document.getElementById('month-picker-label').textContent = pickerFmtLabel(currentMonth);
+        renderMonthView();
 
         function destroyAndRender(id, options) {
             const el = document.getElementById(id);

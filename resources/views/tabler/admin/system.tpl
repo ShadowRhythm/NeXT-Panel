@@ -35,6 +35,17 @@
                                     <td>最后一次每日任务执行时间</td>
                                     <td class="text-end">{$last_daily_job_time}</td>
                                 </tr>
+                                <tr>
+                                    <td>每日任务执行状态</td>
+                                    <td class="text-end">
+                                        {if $last_daily_job_status === 'success'}
+                                            <span class="badge bg-green text-green-fg">正常完成</span>
+                                        {else}
+                                            <span class="badge bg-red text-red-fg" title="{$last_daily_job_status}">部分任务失败</span>
+                                            <div class="text-secondary small mt-1">{$last_daily_job_status}</div>
+                                        {/if}
+                                    </td>
+                                </tr>
                             </table>
                         </div>
                     </div>
