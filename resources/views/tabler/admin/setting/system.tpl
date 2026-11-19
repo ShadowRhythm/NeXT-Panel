@@ -161,11 +161,38 @@
                                                        value="{$settings['maxmind_license_key']}">
                                             </div>
                                         </div>
+                                        {if $maxmind_info !== null}
+                                        <div class="form-group mb-3 row">
+                                            <div class="col offset-3">
+                                                <span class="badge bg-green-lt">GeoLite2-City 最后更新：{$maxmind_info}</span>
+                                            </div>
+                                        </div>
+                                        {else}
+                                        <div class="form-group mb-3 row">
+                                            <div class="col offset-3">
+                                                <span class="badge bg-secondary-lt">GeoLite2-City 未下载</span>
+                                            </div>
+                                        </div>
+                                        {/if}
                                         <div class="form-group mb-3 row">
                                             <label class="form-label col-3 col-form-label">GeoIP显示语言（en/zh-CN）</label>
                                             <div class="col">
                                                 <input id="geoip_locale" type="text" class="form-control"
                                                        value="{$settings['geoip_locale']}">
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">qqwry.ipdb 下载地址</label>
+                                            <div class="col">
+                                                <input id="qqwry_ipdb_url" type="text" class="form-control"
+                                                       placeholder="https://github.com/nmgliangwei/qqwry.ipdb/releases/latest/download/qqwry.ipdb"
+                                                       value="{$settings['qqwry_ipdb_url']}">
+                                                <small class="text-muted">支持 GitHub Releases 或 CDN 直链（如 https://unpkg.com/qqwry.ipdb/qqwry.ipdb），留空则不自动更新。每日自动下载更新。</small>
+                                                {if $ipdb_info !== null}
+                                                <span class="badge bg-green-lt mt-1">qqwry.ipdb 构建时间：{$ipdb_info}</span>
+                                                {else}
+                                                <span class="badge bg-secondary-lt mt-1">qqwry.ipdb 未下载</span>
+                                                {/if}
                                             </div>
                                         </div>
                                     </div>

@@ -47,7 +47,8 @@ final class Tool extends Command
 │ ├─ setTheme            - 为所有用户设置新的主题
 │ ├─ setLocale           - 为所有用户设置新的语言
 │ ├─ createAdmin         - 创建管理员帐号
-│ └─ updateGeoIP2        - 更新 GeoIP2 数据库
+│ ├─ updateGeoIP2        - 更新 GeoIP2 数据库
+│ └─ updateQQWryIpdb     - 更新 qqwry.ipdb 数据库
 
 EOL;
 
@@ -397,6 +398,63 @@ EOL;
             }
         } else {
             echo 'Please configure maxmind_account_id & maxmind_license_key in config/.config.php' . PHP_EOL;
+        }
+    }
+
+    public function updateQQWryIpdb(): void
+    {
+        $url = Config::obtain('qqwry_ipdb_url');
+        if ($url === '') {
+            echo 'qqwry_ipdb_url not configured, skipping.' . PHP_EOL;
+            return;
+        }
+
+        $dest = BASE_PATH . '/storage/qqwry.ipdb';
+        $tmp  = $dest . '.tmp';
+
+        echo 'Downloading qqwry.ipdb from: ' . $url . PHP_EOL;
+
+        $client = new \GuzzleHttp\Client([
+            'timeout'         => 120,
+            'connect_timeout' => 30,
+            'headers'         => [
+                'User-Agent' => 'SSPanel-UIM/qqwry-ipdb-updater',
+            ],
+        ]);
+
+        try {
+            $client->get($url, ['sink' => $tmp]);
+
+            // 简单校验：ipdb 文件魔数（读取 meta）
+            $fp = @fopen($tmp, 'rb');
+            if ($fp === false) {
+                throw new \Exception('Cannot open downloaded file.');
+            }
+            $metaLen = unpack('N', fread($fp, 4))[1] ?? 0;
+            $meta    = json_decode(fread($fp, $metaLen), true);
+            fclose($fp);
+
+            if (! isset($meta['node_count'], $meta['fields'])) {
+                throw new \Exception('Downloaded file is not a valid ipdb file.');
+            }
+
+            if (file_exists($dest)) {
+                unlink($dest);
+            }
+            rename($tmp, $dest);
+
+            // 重置单例，让下次查询加载新文件
+            $ref = new \ReflectionClass(\App\Services\QQWryIpdb::class);
+            $instProp = $ref->getProperty('instance');
+            $instProp->setAccessible(true);
+            $instProp->setValue(null, null);
+
+            echo 'qqwry.ipdb updated successfully. node_count=' . $meta['node_count'] . PHP_EOL;
+        } catch (\Exception $e) {
+            if (file_exists($tmp)) {
+                unlink($tmp);
+            }
+            echo 'Failed to update qqwry.ipdb: ' . $e->getMessage() . PHP_EOL;
         }
     }
 }

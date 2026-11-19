@@ -8,6 +8,7 @@ use App\Models\Config;
 use App\Models\User;
 use App\Services\GeoIP2;
 use App\Services\QQWry;
+use App\Services\QQWryIpdb;
 use GeoIp2\Exception\AddressNotFoundException;
 use Illuminate\Support\Str;
 use MaxMind\Db\Reader\InvalidDatabaseException;
@@ -51,67 +52,90 @@ final class Tools
      */
     public static function getIpLocation(string $ip): string
     {
-        $data = 'GeoIP2 service not configured';
-        $city = null;
+        $data = 'Unknown';
+
+        // 1. 先用 MaxMind 判断国家（如果已配置）
         $country = null;
-        $state = null;
+        $state   = null;
+        $city    = null;
 
         if (Config::obtain('maxmind_license_key') !== '') {
             try {
                 $geoip = new GeoIP2();
             } catch (InvalidDatabaseException) {
-                return $data;
+                $geoip = null;
             }
 
-            try {
-                $city = $geoip->getCity($ip);
-            } catch (AddressNotFoundException|InvalidDatabaseException) {
-                $city = 'Unknown city';
-            }
-            try {
-                $state = $geoip->getState($ip);
-            } catch (AddressNotFoundException|InvalidDatabaseException $e) {
-                $state = '未知州';
-            }
-
-            try {
-                $country = $geoip->getCountry($ip);
-            } catch (AddressNotFoundException|InvalidDatabaseException) {
-                $country = 'Unknown country';
-            }
-        }
-
-        if ($country !== null) {
-            $data = $country;
-        }
-        
-        if ($state !== null) {
-            $data = $state . ', ' . $country;
-        }
-		
-        if ($city !== null) {
-			if ($state == null) {
-				$data = $city . ', ' . $country;
-			} 
-		}
-		
-        if ($city !== null) {
-			if ($state !== null) {
-				$data = $city . ', ' . $state . ', ' . $country;
-			} 
-		}
-		
-        if ($country === 'China' && filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV4)) {
-            $iplocation = new QQWry();
-            $location = $iplocation->getlocation($ip);
-            if ($location !== null && isset($location['country'], $location['area'])) {
-                $converted = @iconv('gbk', 'utf-8//IGNORE', $location['country'] . $location['area']);
-                if ($converted !== false && $converted !== '') {
-                    $data = $converted;
+            if ($geoip !== null) {
+                try {
+                    $country = $geoip->getCountry($ip);
+                } catch (AddressNotFoundException|InvalidDatabaseException) {
+                    $country = null;
+                }
+                try {
+                    $state = $geoip->getState($ip);
+                } catch (AddressNotFoundException|InvalidDatabaseException) {
+                    $state = null;
+                }
+                try {
+                    $city = $geoip->getCity($ip);
+                } catch (AddressNotFoundException|InvalidDatabaseException) {
+                    $city = null;
                 }
             }
         }
-        
+
+        // 2. 拼装 MaxMind 结果作为备用
+        if ($country !== null) {
+            $data = $country;
+        }
+        if ($state !== null) {
+            $data = $state . ', ' . $country;
+        }
+        if ($city !== null) {
+            $data = $state !== null
+                ? $city . ', ' . $state . ', ' . $country
+                : $city . ', ' . $country;
+        }
+
+        // 3. 判断是否中国 IP
+        //    - MaxMind 已识别为 China → 走 qqwry
+        //    - MaxMind 未配置/未识别 → 也尝试 qqwry（让 qqwry 自己决定能否命中）
+        $isChina = ($country === 'China');
+        $mmNotConfigured = (Config::obtain('maxmind_license_key') === '');
+
+        // 4. qqwry.ipdb 优先处理中国 IP（含 IPv6）
+        //    或 MaxMind 未配置时兜底全部 IP
+        if ($isChina || $mmNotConfigured) {
+            $ipdb = QQWryIpdb::getInstance();
+            if ($ipdb !== null) {
+                $map = $ipdb->findMap($ip, 'CN');
+                if ($map !== null) {
+                    $parts = array_filter([
+                        $map['country_name'] ?? '',
+                        $map['region_name']  ?? '',
+                        $map['city_name']    ?? '',
+                        $map['isp_domain']   ?? '',
+                    ]);
+                    if ($parts !== []) {
+                        return implode(' ', $parts);
+                    }
+                }
+            }
+
+            // qqwry.ipdb 未命中，降级到旧 qqwry.dat（仅 IPv4）
+            if (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV4)) {
+                $iplocation = new QQWry();
+                $location   = $iplocation->getlocation($ip);
+                if ($location !== null && isset($location['country'], $location['area'])) {
+                    $converted = @iconv('gbk', 'utf-8//IGNORE', $location['country'] . $location['area']);
+                    if ($converted !== false && $converted !== '') {
+                        return $converted;
+                    }
+                }
+            }
+        }
+
         return $data;
     }
 

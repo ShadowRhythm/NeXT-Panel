@@ -112,6 +112,7 @@ EOL;
 
             $this->runDailyJob('aggregate-daily-stat', static fn () => $jobs->aggregateDailyStat());
             $this->runDailyJob('reset-today-bandwidth', static fn () => $jobs->resetTodayBandwidth());
+            $this->runDailyJob('update-qqwry-ipdb', static fn () => $jobs->updateQQWryIpdb());
 
             if (empty($this->failedDailyJobs)) {
                 Config::set('last_daily_job_status', 'success');

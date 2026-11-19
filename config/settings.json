@@ -2241,6 +2241,15 @@
         "mark": "GeoIP显示语言"
     },
     {
+        "item": "qqwry_ipdb_url",
+        "value": "https://github.com/nmgliangwei/qqwry.ipdb/releases/latest/download/qqwry.ipdb",
+        "class": "system",
+        "is_public": 0,
+        "type": "string",
+        "default": "https://github.com/nmgliangwei/qqwry.ipdb/releases/latest/download/qqwry.ipdb",
+        "mark": "qqwry.ipdb 下载地址（留空则不自动更新）"
+    },
+    {
         "item": "github_access_token",
         "value": "",
         "class": "system",

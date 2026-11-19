@@ -1331,4 +1331,53 @@ final class Cron
 
         echo 'Aggregated daily stat for ' . $yesterday . PHP_EOL;
     }
+
+    public function updateQQWryIpdb(): void
+    {
+        $url = Config::obtain('qqwry_ipdb_url');
+        if ($url === '') {
+            return;
+        }
+
+        $dest = BASE_PATH . '/storage/qqwry.ipdb';
+        $tmp  = $dest . '.tmp';
+
+        $client = new \GuzzleHttp\Client([
+            'timeout'         => 120,
+            'connect_timeout' => 30,
+            'headers'         => ['User-Agent' => 'SSPanel-UIM/qqwry-ipdb-updater'],
+        ]);
+
+        try {
+            $client->get($url, ['sink' => $tmp]);
+
+            $fp = @fopen($tmp, 'rb');
+            if ($fp === false) {
+                throw new \Exception('Cannot open downloaded file.');
+            }
+            $metaLen = unpack('N', fread($fp, 4))[1] ?? 0;
+            $meta    = json_decode(fread($fp, $metaLen), true);
+            fclose($fp);
+
+            if (! isset($meta['node_count'], $meta['fields'])) {
+                throw new \Exception('Not a valid ipdb file.');
+            }
+
+            if (file_exists($dest)) {
+                unlink($dest);
+            }
+            rename($tmp, $dest);
+
+            // 重置单例
+            $ref = new \ReflectionClass(\App\Services\QQWryIpdb::class);
+            $p = $ref->getProperty('instance');
+            $p->setAccessible(true);
+            $p->setValue(null, null);
+        } catch (\Exception $e) {
+            if (file_exists($tmp)) {
+                @unlink($tmp);
+            }
+            throw $e;
+        }
+    }
 }
