@@ -113,7 +113,7 @@
                 </div>
             </div>
 
-            <!-- 第二行：用户等级分布（全宽堆叠柱状） -->
+            <!-- 第二行：用户等级分布（全宽折线图） -->
             <div class="row row-cards mb-3">
                 <div class="col-12">
                     <div class="card">
@@ -348,9 +348,9 @@
                 const xLabels = currentMode === 'day' ? (data.dates || []) : (data.months || []);
 
                 renderLineChart('chart-income', '收入 (¥)', xLabels, data.income || []);
-                renderBarChart('chart-users', '新增用户', xLabels, data.newUsers || []);
+                renderLineChart('chart-users', '新增用户', xLabels, data.newUsers || [], '#2fb344', v => Math.round(v) + ' 人');
                 renderAreaChart('chart-traffic', '流量 (GB)', xLabels, data.trafficGb || []);
-                renderStackedBar('chart-class', xLabels, data.classSeries || {});
+                renderClassLineChart('chart-class', xLabels, data.classSeries || {});
 
                 // 更新右侧 KPI 摘要
                 updateKpi(data.income, data.newUsers, data.trafficGb, data.activeUsers);
@@ -444,31 +444,16 @@
         });
 
         // ── 图表渲染函数 ─────────────────────────────────────────────────
-        function renderLineChart(id, name, labels, data) {
+        function renderLineChart(id, name, labels, data, color = '#206bc4', formatter = v => '¥' + Number(v || 0).toFixed(2)) {
             destroyAndRender(id, {
                 chart: { type: 'line', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
                 stroke: { curve: 'smooth', width: 2 },
                 grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
                 series: [{ name, data }],
-                colors: ['#206bc4'],
+                colors: [color],
                 xaxis: { categories: labels, labels: { style: { fontSize: '12px' }, rotate: -45 }, tooltip: { enabled: false } },
-                yaxis: { labels: { formatter: v => '¥' + Number(v || 0).toFixed(2) } },
-                tooltip: { theme: 'dark', y: { formatter: v => '¥' + Number(v || 0).toFixed(2) } },
-                noData: { text: '暂无数据' }
-            });
-        }
-
-        function renderBarChart(id, name, labels, data) {
-            destroyAndRender(id, {
-                chart: { type: 'bar', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
-                plotOptions: { bar: { columnWidth: '50%', borderRadius: 3 } },
-                dataLabels: { enabled: false },
-                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
-                series: [{ name, data }],
-                colors: ['#2fb344'],
-                xaxis: { categories: labels, labels: { style: { fontSize: '12px' }, rotate: -45 }, tooltip: { enabled: false } },
-                yaxis: { labels: { formatter: v => Math.round(v) } },
-                tooltip: { theme: 'dark', y: { formatter: v => v + ' 人' } },
+                yaxis: { labels: { formatter } },
+                tooltip: { theme: 'dark', y: { formatter } },
                 noData: { text: '暂无数据' }
             });
         }
@@ -488,11 +473,11 @@
             });
         }
 
-        function renderStackedBar(id, labels, classSeries) {
+        function renderClassLineChart(id, labels, classSeries) {
             const sorted = Object.keys(classSeries || {}).sort((a, b) => Number(a) - Number(b));
             destroyAndRender(id, {
-                chart: { type: 'bar', stacked: true, fontFamily: 'inherit', height: 350, parentHeightOffset: 0, toolbar: { show: false } },
-                plotOptions: { bar: { columnWidth: '50%', borderRadius: 2 } },
+                chart: { type: 'line', fontFamily: 'inherit', height: 350, parentHeightOffset: 0, toolbar: { show: false } },
+                stroke: { curve: 'smooth', width: 2 },
                 dataLabels: { enabled: false },
                 series: sorted.map(cls => ({ name: '等级 ' + cls, data: classSeries[cls] || [] })),
                 colors: sorted.map(cls => classColor(cls)),
