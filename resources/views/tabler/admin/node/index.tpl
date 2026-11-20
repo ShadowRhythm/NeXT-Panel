@@ -16,6 +16,10 @@
                 </div>
                 <div class="col-auto ms-auto d-print-none">
                     <div class="btn-list">
+                        <button class="btn btn-warning" onclick="upgradeAllNodes()">
+                            <i class="icon ti ti-refresh me-1"></i>
+                            升级所有节点服务端
+                        </button>
                         <a href="/admin/node/create" class="btn btn-primary">
                             <i class="icon ti ti-plus"></i>
                             创建
@@ -99,6 +103,28 @@
             $('#notice-confirm').off('click').on('click', function () {
                 $.ajax({
                     url: "/admin/node/" + node_id + "/copy",
+                    type: 'POST',
+                    dataType: "json",
+                    success: function (data) {
+                        if (data.ret === 1) {
+                            $('#success-message').text(data.msg);
+                            successDialog.show();
+                            reloadTableAjax();
+                        } else {
+                            $('#fail-message').text(data.msg);
+                            failDialog.show();
+                        }
+                    }
+                })
+            });
+        }
+
+        function upgradeAllNodes() {
+            $('#notice-message').text('确定触发所有节点服务端更新？所有节点后端将在下次心跳（约 60s 内）自动下载最新版并重启。');
+            noticeDialog.show();
+            $('#notice-confirm').off('click').on('click', function () {
+                $.ajax({
+                    url: "/admin/node/trigger_upgrade_all",
                     type: 'POST',
                     dataType: "json",
                     success: function (data) {

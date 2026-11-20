@@ -301,6 +301,25 @@ final class NodeController extends BaseController
         ]);
     }
 
+    public function triggerUpgradeAll(ServerRequest $request, Response $response, array $args): ResponseInterface
+    {
+        $total = (new Node())->count();
+
+        if ($total === 0) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '暂无节点可升级',
+            ]);
+        }
+
+        (new Node())->where('id', '>', 0)->update(['upgrade_pending' => 1]);
+
+        return $response->withJson([
+            'ret' => 1,
+            'msg' => "已为全部 {$total} 个节点下发升级指令，后端将在下次心跳时自动下载最新版并重启",
+        ]);
+    }
+
     public function triggerRestart(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $node = (new Node())->find($args['id']);

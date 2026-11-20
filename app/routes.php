@@ -170,6 +170,10 @@ return static function (Slim\App $app): void {
             App\Controllers\Admin\NodeController::class . ':triggerUpgrade'
         );
         $group->post(
+            '/node/trigger_upgrade_all',
+            App\Controllers\Admin\NodeController::class . ':triggerUpgradeAll'
+        );
+        $group->post(
             '/node/{id:[0-9]+}/trigger_restart',
             App\Controllers\Admin\NodeController::class . ':triggerRestart'
         );
