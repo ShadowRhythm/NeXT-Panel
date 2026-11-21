@@ -42,6 +42,13 @@ final class CouponController extends BaseController
             ]);
         }
 
+        if (! $coupon->allowsUser($this->user)) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => $invalid_coupon_msg,
+            ]);
+        }
+
         $product = (new Product())->where('id', $product_id)->first();
 
         if ($product === null) {

@@ -397,6 +397,10 @@ final class OrderController extends BaseController
                             throw new Exception(I18n::trans('user.coupon_not_exist_or_expired', $locale));
                         }
 
+                        if (! $coupon->allowsUser($user)) {
+                            throw new Exception(I18n::trans('user.coupon_not_applicable', $locale));
+                        }
+
                         $coupon_limit = json_decode($coupon->limit);
 
                         if ($coupon_limit->disabled) {

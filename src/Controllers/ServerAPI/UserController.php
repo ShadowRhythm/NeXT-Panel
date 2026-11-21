@@ -20,6 +20,7 @@ use Slim\Http\ServerRequest;
 use function count;
 use function date;
 use function is_array;
+use function is_numeric;
 use function is_string;
 use function json_decode;
 use function max;
@@ -159,6 +160,20 @@ final class UserController extends BaseController
 
         $data = $body->traffic;
 
+        foreach ($data as $log) {
+            $u = $log?->u ?? 0;
+            $d = $log?->d ?? 0;
+
+            if (! is_numeric($u) || ! is_numeric($d) || $u < 0 || $d < 0) {
+                return $response->withStatus(400)->withJson([
+                    'error' => [
+                        'code' => 'invalid_data',
+                        'message' => 'Invalid traffic data.',
+                    ],
+                ]);
+            }
+        }
+
         $rate = 1;
 
         if ($node->is_dynamic_rate) {
@@ -185,8 +200,8 @@ final class UserController extends BaseController
         $is_traffic_log = Config::obtain('traffic_log');
 
         foreach ($data as $log) {
-            $u = $log?->u;
-            $d = $log?->d;
+            $u = $log?->u ?? 0;
+            $d = $log?->d ?? 0;
             $user_id = $log?->user_id;
 
             if ($user_id) {

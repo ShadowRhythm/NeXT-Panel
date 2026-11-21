@@ -204,7 +204,7 @@ final class SingBox extends Base
                         'server' => trim((string) $node_raw->server, '[]'),
                         'server_port' => (int) $v2_port,
                         'uuid' => $user->uuid,
-                        'security' => 'auto',
+                        'security' => $node_custom_config['encryption'] ?? 'auto',
                         'alter_id' => 0,
                         'packet_encoding' => 'xudp',
                         'global_padding' => true,
