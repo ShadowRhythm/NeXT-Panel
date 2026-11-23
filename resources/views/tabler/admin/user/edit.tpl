@@ -207,13 +207,13 @@
                                     <select id="locale" class="col form-select">
                                         {foreach $locales as $locale}
                                         <option value="{$locale|escape}" {if $edit_user->locale === $locale}selected{/if}>
-                                            {if $locale === 'zh_CN'}简体中文 (zh_CN)
-                                            {elseif $locale === 'zh_TW'}繁體中文 (zh_TW)
-                                            {elseif $locale === 'en_US'}English (en_US)
-                                            {elseif $locale === 'ja_JP'}日本語 (ja_JP)
-                                            {elseif $locale === 'ru_RU'}Русский (ru_RU)
-                                            {elseif $locale === 'fr_FR'}Français (fr_FR)
-                                            {elseif $locale === 'pt_BR'}Português (pt_BR)
+                                            {if $locale === 'zh_CN'}🇨🇳 简体中文 (zh_CN)
+                                            {elseif $locale === 'zh_TW'}🇭🇰 繁體中文 (zh_TW)
+                                            {elseif $locale === 'en_US'}🇺🇸 English (en_US)
+                                            {elseif $locale === 'ja_JP'}🇯🇵 日本語 (ja_JP)
+                                            {elseif $locale === 'ru_RU'}🇷🇺 Русский (ru_RU)
+                                            {elseif $locale === 'fr_FR'}🇫🇷 Français (fr_FR)
+                                            {elseif $locale === 'pt_BR'}🇧🇷 Português (pt_BR)
                                             {else}{$locale|escape}
                                             {/if}
                                         </option>

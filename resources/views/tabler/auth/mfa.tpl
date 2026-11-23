@@ -4,7 +4,7 @@
 
 <body class="border-top-wide border-primary d-flex flex-column">
 <div class="page page-center">
-    <div class="container-tight my-auto">
+    <div class="container-tight my-auto py-4">
         <div class="card card-md">
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">{trans key='auth.mfa_title'}</h2>
@@ -67,8 +67,6 @@
     </div>
 </div>
 
-{include file='footer.tpl'}
-
 {if $method['totp']}
     <script>
         var code = '';
@@ -120,11 +118,11 @@
         const verificationJSON = await verificationResp.json();
         if (verificationJSON.ret === 1) {
             document.getElementById("success-message").innerHTML = verificationJSON.msg;
-            successDialog.show();
+            if (typeof successDialog !== 'undefined' && successDialog) successDialog.show();
             window.location.href = verificationJSON.redir;
         } else {
             document.getElementById("fail-message").innerHTML = verificationJSON.msg;
-            failDialog.show();
+            if (typeof failDialog !== 'undefined' && failDialog) failDialog.show();
         }
     });
 </script>
