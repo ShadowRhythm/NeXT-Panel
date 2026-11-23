@@ -47,14 +47,14 @@
                     <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown">
                         <i class="ti ti-language icon"></i>
                     </a>
-                    <div class="dropdown-menu dropdown-menu-end">
-                        <a class="dropdown-item {if $config['locale'] == 'zh_CN'}active{/if}" href="/locale/zh_CN">中文</a>
-                        <a class="dropdown-item {if $config['locale'] == 'zh_TW'}active{/if}" href="/locale/zh_TW">繁體中文</a>
-                        <a class="dropdown-item {if $config['locale'] == 'en_US'}active{/if}" href="/locale/en_US">English</a>
-                        <a class="dropdown-item {if $config['locale'] == 'ja_JP'}active{/if}" href="/locale/ja_JP">日本語</a>
-                        <a class="dropdown-item {if $config['locale'] == 'ru_RU'}active{/if}" href="/locale/ru_RU">Русский</a>
-                        <a class="dropdown-item {if $config['locale'] == 'fr_FR'}active{/if}" href="/locale/fr_FR">Français</a>
-                        <a class="dropdown-item {if $config['locale'] == 'pt_BR'}active{/if}" href="/locale/pt_BR">Português</a>
+                    <div class="dropdown-menu dropdown-menu-end shadow">
+                        <a class="dropdown-item {if $current_locale == 'zh_CN'}active{/if}" href="/locale/zh_CN">🇨🇳 简体中文</a>
+                        <a class="dropdown-item {if $current_locale == 'zh_TW'}active{/if}" href="/locale/zh_TW">🇭🇰 繁體中文</a>
+                        <a class="dropdown-item {if $current_locale == 'en_US'}active{/if}" href="/locale/en_US">🇺🇸 English</a>
+                        <a class="dropdown-item {if $current_locale == 'ja_JP'}active{/if}" href="/locale/ja_JP">🇯🇵 日本語</a>
+                        <a class="dropdown-item {if $current_locale == 'ru_RU'}active{/if}" href="/locale/ru_RU">🇷🇺 Русский</a>
+                        <a class="dropdown-item {if $current_locale == 'fr_FR'}active{/if}" href="/locale/fr_FR">🇫🇷 Français</a>
+                        <a class="dropdown-item {if $current_locale == 'pt_BR'}active{/if}" href="/locale/pt_BR">🇧🇷 Português</a>
                     </div>
                 </div>
                 <div class="nav-item dropdown">

@@ -4,7 +4,7 @@
 
 <body class="border-top-wide border-primary d-flex flex-column">
 <div class="page page-center">
-    <div class="container-tight my-auto">
+    <div class="container-tight my-auto py-4">
         <div class="text-center mb-4">
             <a href="#" class="navbar-brand navbar-brand-autodark">
                 <img src="/images/uim-logo-round_96x96.png" height="64" alt="SSPanel-UIM Logo">
@@ -95,11 +95,11 @@
             const verificationJSON = await verificationResp.json();
             if (verificationJSON.ret === 1) {
                 document.getElementById("success-message").innerHTML = verificationJSON.msg;
-                successDialog.show();
+                if (typeof successDialog !== 'undefined' && successDialog) successDialog.show();
                 window.location.href = verificationJSON.redir;
             } else {
                 document.getElementById("fail-message").innerHTML = verificationJSON.msg;
-                failDialog.show();
+                if (typeof failDialog !== 'undefined' && failDialog) failDialog.show();
             }
         });
     </script>

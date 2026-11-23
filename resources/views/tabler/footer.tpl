@@ -1,11 +1,28 @@
-<div class="text-center mt-3 mb-3">
-    <a href="/locale/zh_CN" class="text-muted me-2">中文</a>
-    <a href="/locale/zh_TW" class="text-muted me-2">繁體中文</a>
-    <a href="/locale/en_US" class="text-muted me-2">English</a>
-    <a href="/locale/ja_JP" class="text-muted me-2">日本語</a>
-    <a href="/locale/ru_RU" class="text-muted me-2">Русский</a>
-    <a href="/locale/fr_FR" class="text-muted me-2">Français</a>
-    <a href="/locale/pt_BR" class="text-muted">Português</a>
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+    <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle rounded-pill px-3 shadow-sm bg-body"
+                type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="ti ti-language me-1"></i>
+            {if $current_locale === 'zh_CN'}简体中文
+            {elseif $current_locale === 'zh_TW'}繁體中文
+            {elseif $current_locale === 'en_US'}English
+            {elseif $current_locale === 'ja_JP'}日本語
+            {elseif $current_locale === 'ru_RU'}Русский
+            {elseif $current_locale === 'fr_FR'}Français
+            {elseif $current_locale === 'pt_BR'}Português
+            {else}{$current_locale}
+            {/if}
+        </button>
+        <div class="dropdown-menu dropdown-menu-end shadow">
+            <a class="dropdown-item {if $current_locale === 'zh_CN'}active{/if}" href="/locale/zh_CN">🇨🇳 简体中文</a>
+            <a class="dropdown-item {if $current_locale === 'zh_TW'}active{/if}" href="/locale/zh_TW">🇭🇰 繁體中文</a>
+            <a class="dropdown-item {if $current_locale === 'en_US'}active{/if}" href="/locale/en_US">🇺🇸 English</a>
+            <a class="dropdown-item {if $current_locale === 'ja_JP'}active{/if}" href="/locale/ja_JP">🇯🇵 日本語</a>
+            <a class="dropdown-item {if $current_locale === 'ru_RU'}active{/if}" href="/locale/ru_RU">🇷🇺 Русский</a>
+            <a class="dropdown-item {if $current_locale === 'fr_FR'}active{/if}" href="/locale/fr_FR">🇫🇷 Français</a>
+            <a class="dropdown-item {if $current_locale === 'pt_BR'}active{/if}" href="/locale/pt_BR">🇧🇷 Português</a>
+        </div>
+    </div>
 </div>
 
 <div class="modal modal-blur fade" id="success-dialog" tabindex="-1" role="dialog" aria-hidden="true">
@@ -59,9 +76,10 @@
 <script src="//{$config['jsdelivr_url']}/npm/@tabler/core@latest/dist/js/tabler.min.js"></script>
 
 <script>
-    let Modal = tabler.Modal || tabler.bootstrap.Modal;
-    let successDialog = new Modal(document.getElementById('success-dialog'));
-    let failDialog = new Modal(document.getElementById('fail-dialog'));
+    let Modal = (typeof bootstrap !== 'undefined' && bootstrap.Modal)
+        || (typeof tabler !== 'undefined' && (tabler.Modal || (tabler.bootstrap && tabler.bootstrap.Modal)));
+    let successDialog = Modal ? new Modal(document.getElementById('success-dialog')) : null;
+    let failDialog = Modal ? new Modal(document.getElementById('fail-dialog')) : null;
 
     htmx.on("htmx:afterRequest", function(evt) {
         if (evt.detail.xhr.getResponseHeader('HX-Redirect'))
@@ -82,10 +100,10 @@
 
             if (res.ret === 1) {
                 document.getElementById("success-message").innerHTML = res.msg;
-                successDialog.show();
+                if (successDialog) successDialog.show();
             } else {
                 document.getElementById("fail-message").innerHTML = res.msg;
-                failDialog.show();
+                if (failDialog) failDialog.show();
             }
         } catch (e) {
             console.error("HTMX request error:", e, evt.detail.xhr);
@@ -100,7 +118,7 @@
             } else {
                 document.getElementById("fail-message").innerHTML = "{trans key='common.unexpected_error' escape='js'}";
             }
-            failDialog.show();
+            if (failDialog) failDialog.show();
         }
     });
 </script>
