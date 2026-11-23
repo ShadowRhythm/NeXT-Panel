@@ -196,7 +196,7 @@ final class UserController extends BaseController
                     'd' => $billed_d,
                     'transfer_total' => $u + $d,
                     'transfer_today' => $billed_u + $billed_d,
-                ], ['last_use_time' => time()]);
+                ], ['last_use_time' => time(), 'is_inactive' => 0]);
             }
 
             if ($is_traffic_log) {

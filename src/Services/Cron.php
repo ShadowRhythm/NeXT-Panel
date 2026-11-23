@@ -199,23 +199,59 @@ final class Cron
 
     public static function detectInactiveUser(): void
     {
-        $checkin_days = Config::obtain('detect_inactive_user_checkin_days');
-        $login_days = Config::obtain('detect_inactive_user_login_days');
-        $use_days = Config::obtain('detect_inactive_user_use_days');
+        $checkin_days = (int) Config::obtain('detect_inactive_user_checkin_days');
+        $login_days = (int) Config::obtain('detect_inactive_user_login_days');
+        $use_days = (int) Config::obtain('detect_inactive_user_use_days');
 
-        (new User())->where('is_admin', 0)
-            ->where('is_inactive', 0)
-            ->where('last_check_in_time', '<', time() - 86400 * $checkin_days)
-            ->where('last_login_time', '<', time() - 86400 * $login_days)
-            ->where('last_use_time', '<', time() - 86400 * $use_days)
-            ->update(['is_inactive' => 1]);
+        $inactiveQuery = (new User())->where('is_admin', 0)->where('is_inactive', 0);
+        $hasActiveRule = false;
 
-        (new User())->where('is_admin', 0)
-            ->where('is_inactive', 1)
-            ->where('last_check_in_time', '>', time() - 86400 * $checkin_days)
-            ->where('last_login_time', '>', time() - 86400 * $login_days)
-            ->where('last_use_time', '>', time() - 86400 * $use_days)
-            ->update(['is_inactive' => 0]);
+        if ($checkin_days > 0) {
+            $inactiveQuery->where('last_check_in_time', '<', time() - 86400 * $checkin_days);
+            $hasActiveRule = true;
+        }
+
+        if ($login_days > 0) {
+            $inactiveQuery->where('last_login_time', '<', time() - 86400 * $login_days);
+            $hasActiveRule = true;
+        }
+
+        if ($use_days > 0) {
+            $inactiveQuery->where('last_use_time', '<', time() - 86400 * $use_days);
+            $hasActiveRule = true;
+        }
+
+        // 判定闲置：所有生效的检测维度均超期（AND 关系）
+        if ($hasActiveRule) {
+            $inactiveQuery->update(['is_inactive' => 1]);
+
+            // 解除闲置：只要有任意生效的检测维度在新近产生活跃（OR 关系），立刻恢复活跃状态
+            $activeQuery = (new User())->where('is_admin', 0)->where('is_inactive', 1);
+            $activeQuery->where(static function ($query) use ($checkin_days, $login_days, $use_days): void {
+                $isFirst = true;
+                if ($checkin_days > 0) {
+                    $query->where('last_check_in_time', '>', time() - 86400 * $checkin_days);
+                    $isFirst = false;
+                }
+                if ($login_days > 0) {
+                    if ($isFirst) {
+                        $query->where('last_login_time', '>', time() - 86400 * $login_days);
+                        $isFirst = false;
+                    } else {
+                        $query->orWhere('last_login_time', '>', time() - 86400 * $login_days);
+                    }
+                }
+                if ($use_days > 0) {
+                    if ($isFirst) {
+                        $query->where('last_use_time', '>', time() - 86400 * $use_days);
+                    } else {
+                        $query->orWhere('last_use_time', '>', time() - 86400 * $use_days);
+                    }
+                }
+            });
+
+            $activeQuery->update(['is_inactive' => 0]);
+        }
 
         echo Tools::toDateTime(time()) .
             ' 检测到 ' . (new User())->where('is_inactive', 1)->count() . ' 个账户处于闲置状态' . PHP_EOL;

@@ -137,6 +137,7 @@ final class AuthController extends BaseController
         // 记录登录成功
         $loginIp->collectLoginIP($_SERVER['REMOTE_ADDR'], 0, $user->id);
         $user->last_login_time = time();
+        $user->is_inactive = 0;
         $user->save();
 
         return $response->withHeader('HX-Redirect', $redir);
@@ -511,6 +512,7 @@ final class AuthController extends BaseController
             $loginIp = new LoginIp();
             $loginIp->collectLoginIP($_SERVER['REMOTE_ADDR'], 0, $user->id);
             $user->last_login_time = time();
+            $user->is_inactive = 0;
             $user->save();
             return $response->withJson([
                 'ret' => 1,
@@ -544,6 +546,7 @@ final class AuthController extends BaseController
             $loginIp = new LoginIp();
             $loginIp->collectLoginIP($_SERVER['REMOTE_ADDR'], 0, $user->id);
             $user->last_login_time = time();
+            $user->is_inactive = 0;
             $user->save();
             return $response
                 ->withHeader('HX-Redirect', $login_session['redir'])
@@ -591,6 +594,7 @@ final class AuthController extends BaseController
             $loginIp = new LoginIp();
             $loginIp->collectLoginIP($_SERVER['REMOTE_ADDR'], 0, $user->id);
             $user->last_login_time = time();
+            $user->is_inactive = 0;
             $user->save();
             return $response->withJson(['ret' => 1, 'msg' => I18n::trans('user.login_success', $locale), 'redir' => $login_session['redir']]);
         }

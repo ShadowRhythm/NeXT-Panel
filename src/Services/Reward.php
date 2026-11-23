@@ -142,6 +142,7 @@ final class Reward
         if ($traffic !== 0) {
             $user->transfer_enable += Tools::mbToB($traffic);
             $user->last_check_in_time = time();
+            $user->is_inactive = 0;
             $user->save();
         }
 
