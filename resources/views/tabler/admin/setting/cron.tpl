@@ -173,7 +173,7 @@
                                             <label class="form-label col-3 col-form-label">审计封禁例外用户ID（填用户ID逗号分隔）</label>
                                             <div class="col">
                                                 <input id="auto_detect_ban_allow_users" type="text" class="form-control"
-                                                       value="{$settings['auto_detect_ban_allow_users']}">
+                                                       value="{if is_array($settings['auto_detect_ban_allow_users'])}{implode(',', $settings['auto_detect_ban_allow_users'])}{else}{$settings['auto_detect_ban_allow_users']}{/if}">
                                             </div>
                                         </div>
                                         <div class="form-group mb-3 row">

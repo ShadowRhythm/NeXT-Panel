@@ -8,6 +8,7 @@ use App\Models\Config;
 use App\Utils\Tools;
 use function explode;
 use function in_array;
+use function is_array;
 
 final class Filter
 {
@@ -17,30 +18,30 @@ final class Filter
             return false;
         }
 
-        $res = false;
-        $mail_suffix = explode('@', $email)[1];
-        $mail_filter = (int) (Config::obtain('mail_filter') ?? 0);
-        $mail_filter_list = (array) (Config::obtain('mail_filter_list') ?? []);
-
-        switch ($mail_filter) {
-            case 1:
-                // Whitelist
-                if (in_array($mail_suffix, $mail_filter_list)) {
-                    $res = true;
-                }
-
-                break;
-            case 2:
-                // Blacklist
-                if (! in_array($mail_suffix, $mail_filter_list)) {
-                    $res = true;
-                }
-
-                break;
-            default:
-                $res = true;
+        $mail_filter = (int) (Config::obtain('mail_filter') ?: ($_ENV['mail_filter'] ?? 0));
+        if ($mail_filter === 0) {
+            return true;
         }
 
-        return $res;
+        $parts = explode('@', $email);
+        $mail_suffix = $parts[1] ?? '';
+        if ($mail_suffix === '') {
+            return false;
+        }
+
+        $mail_filter_list = Config::obtain('mail_filter_list');
+        if (empty($mail_filter_list) && ! empty($_ENV['mail_filter_list'])) {
+            $mail_filter_list = $_ENV['mail_filter_list'];
+        }
+
+        if (! is_array($mail_filter_list)) {
+            $mail_filter_list = Config::parseArrayValue($mail_filter_list);
+        }
+
+        return match ($mail_filter) {
+            1 => in_array($mail_suffix, $mail_filter_list, true),
+            2 => ! in_array($mail_suffix, $mail_filter_list, true),
+            default => true,
+        };
     }
 }

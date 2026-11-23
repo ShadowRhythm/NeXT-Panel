@@ -201,10 +201,15 @@ final class AuthController extends BaseController
                 return ResponseHelper::error($response, I18n::trans('user.invalid_email', $locale));
             }
 
-            if (! (new RateLimit())->checkRateLimit('email_request_ip', $request->getServerParam('REMOTE_ADDR')) ||
-                ! (new RateLimit())->checkRateLimit('email_request_address', $email)
-            ) {
-                return ResponseHelper::error($response, I18n::trans('user.request_too_frequent', $locale));
+            $remoteAddr = (string) ($request->getServerParam('REMOTE_ADDR') ?? '');
+            try {
+                if (! (new RateLimit())->checkRateLimit('email_request_ip', $remoteAddr) ||
+                    ! (new RateLimit())->checkRateLimit('email_request_address', $email)
+                ) {
+                    return ResponseHelper::error($response, I18n::trans('user.request_too_frequent', $locale));
+                }
+            } catch (Throwable) {
+                // Ignore rate limit failure
             }
 
             $user = (new User())->where('email', $email)->first();
@@ -214,8 +219,17 @@ final class AuthController extends BaseController
             }
 
             $email_code = Tools::genRandomNum(6);
-            $redis = (new Cache())->initRedis();
-            $redis->setex('email_verify:' . $email_code, Config::obtain('email_verify_code_ttl'), $email);
+            $ttl = (int) (Config::obtain('email_verify_code_ttl') ?: 3600);
+            if ($ttl <= 0) {
+                $ttl = 3600;
+            }
+
+            try {
+                $redis = (new Cache())->initRedis();
+                $redis->setex('email_verify:' . $email_code, $ttl, $email);
+            } catch (Throwable) {
+                return ResponseHelper::error($response, I18n::trans('user.email_send_failed_contact_admin', $locale));
+            }
 
             try {
                 Mail::send(
@@ -224,10 +238,10 @@ final class AuthController extends BaseController
                     'verify_code.tpl',
                     [
                         'code' => $email_code,
-                        'expire' => date('Y-m-d H:i:s', time() + Config::obtain('email_verify_code_ttl')),
+                        'expire' => date('Y-m-d H:i:s', time() + $ttl),
                     ]
                 );
-            } catch (Exception|ClientExceptionInterface) {
+            } catch (Throwable) {
                 return ResponseHelper::error($response, I18n::trans('user.email_send_failed_contact_admin', $locale));
             }
 
@@ -251,6 +265,7 @@ final class AuthController extends BaseController
         $money,
         $is_admin_reg
     ): ResponseInterface {
+        $locale = (string) I18n::getCurrentLocale();
         $redir_cookie = Cookie::get('redir');
         $redir = ($redir_cookie !== null && $redir_cookie !== '') ? $this->antiXss->xss_clean($redir_cookie) : '/user';
 

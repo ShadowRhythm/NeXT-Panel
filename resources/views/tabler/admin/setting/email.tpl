@@ -64,7 +64,7 @@
                                     <a href="#resend" class="nav-link" data-bs-toggle="tab">Resend</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="#mail_filter" class="nav-link" data-bs-toggle="tab">邮件过滤</a>
+                                    <a href="#mail_filter_tab" class="nav-link" data-bs-toggle="tab">邮件过滤</a>
                                 </li>
                             </ul>
                         </div>
@@ -476,7 +476,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="tab-pane" id="mail_filter">
+                                <div class="tab-pane" id="mail_filter_tab">
                                     <div class="card-body">
                                         <div class="form-group mb-3 row">
                                             <label class="form-label col-3 col-form-label">邮件域名过滤</label>
@@ -496,7 +496,7 @@
                                             <label class="form-label col-3 col-form-label">域名过滤列表（填域名逗号分隔）</label>
                                             <div class="col">
                                                 <input id="mail_filter_list" type="text" class="form-control"
-                                                       value="{$settings['mail_filter_list']}">
+                                                       value="{if is_array($settings['mail_filter_list'])}{implode(',', $settings['mail_filter_list'])}{else}{$settings['mail_filter_list']}{/if}">
                                             </div>
                                         </div>
                                     </div>
@@ -509,7 +509,8 @@
         </div>
 
         <script>
-            $("#save-setting").click(function () {
+            $("#save-setting").click(function (e) {
+                e.preventDefault();
                 $.ajax({
                     url: '/admin/setting/email',
                     type: 'POST',
@@ -527,6 +528,14 @@
                             $('#fail-message').text(data.msg);
                             failDialog.show();
                         }
+                    },
+                    error: function (jqXHR) {
+                        let msg = '保存请求失败，请检查网络或后端服务';
+                        if (jqXHR.responseJSON && jqXHR.responseJSON.msg) {
+                            msg = jqXHR.responseJSON.msg;
+                        }
+                        $('#fail-message').text(msg);
+                        failDialog.show();
                     }
                 })
             });
