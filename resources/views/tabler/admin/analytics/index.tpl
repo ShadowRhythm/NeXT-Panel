@@ -311,7 +311,11 @@
                             <div class="card">
                                 <div class="card-header">
                                     <h3 class="card-title">全站 24 小时分时流量分布</h3>
-                                    <div class="card-actions d-flex align-items-center gap-2">
+                                    <div class="card-actions d-flex align-items-center gap-2 flex-wrap">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-primary active" id="btn-hourly-avg">日均</button>
+                                            <button type="button" class="btn btn-outline-primary" id="btn-hourly-total">累计</button>
+                                        </div>
                                         <span class="badge bg-orange-lt" id="peak-hour-badge"></span>
                                         <span class="text-secondary small" id="hourly-source-note"></span>
                                     </div>
@@ -462,6 +466,8 @@
         let activeTab = 'overview';
         const loadedPeriod = { overview: '', revenue: '', traffic: '', retention: '' };
         let cachedOverviewData = null;
+        let cachedTrafficData = null;
+        let hourlyDisplayMode = 'avg'; // 'avg' | 'total'
 
         function escHtml(v) {
             return String(v ?? '').replace(/[&<>"']/g, ch => ({
@@ -756,30 +762,77 @@
         }
 
         // ── Tab 3: 流量与客户端 ──────────────────────────────────────────
+        function renderHourlyChart() {
+            const res = cachedTrafficData;
+            if (!res) return;
+
+            const isAvg = hourlyDisplayMode === 'avg';
+            document.getElementById('btn-hourly-avg').classList.toggle('active', isAvg);
+            document.getElementById('btn-hourly-avg').classList.toggle('btn-primary', isAvg);
+            document.getElementById('btn-hourly-avg').classList.toggle('btn-outline-primary', !isAvg);
+            document.getElementById('btn-hourly-total').classList.toggle('active', !isAvg);
+            document.getElementById('btn-hourly-total').classList.toggle('btn-primary', !isAvg);
+            document.getElementById('btn-hourly-total').classList.toggle('btn-outline-primary', isAvg);
+
+            const days = Number(res.daysCount || 0);
+            const peakBadge = document.getElementById('peak-hour-badge');
+            if (days === 0) {
+                peakBadge.textContent = '暂无峰值数据';
+            } else if (isAvg) {
+                const hStr = String(res.peakHour ?? 0).padStart(2, '0') + ':00';
+                peakBadge.textContent = `日均高峰 ${hStr} (${Number(res.peakAvgGb || 0).toFixed(2)} GB/时) · 统计 ${days} 天（日均 ${Number(res.avgDailyTotalGb || 0).toFixed(2)} GB/天）`;
+            } else {
+                const hStr = String(res.peakTotalHour ?? 0).padStart(2, '0') + ':00';
+                peakBadge.textContent = `累计高峰 ${hStr} (${Number(res.peakGb || 0).toFixed(2)} GB) · ${days} 天总计 ${Number(res.totalGb || 0).toFixed(2)} GB`;
+            }
+
+            const srcNote = document.getElementById('hourly-source-note');
+            srcNote.textContent = res.hasFallback ? '含近期日志补全' : '每日快照';
+
+            const hourLabels = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0') + ':00');
+            const seriesData = isAvg ? (res.hourlyAvgGb || []) : (res.hourlyGb || []);
+            const avgArr = res.hourlyAvgGb || [];
+            const totArr = res.hourlyGb || [];
+
+            destroyAndRender('chart-hourly', {
+                chart: { type: 'bar', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
+                plotOptions: { bar: { columnWidth: '60%', borderRadius: 2 } },
+                dataLabels: { enabled: false },
+                series: [{ name: isAvg ? '日均流量 (GB/时)' : `累计流量 (${days}天 GB)`, data: seriesData }],
+                colors: ['#f76707'],
+                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
+                xaxis: { categories: hourLabels, labels: { style: { fontSize: '11px' } }, tooltip: { enabled: false } },
+                yaxis: { labels: { formatter: v => Number(v || 0).toFixed(1) + ' GB' } },
+                tooltip: {
+                    theme: 'dark',
+                    y: {
+                        formatter: (v, opt) => {
+                            const i = opt.dataPointIndex;
+                            return `日均 ${Number(avgArr[i] || 0).toFixed(2)} GB/时 · ${days}天累计 ${Number(totArr[i] || 0).toFixed(2)} GB`;
+                        }
+                    }
+                },
+                noData: { text: '暂无分时流量数据' }
+            });
+        }
+
+        document.getElementById('btn-hourly-avg')?.addEventListener('click', () => {
+            hourlyDisplayMode = 'avg';
+            renderHourlyChart();
+        });
+        document.getElementById('btn-hourly-total')?.addEventListener('click', () => {
+            hourlyDisplayMode = 'total';
+            renderHourlyChart();
+        });
+
         async function loadTrafficTab() {
             const key = getPeriodKey();
             try {
                 const res = await fetch(`/admin/analytics/ajax?type=traffic_clients&${buildQuery()}`).then(r => r.json());
                 const nodeRes = await fetch(`/admin/analytics/ajax?type=node_retention&${buildQuery()}`).then(r => r.json());
 
-                const peakBadge = document.getElementById('peak-hour-badge');
-                const hStr = String(res.peakHour ?? 0).padStart(2, '0') + ':00';
-                peakBadge.textContent = Number(res.peakGb || 0) > 0 ? `高峰 ${hStr} (${Number(res.peakGb).toFixed(2)} GB)` : '暂无峰值数据';
-                document.getElementById('hourly-source-note').textContent = res.hasFallback ? '含近期实时日志补全' : '来自每日归档快照';
-
-                const hourLabels = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0') + ':00');
-                destroyAndRender('chart-hourly', {
-                    chart: { type: 'bar', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
-                    plotOptions: { bar: { columnWidth: '60%', borderRadius: 2 } },
-                    dataLabels: { enabled: false },
-                    series: [{ name: '流量 (GB)', data: res.hourlyGb || [] }],
-                    colors: ['#f76707'],
-                    grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
-                    xaxis: { categories: hourLabels, labels: { style: { fontSize: '11px' } }, tooltip: { enabled: false } },
-                    yaxis: { labels: { formatter: v => Number(v || 0).toFixed(2) + ' GB' } },
-                    tooltip: { theme: 'dark', y: { formatter: v => Number(v || 0).toFixed(2) + ' GB' } },
-                    noData: { text: '暂无分时流量数据' }
-                });
+                cachedTrafficData = res;
+                renderHourlyChart();
 
                 const clients = res.clients || [];
                 renderDonutChart('chart-clients', clients.map(c => c.name), clients.map(c => c.count), null, '人次', false);

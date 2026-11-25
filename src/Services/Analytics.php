@@ -1044,16 +1044,25 @@ final class Analytics
             ->get(['date', 'hourly_traffic', 'client_snapshot']);
 
         $hourlyBytes = array_fill(0, 24, 0);
+        $hourDays = array_fill(0, 24, 0);
         $hasHourlyDates = [];
+        $includedDates = [];
         $clientCounts = [];
         $hasClientDates = [];
+        $today = date('Y-m-d');
+        $currentHour = (int) date('H');
 
         foreach ($dailyRows as $row) {
             $hours = $row->hourly_traffic !== null ? json_decode((string) $row->hourly_traffic, true) : null;
             if (is_array($hours) && count($hours) === 24) {
                 $hasHourlyDates[$row->date] = true;
+                $includedDates[$row->date] = true;
+                $maxH = $row->date === $today ? $currentHour : 23;
                 for ($h = 0; $h < 24; $h++) {
                     $hourlyBytes[$h] += (int) ($hours[$h] ?? 0);
+                    if ($h <= $maxH) {
+                        $hourDays[$h]++;
+                    }
                 }
             }
 
@@ -1066,37 +1075,67 @@ final class Analytics
             }
         }
 
-        $usedHourlyFallback = self::mergeHourlyUsageFallback($startDate, $endDate, $hasHourlyDates, $hourlyBytes);
+        $usedHourlyFallback = self::mergeHourlyUsageFallback(
+            $startDate,
+            $endDate,
+            $hasHourlyDates,
+            $hourlyBytes,
+            $hourDays,
+            $includedDates
+        );
         $usedClientFallback = self::mergeSubscribeClientFallback($startDate, $endDate, $hasClientDates, $clientCounts);
 
         $hourlyGb = array_map(static fn (int $b): float => round($b / (1024 ** 3), 2), $hourlyBytes);
+        $hourlyAvgGb = [];
+        for ($h = 0; $h < 24; $h++) {
+            $hourlyAvgGb[] = $hourDays[$h] > 0
+                ? round($hourlyBytes[$h] / $hourDays[$h] / (1024 ** 3), 2)
+                : 0.0;
+        }
+
         $peakHour = 0;
+        $peakAvgGb = 0.0;
+        $peakTotalHour = 0;
         $peakGb = 0.0;
-        foreach ($hourlyGb as $h => $gb) {
-            if ($gb > $peakGb) {
-                $peakGb = $gb;
+        for ($h = 0; $h < 24; $h++) {
+            if ($hourlyAvgGb[$h] > $peakAvgGb) {
+                $peakAvgGb = $hourlyAvgGb[$h];
                 $peakHour = $h;
+            }
+            if ($hourlyGb[$h] > $peakGb) {
+                $peakGb = $hourlyGb[$h];
+                $peakTotalHour = $h;
             }
         }
 
         return [
-            'hourlyGb'    => $hourlyGb,
-            'peakHour'    => $peakHour,
-            'peakGb'      => $peakGb,
-            'hasFallback' => $usedHourlyFallback || $usedClientFallback,
-            'clients'     => self::formatClientTopList($clientCounts, 8),
+            'hourlyAvgGb'     => $hourlyAvgGb,
+            'hourlyGb'        => $hourlyGb,
+            'daysCount'       => count($includedDates),
+            'avgDailyTotalGb' => round(array_sum($hourlyAvgGb), 2),
+            'totalGb'         => round(array_sum($hourlyGb), 2),
+            'peakHour'        => $peakHour,
+            'peakAvgGb'       => $peakAvgGb,
+            'peakTotalHour'   => $peakTotalHour,
+            'peakGb'          => $peakGb,
+            'hasFallback'     => $usedHourlyFallback || $usedClientFallback,
+            'clients'         => self::formatClientTopList($clientCounts, 8),
         ];
     }
 
     /**
      * @param array<string, bool> $skipDates
      * @param array<int, int>     $hourlyBytes
+     * @param array<int, int>     $hourDays
+     * @param array<string, bool> $includedDates
      */
     private static function mergeHourlyUsageFallback(
         string $startDate,
         string $endDate,
         array $skipDates,
-        array &$hourlyBytes
+        array &$hourlyBytes,
+        array &$hourDays,
+        array &$includedDates
     ): bool {
         $retentionDays = max(1, (int) Config::obtain('traffic_log_retention_days'));
         $minRetained = date('Y-m-d', strtotime("-{$retentionDays} days"));
@@ -1108,9 +1147,9 @@ final class Analytics
             return false;
         }
 
-        $used = false;
+        $fallbackDates = [];
         HourlyUsage::whereBetween('date', [$fallbackStart, $fallbackEnd])
-            ->chunk(500, static function ($records) use ($skipDates, &$hourlyBytes, &$used): void {
+            ->chunk(500, static function ($records) use ($skipDates, &$hourlyBytes, &$fallbackDates): void {
                 foreach ($records as $record) {
                     if (isset($skipDates[$record->date])) {
                         continue;
@@ -1119,14 +1158,23 @@ final class Analytics
                     if (! is_array($hours)) {
                         continue;
                     }
-                    $used = true;
+                    $fallbackDates[$record->date] = true;
                     for ($h = 0; $h < 24; $h++) {
                         $hourlyBytes[$h] += (int) ($hours[$h] ?? 0);
                     }
                 }
             });
 
-        return $used;
+        $currentHour = (int) date('H');
+        foreach ($fallbackDates as $dateStr => $_present) {
+            $includedDates[$dateStr] = true;
+            $maxH = $dateStr === $today ? $currentHour : 23;
+            for ($h = 0; $h <= $maxH; $h++) {
+                $hourDays[$h]++;
+            }
+        }
+
+        return $fallbackDates !== [];
     }
 
     /**

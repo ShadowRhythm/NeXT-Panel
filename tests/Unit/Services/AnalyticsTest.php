@@ -319,7 +319,7 @@ final class AnalyticsTest extends TestCase
         $month = date('Y-m');
 
         $yHours = array_fill(0, 24, 0);
-        $yHours[20] = 2 * (1024 ** 3);
+        $yHours[0] = 2 * (1024 ** 3);
         SiteDailyStat::query()->create([
             'date'            => $yesterday,
             'income'          => 0,
@@ -335,12 +335,14 @@ final class AnalyticsTest extends TestCase
         // Duplicate raw hourly row for yesterday (should be skipped) + fresh row for today (should be included)
         HourlyUsage::query()->create(['user_id' => 1, 'date' => $yesterday, 'usage' => json_encode($yHours)]);
         $tHours = array_fill(0, 24, 0);
-        $tHours[20] = 1024 ** 3;
+        $tHours[0] = 1024 ** 3;
         HourlyUsage::query()->create(['user_id' => 1, 'date' => $today, 'usage' => json_encode($tHours)]);
 
         $res = Analytics::getTrafficAndClientStats('day', $month, date('Y'));
         if (substr($yesterday, 0, 7) === $month) {
-            $this->assertSame(20, $res['peakHour']);
+            $this->assertSame(0, $res['peakHour']);
+            $this->assertSame(2, $res['daysCount']);
+            $this->assertSame(1.5, $res['peakAvgGb']);
             $this->assertSame(3.0, $res['peakGb']);
             $this->assertSame('Shadowrocket', $res['clients'][0]['name']);
             $this->assertSame(5, $res['clients'][0]['count']);
