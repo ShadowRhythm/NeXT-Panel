@@ -801,7 +801,7 @@
                 series: [{ name: isAvg ? '日均流量 (GB/时)' : `累计流量 (${days}天 GB)`, data: seriesData }],
                 colors: ['#f76707'],
                 grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
-                xaxis: { categories: hourLabels, labels: { style: { fontSize: '11px' } }, tooltip: { enabled: false } },
+                xaxis: { categories: hourLabels, labels: { style: { fontSize: '11px' }, rotate: -45, rotateAlways: true, hideOverlappingLabels: false }, tooltip: { enabled: false } },
                 yaxis: { labels: { formatter: v => Number(v || 0).toFixed(1) + ' GB' } },
                 tooltip: {
                     theme: 'dark',
