@@ -18,6 +18,7 @@ use function file_get_contents;
 use function in_array;
 use function json_decode;
 use function str_replace;
+use function stream_context_create;
 use function strtotime;
 use function time;
 use const PHP_EOL;
@@ -40,7 +41,11 @@ final class Detect
                     Config::obtain('detect_gfw_url')
                 );
 
-                $response_content = @file_get_contents($api_url);
+                $response_content = @file_get_contents($api_url, false, stream_context_create([
+                    'http' => [
+                        'timeout' => 5,
+                    ],
+                ]));
                 if ($response_content === false) {
                     continue;
                 }

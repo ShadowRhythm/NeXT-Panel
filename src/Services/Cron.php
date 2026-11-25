@@ -32,15 +32,20 @@ use GuzzleHttp\Exception\GuzzleException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Throwable;
+use function array_fill;
 use function array_merge;
 use function array_sum;
 use function array_unique;
+use function count;
 use function date;
+use function file_exists;
 use function in_array;
 use function is_array;
 use function json_decode;
 use function json_encode;
 use function max;
+use function mb_substr;
+use function min;
 use function round;
 use function str_replace;
 use function strtotime;
@@ -390,7 +395,7 @@ final class Cron
             $timestamp = time();
             //邮件队列处理
             while (true) {
-                if (time() - $timestamp > 299) {
+                if (time() - $timestamp > 180) {
                     echo Tools::toDateTime(time()) . '邮件队列处理超时，已跳过' . PHP_EOL;
                     break;
                 }
@@ -1000,7 +1005,16 @@ final class Cron
 
     public static function resetNodeBandwidth(): void
     {
-        (new Node())->where('bandwidthlimit_resetday', date('d'))->update(['node_bandwidth' => 0]);
+        $today = (int) date('d');
+        $lastDay = (int) date('t');
+
+        $query = (new Node())->where('bandwidthlimit_resetday', '>', 0);
+        if ($today === $lastDay) {
+            $query->where('bandwidthlimit_resetday', '>=', $today);
+        } else {
+            $query->where('bandwidthlimit_resetday', $today);
+        }
+        $query->update(['node_bandwidth' => 0]);
 
         echo Tools::toDateTime(time()) . ' 重设节点流量完成' . PHP_EOL;
     }
@@ -1328,19 +1342,25 @@ final class Cron
             ->whereBetween('datetime', [$dayStart, $dayEnd])
             ->sum('total') ?? 0);
 
-        // 新注册用户
+        // 新注册用户与签到人数
         $newUsers = User::whereBetween('reg_date', [$yesterday . ' 00:00:00', $yesterday . ' 23:59:59'])->count();
+        $checkinUsers = User::whereBetween('last_check_in_time', [$dayStart, $dayEnd])->count();
 
         // 活跃用户快照
         $activeUsers = User::where('is_inactive', 0)->count();
 
-        // 全站流量（逐块读 hourly_usage，避免内存溢出）
+        // 全站流量与24小时分时汇总（逐块读 hourly_usage，避免内存溢出）
         $traffic = 0;
-        HourlyUsage::where('date', $yesterday)->chunk(500, function ($records) use (&$traffic): void {
+        $hourlyTraffic = array_fill(0, 24, 0);
+        HourlyUsage::where('date', $yesterday)->chunk(500, function ($records) use (&$traffic, &$hourlyTraffic): void {
             foreach ($records as $record) {
                 $hours = json_decode($record->usage, true);
                 if (is_array($hours)) {
-                    $traffic += (int) array_sum($hours);
+                    for ($h = 0; $h < 24; $h++) {
+                        $bytes = (int) ($hours[$h] ?? 0);
+                        $hourlyTraffic[$h] += $bytes;
+                        $traffic += $bytes;
+                    }
                 }
             }
         });
@@ -1355,14 +1375,20 @@ final class Cron
             $classSnapshot[(string) $row->class] = (int) $row->cnt;
         }
 
+        // 订阅客户端分布快照（按用户去重）
+        $clientSnapshot = Analytics::aggregateSubscribeClients($dayStart, $dayEnd);
+
         // 写入
-        $stat                 = new SiteDailyStat();
-        $stat->date           = $yesterday;
-        $stat->income         = round($income, 2);
-        $stat->new_users      = $newUsers;
-        $stat->active_users   = $activeUsers;
-        $stat->traffic        = $traffic;
-        $stat->class_snapshot = json_encode($classSnapshot);
+        $stat                  = new SiteDailyStat();
+        $stat->date            = $yesterday;
+        $stat->income          = round($income, 2);
+        $stat->new_users       = $newUsers;
+        $stat->active_users    = $activeUsers;
+        $stat->traffic         = $traffic;
+        $stat->class_snapshot  = json_encode($classSnapshot === [] ? (object) [] : $classSnapshot);
+        $stat->hourly_traffic  = json_encode($hourlyTraffic);
+        $stat->client_snapshot = json_encode($clientSnapshot === [] ? (object) [] : $clientSnapshot);
+        $stat->checkin_users   = $checkinUsers;
         $stat->save();
 
         echo 'Aggregated daily stat for ' . $yesterday . PHP_EOL;

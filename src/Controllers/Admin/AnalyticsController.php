@@ -9,6 +9,7 @@ use App\Services\Analytics;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
+use function date;
 
 final class AnalyticsController extends BaseController
 {
@@ -41,10 +42,16 @@ final class AnalyticsController extends BaseController
             },
 
             'product_sales' => match ($mode) {
-                'month' => Analytics::getProductSalesRanking(null),
-                'year'  => Analytics::getProductSalesRanking(null), // whole-year ranking
+                'month' => Analytics::getProductSalesRankingRecentMonths(12),
+                'year'  => Analytics::getProductSalesRankingByYear($year),
                 default => Analytics::getProductSalesRanking($month),
             },
+
+            'revenue_analysis' => Analytics::getRevenueAnalysis($mode, $month, $year),
+
+            'traffic_clients' => Analytics::getTrafficAndClientStats($mode, $month, $year),
+
+            'node_retention' => Analytics::getNodeAndRetentionStats($mode, $month, $year),
 
             default => ['error' => 'unknown type'],
         };

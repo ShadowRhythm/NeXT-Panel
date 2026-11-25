@@ -15,10 +15,16 @@ use Throwable;
 use function array_keys;
 use function array_map;
 use function date;
+use function error_log;
+use function hash;
 use function implode;
+use function ini_set;
+use function mb_substr;
 use function microtime;
 use function mktime;
+use function register_shutdown_function;
 use function sprintf;
+use function substr;
 use function time;
 
 final class Cron extends Command
@@ -93,7 +99,6 @@ EOL;
             Config::set('last_daily_job_time', time());
             $this->failedDailyJobs = [];
 
-            $this->runDailyJob('clean-db', static fn () => $jobs->cleanDb());
             $this->runDailyJob('reset-node-bandwidth', static fn () => $jobs->resetNodeBandwidth());
             $this->runDailyJob('reset-free-user-bandwidth', static fn () => $jobs->resetFreeUserBandwidth());
             $this->runDailyJob('daily-traffic-report', static fn () => $jobs->sendDailyTrafficReport());
@@ -112,6 +117,8 @@ EOL;
 
             $this->runDailyJob('aggregate-daily-stat', static fn () => $jobs->aggregateDailyStat());
             $this->runDailyJob('reset-today-bandwidth', static fn () => $jobs->resetTodayBandwidth());
+            // clean-db 放在统计与重设之后，避免在低保留天数设置下提前删掉前一日日志影响聚合与简报
+            $this->runDailyJob('clean-db', static fn () => $jobs->cleanDb());
             $this->runDailyJob('update-qqwry-ipdb', static fn () => $jobs->updateQQWryIpdb());
 
             if (empty($this->failedDailyJobs)) {
@@ -124,7 +131,7 @@ EOL;
                 foreach ($this->failedDailyJobs as $name => $err) {
                     $failedInfo[] = "{$name}: {$err}";
                 }
-                $statusText = implode('; ', $failedInfo);
+                $statusText = mb_substr(implode('; ', $failedInfo), 0, 1900);
                 Config::set('last_daily_job_status', $statusText);
 
                 // 发送错误通知给管理员
