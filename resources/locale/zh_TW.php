@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-// Translations for Chinese(Used in one and only Republic of China(Taiwan))
+// Translations for Traditional Chinese
 return [
     'lang' => 'zh_TW',
-    'lang_name' => '正體中文',
+    'lang_name' => '繁體中文',
     'lang_code' => 'zh',
     'bot' => [
         'daily_job_run' => '成功執行每日任務',

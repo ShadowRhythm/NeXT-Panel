@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\Paylist;
 use App\Services\Auth;
 use App\Services\Exchange;
+use App\Services\I18n;
 use App\Services\View;
 use Exception;
 use GuzzleHttp\Client;
@@ -77,10 +78,11 @@ final class PayPal extends Base
     public function purchase(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $user = Auth::getUser();
+        $locale = I18n::getCurrentLocale($user);
         if ($user === null) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Please login first',
+                'msg' => I18n::trans('user.gateway_login_first', $locale),
             ]);
         }
 
@@ -90,14 +92,14 @@ final class PayPal extends Base
         if ($invoice === null || $invoice->user_id !== $user->id) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Invoice not found',
+                'msg' => I18n::trans('user.invoice_not_found', $locale),
             ]);
         }
 
         if ($invoice->status !== 'unpaid' && $invoice->status !== 'partially_paid') {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Invoice is not payable',
+                'msg' => I18n::trans('user.gateway_invoice_not_payable', $locale),
             ]);
         }
 
@@ -106,7 +108,7 @@ final class PayPal extends Base
         if ($price <= 0) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '非法的金额',
+                'msg' => I18n::trans('user.gateway_invalid_amount', $locale),
             ]);
         }
 
@@ -132,7 +134,7 @@ final class PayPal extends Base
         } catch (GuzzleException|RedisException) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '汇率获取失败',
+                'msg' => I18n::trans('user.gateway_exchange_rate_failed', $locale),
             ]);
         }
 
@@ -156,7 +158,7 @@ final class PayPal extends Base
         } catch (Throwable) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'PayPal API Error',
+                'msg' => I18n::trans('user.gateway_paypal_api_error', $locale),
             ]);
         }
 

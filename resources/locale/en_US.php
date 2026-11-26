@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-// Translations for English(Simplified)
+// Translations for English
 return [
     'lang' => 'en_US',
-    'lang_name' => 'English(Simplified)',
+    'lang_name' => 'English',
     'lang_code' => 'en',
     'bot' => [
         'daily_job_run' => 'Successful execution of daily tasks',

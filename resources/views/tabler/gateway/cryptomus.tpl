@@ -12,7 +12,7 @@
                     type: "cryptomus",
                     redir: window.location.href
                 }'>
-            <span>Pay</span>
+            <span>{trans key='user.pay'}</span>
         </button>
     </form>
 </div>

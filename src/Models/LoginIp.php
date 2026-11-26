@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\I18n;
 use App\Services\Notification;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Database\Query\Builder;
@@ -62,11 +63,18 @@ final class LoginIp extends Model
                 (new LoginIp())->where('userid', $user_id)->where('ip', $this->ip)->count() === 0
             ) {
                 try {
-                    Notification::notifyUser(
-                        (new User())->where('id', $user_id)->first(),
-                        $_ENV['appName'] . '-新登录通知',
-                        '你的账号于 ' . date('Y-m-d H:i:s') . ' 通过 ' . $this->ip . ' 地址登录了用户面板',
-                    );
+                    $user = (new User())->where('id', $user_id)->first();
+                    if ($user !== null) {
+                        $locale = I18n::getCurrentLocale($user);
+                        Notification::notifyUser(
+                            $user,
+                            I18n::trans('email.new_login_subject', $locale, ['app_name' => $_ENV['appName']]),
+                            I18n::trans('email.new_login_body', $locale, [
+                                'ip' => $this->ip,
+                                'time' => date('Y-m-d H:i:s'),
+                            ]),
+                        );
+                    }
                 } catch (GuzzleException|ClientExceptionInterface|TelegramSDKException $e) {
                     echo $e->getMessage();
                 }

@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\Paylist;
 use App\Services\Auth;
 use App\Services\Gateway\Cryptomus\Payment as CryptomusPayment;
+use App\Services\I18n;
 use App\Services\View;
 use Exception;
 use Psr\Http\Message\ResponseInterface;
@@ -67,10 +68,11 @@ final class Cryptomus extends Base
     public function purchase(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $user = Auth::getUser();
+        $locale = I18n::getCurrentLocale($user);
         if ($user === null) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Please login first',
+                'msg' => I18n::trans('user.gateway_login_first', $locale),
             ]);
         }
 
@@ -80,14 +82,14 @@ final class Cryptomus extends Base
         if ($invoice === null || $invoice->user_id !== $user->id) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Invoice not found',
+                'msg' => I18n::trans('user.invoice_not_found', $locale),
             ]);
         }
 
         if ($invoice->status !== 'unpaid' && $invoice->status !== 'partially_paid') {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Invoice is not payable',
+                'msg' => I18n::trans('user.gateway_invoice_not_payable', $locale),
             ]);
         }
 
@@ -96,7 +98,7 @@ final class Cryptomus extends Base
         if ($price <= 0) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '非法的金额',
+                'msg' => I18n::trans('user.gateway_invalid_amount', $locale),
             ]);
         }
 
@@ -134,7 +136,7 @@ final class Cryptomus extends Base
         } catch (\Exception $exception) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '请求支付失败: ' . $exception->getMessage(),
+                'msg' => I18n::trans('user.gateway_payment_request_failed', $locale, ['error' => $exception->getMessage()]),
             ]);
         }
 
@@ -142,13 +144,13 @@ final class Cryptomus extends Base
         if (! self::isValidExternalRedirectUrl($payUrl)) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '请求支付失败，网关返回地址无效',
+                'msg' => I18n::trans('user.gateway_invalid_return_url', $locale),
             ]);
         }
 
         return $response->withHeader('HX-Redirect', $payUrl)->withJson([
             'ret' => 1,
-            'msg' => '订单发起成功，正在跳转到支付页面...',
+            'msg' => I18n::trans('user.gateway_order_created_redirect', $locale),
         ]);
     }
 
@@ -197,7 +199,7 @@ final class Cryptomus extends Base
 
             return $response->withJson([
                 'ret' => 1,
-                'msg' => '支付成功',
+                'msg' => 'ok',
             ]);
         }
 

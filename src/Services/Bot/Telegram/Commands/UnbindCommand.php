@@ -50,12 +50,13 @@ final class UnbindCommand extends Command
                 // 回送信息
                 $this->replyWithMessage(
                     [
-                        'text' => I18n::trans('bot.user_not_bind', $_ENV['locale']),
+                        'text' => I18n::trans('bot.user_not_bind', Message::getLocale()),
                         'parse_mode' => 'Markdown',
                     ]
                 );
                 return;
             }
+            $locale = Message::getLocale($user);
             // 消息内容
             $message_text = explode(' ', trim($message->text));
             $message_key = array_splice($message_text, -1)[0];
@@ -63,9 +64,9 @@ final class UnbindCommand extends Command
 
             if ($message_key === $user->email) {
                 if ($user->unbindIM()) {
-                    $text = '账户解绑成功。';
+                    $text = I18n::trans('bot.unbind_success', $locale);
                 } else {
-                    $text = '账户解绑失败。';
+                    $text = I18n::trans('bot.unbind_failed', $locale);
                 }
                 // 回送信息
                 $this->replyWithMessage(
@@ -79,11 +80,11 @@ final class UnbindCommand extends Command
             }
 
             if ($message_key !== '') {
-                $text = '键入的 Email 地址与你的账户不匹配.';
+                $text = I18n::trans('bot.unbind_email_mismatch', $locale);
             }
 
             if ($message_key === '/unbind') {
-                $text = $this->sendText();
+                $text = $this->sendText($locale);
             }
 
             // 回送信息
@@ -96,12 +97,12 @@ final class UnbindCommand extends Command
         }
     }
 
-    private function sendText(): string
+    private function sendText(string $locale): string
     {
-        $text = '以 `/unbind example@gmail.com` 的形式发送进行解绑。';
+        $text = I18n::trans('bot.unbind_usage_tip', $locale);
 
         if (Config::obtain('telegram_unbind_kick_member')) {
-            $text .= PHP_EOL . PHP_EOL . '根据管理员的设定，你解绑账户将会被自动移出用户群。';
+            $text .= PHP_EOL . PHP_EOL . I18n::trans('bot.unbind_kick_warning', $locale);
         }
 
         return $text;

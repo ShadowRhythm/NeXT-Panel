@@ -1,4 +1,4 @@
-<html>
+<html lang="{$current_locale|replace:'_':'-'}"{if isset($is_rtl) && $is_rtl} dir="rtl"{/if}>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <meta name="viewport" content="width=device-width"/>

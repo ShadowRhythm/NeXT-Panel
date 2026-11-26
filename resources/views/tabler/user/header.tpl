@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{$current_locale|replace:'_':'-'}"{if $user->is_dark_mode} data-bs-theme="dark"{/if} data-bs-navbar-theme="dark">
+<html lang="{$current_locale|replace:'_':'-'}"{if isset($is_rtl) && $is_rtl} dir="rtl"{/if}{if $user->is_dark_mode} data-bs-theme="dark"{/if} data-bs-navbar-theme="dark">
 
 <head>
     <meta charset="utf-8"/>
@@ -9,7 +9,11 @@
     <meta name="referrer" content="never">
     <title>{$config['appName']}</title>
     <!-- CSS files -->
+    {if isset($is_rtl) && $is_rtl}
+    <link href="//{$config['jsdelivr_url']}/npm/@tabler/core@latest/dist/css/tabler.rtl.min.css" rel="stylesheet"/>
+    {else}
     <link href="//{$config['jsdelivr_url']}/npm/@tabler/core@latest/dist/css/tabler.min.css" rel="stylesheet"/>
+    {/if}
     <link href="//{$config['jsdelivr_url']}/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet"/>
     <!-- JS files -->
     <script src="/assets/js/fuck.min.js"></script>
@@ -52,9 +56,17 @@
                         <a class="dropdown-item {if $current_locale == 'zh_TW'}active{/if}" href="/locale/zh_TW">🇭🇰 繁體中文</a>
                         <a class="dropdown-item {if $current_locale == 'en_US'}active{/if}" href="/locale/en_US">🇺🇸 English</a>
                         <a class="dropdown-item {if $current_locale == 'ja_JP'}active{/if}" href="/locale/ja_JP">🇯🇵 日本語</a>
+                        <a class="dropdown-item {if $current_locale == 'ko_KR'}active{/if}" href="/locale/ko_KR">🇰🇷 한국어</a>
                         <a class="dropdown-item {if $current_locale == 'ru_RU'}active{/if}" href="/locale/ru_RU">🇷🇺 Русский</a>
                         <a class="dropdown-item {if $current_locale == 'fr_FR'}active{/if}" href="/locale/fr_FR">🇫🇷 Français</a>
+                        <a class="dropdown-item {if $current_locale == 'de_DE'}active{/if}" href="/locale/de_DE">🇩🇪 Deutsch</a>
+                        <a class="dropdown-item {if $current_locale == 'es_ES'}active{/if}" href="/locale/es_ES">🇪🇸 Español</a>
                         <a class="dropdown-item {if $current_locale == 'pt_BR'}active{/if}" href="/locale/pt_BR">🇧🇷 Português</a>
+                        <a class="dropdown-item {if $current_locale == 'vi_VN'}active{/if}" href="/locale/vi_VN">🇻🇳 Tiếng Việt</a>
+                        <a class="dropdown-item {if $current_locale == 'id_ID'}active{/if}" href="/locale/id_ID">🇮🇩 Bahasa Indonesia</a>
+                        <a class="dropdown-item {if $current_locale == 'tr_TR'}active{/if}" href="/locale/tr_TR">🇹🇷 Türkçe</a>
+                        <a class="dropdown-item {if $current_locale == 'ar_SA'}active{/if}" href="/locale/ar_SA">🇸🇦 العربية</a>
+                        <a class="dropdown-item {if $current_locale == 'fa_IR'}active{/if}" href="/locale/fa_IR">🇮🇷 فارسی</a>
                     </div>
                 </div>
                 <div class="nav-item dropdown">

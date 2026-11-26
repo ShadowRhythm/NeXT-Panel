@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\I18n;
 use App\Services\IM;
 use App\Services\IM\Telegram;
 use App\Utils\Tools;
@@ -123,7 +124,9 @@ final class User extends Model
      */
     public function lastUseTime(): string
     {
-        return $this->last_use_time === 0 ? '从未使用' : Tools::toDateTime($this->last_use_time);
+        return $this->last_use_time === 0
+            ? I18n::trans('user.never_used', I18n::getCurrentLocale($this))
+            : Tools::toDateTime($this->last_use_time);
     }
 
     /**
@@ -131,7 +134,9 @@ final class User extends Model
      */
     public function lastCheckInTime(): string
     {
-        return $this->last_check_in_time === 0 ? '从未签到' : Tools::toDateTime($this->last_check_in_time);
+        return $this->last_check_in_time === 0
+            ? I18n::trans('user.never_checked_in', I18n::getCurrentLocale($this))
+            : Tools::toDateTime($this->last_check_in_time);
     }
 
     /**
@@ -139,7 +144,9 @@ final class User extends Model
      */
     public function lastLoginTime(): string
     {
-        return $this->last_login_time === 0 ? '从未登录' : Tools::toDateTime($this->last_login_time);
+        return $this->last_login_time === 0
+            ? I18n::trans('user.never_logged_in', I18n::getCurrentLocale($this))
+            : Tools::toDateTime($this->last_login_time);
     }
 
     /*
@@ -308,16 +315,19 @@ final class User extends Model
         $used_traffic = $this->usedTraffic();
         $unused_traffic = $this->unusedTraffic();
 
+        $locale = I18n::getCurrentLocale($this);
+
         if ($this->daily_mail_enable === 1) {
             echo 'Sending daily mail to user: ' . $this->id . PHP_EOL;
 
             (new EmailQueue())->add(
                 $this->email,
-                $_ENV['appName'] . '-每日流量报告以及公告',
+                I18n::trans('email.traffic_report_subject', $locale, ['app_name' => $_ENV['appName']]),
                 'traffic_report.tpl',
                 [
                     'user' => $this,
-                    'text' => '站点公告:<br><br>' . $ann . '<br><br>晚安！',
+                    'locale' => $locale,
+                    'text' => I18n::trans('email.site_announcement', $locale) . '<br><br>' . $ann . '<br><br>' . I18n::trans('email.good_night', $locale),
                     'lastday_traffic' => $lastday_traffic,
                     'enable_traffic' => $enable_traffic,
                     'used_traffic' => $used_traffic,
@@ -327,11 +337,11 @@ final class User extends Model
         } elseif ($this->daily_mail_enable === 2 && $this->im_value !== '') {
             echo 'Sending daily IM message to user: ' . $this->id . PHP_EOL;
 
-            $text = date('Y-m-d') . ' 流量使用报告' . PHP_EOL . PHP_EOL;
-            $text .= '流量总计：' . $enable_traffic . PHP_EOL;
-            $text .= '已用流量：' . $used_traffic . PHP_EOL;
-            $text .= '剩余流量：' . $unused_traffic . PHP_EOL;
-            $text .= '今日使用：' . $lastday_traffic;
+            $text = date('Y-m-d') . ' ' . I18n::trans('bot.daily_report_title', $locale) . PHP_EOL . PHP_EOL;
+            $text .= I18n::trans('bot.daily_report_total', $locale, ['traffic' => $enable_traffic]) . PHP_EOL;
+            $text .= I18n::trans('bot.daily_report_used', $locale, ['traffic' => $used_traffic]) . PHP_EOL;
+            $text .= I18n::trans('bot.daily_report_remaining', $locale, ['traffic' => $unused_traffic]) . PHP_EOL;
+            $text .= I18n::trans('bot.daily_report_today', $locale, ['traffic' => $lastday_traffic]);
 
             try {
                 IM::send((int) $this->im_value, $text, $this->im_type);

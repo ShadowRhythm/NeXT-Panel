@@ -57,7 +57,7 @@ final class MyCommand extends Command
             // 回送信息
             $response = $this->replyWithMessage(
                 [
-                    'text' => I18n::trans('bot.user_not_bind', $_ENV['locale']),
+                    'text' => I18n::trans('bot.user_not_bind', Message::getLocale()),
                     'reply_to_message_id' => $message_id,
                     'parse_mode' => 'Markdown',
                 ]
@@ -77,6 +77,7 @@ final class MyCommand extends Command
 
     private function group($user, $send_user, $chat_id, $message, $message_id)
     {
+        $locale = Message::getLocale($user);
         $text = Message::getUserTrafficInfo($user);
         // 回送信息
         return $this->replyWithMessage(
@@ -89,7 +90,7 @@ final class MyCommand extends Command
                         'inline_keyboard' => [
                             [
                                 [
-                                    'text' => (! $user->isAbleToCheckin() ? '已签到' : '签到'),
+                                    'text' => (! $user->isAbleToCheckin() ? I18n::trans('bot.btn_checked_in', $locale) : I18n::trans('bot.btn_checkin', $locale)),
                                     'callback_data' => 'user.checkin.' . $send_user['id'],
                                 ],
                             ],

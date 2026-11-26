@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Gateway\Epay;
 
+use App\Services\I18n;
+
 final class EpaySubmit
 {
     private array $epay_config;
@@ -38,8 +40,9 @@ final class EpaySubmit
         return $para_sort;
     }
 
-    public function buildRequestForm($para_temp, $method = 'POST', $button_name = '正在跳转'): string
+    public function buildRequestForm($para_temp, $method = 'POST', $button_name = null): string
     {
+        $button_name = $button_name ?? I18n::trans('user.gateway_redirecting');
         //待请求参数数组
         $para = $this->buildRequestPara($para_temp);
         $html = "<form id='alipaysubmit' name='alipaysubmit' action='".

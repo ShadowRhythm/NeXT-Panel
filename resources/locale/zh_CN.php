@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-// Translations for Chinese(Used in illegally occupied areas of Republic of China)
+// Translations for Simplified Chinese
 return [
     'lang' => 'zh_CN',
-    'lang_name' => '中文',
+    'lang_name' => '简体中文',
     'lang_code' => 'zh',
     'bot' => [
         'daily_job_run' => '成功执行每日任务',

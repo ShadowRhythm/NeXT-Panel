@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Bot\Telegram\Commands;
 
+use App\Services\Bot\Telegram\Message;
+use App\Services\I18n;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Telegram\Bot\Actions;
@@ -38,9 +40,11 @@ final class DcCommand extends Command
         if ($message->chat->type === 'private') {
             // 发送 '输入中' 会话状态
             $this->replyWithChatAction(['action' => Actions::TYPING]);
+            $user = Message::getUser((int) $message->from->id);
+            $locale = Message::getLocale($user);
 
             $text = [
-                'Your account does not have a public profile photo or username',
+                I18n::trans('bot.dc_no_photo', $locale),
             ];
 
             $profile_photos = $this->telegram->getUserProfilePhotos([
@@ -67,7 +71,7 @@ final class DcCommand extends Command
                 );
 
                 $text = [
-                    'Your account is located in DC' . $dc[1],
+                    I18n::trans('bot.dc_location', $locale, ['dc' => $dc[1]]),
                 ];
             }
             // 回送信息

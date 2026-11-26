@@ -32,6 +32,7 @@ final class View
         $smarty->assign('public_setting', Config::getPublicConfig());
         $smarty->assign('user', $user);
         $smarty->assign('current_locale', $currentLocale);
+        $smarty->assign('is_rtl', I18n::isRtlLocale($currentLocale));
 
         self::registerSmartyI18n($smarty, $currentLocale);
 
@@ -100,6 +101,7 @@ final class View
         $twig->addGlobal('public_setting', Config::getPublicConfig());
         $twig->addGlobal('user', $user);
         $twig->addGlobal('current_locale', $currentLocale);
+        $twig->addGlobal('is_rtl', I18n::isRtlLocale($currentLocale));
 
         $twig->addFilter(new TwigFilter('trans', static function (string $key, ?string $lang = null, array $params = []) use ($currentLocale): string {
             return I18n::trans($key, $lang ?? $currentLocale, $params);
@@ -135,6 +137,7 @@ final class View
             // site default language
             'locale' => $currentLocale,
             'current_locale' => $currentLocale,
+            'is_rtl' => I18n::isRtlLocale($currentLocale),
         ];
     }
 }

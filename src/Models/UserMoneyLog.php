@@ -62,6 +62,9 @@ final class UserMoneyLog extends Model
         if (preg_match('/^超额支付账单 #(\d+)$/u', $remark, $m)) {
             return I18n::trans('user.money_remark_overpaid_invoice', $locale, ['id' => $m[1]]);
         }
+        if (preg_match('/^已取消账单 #(\d+) 支付自动退款至余额$/u', $remark, $m)) {
+            return I18n::trans('user.money_remark_cancelled_invoice_refund', $locale, ['id' => $m[1]]);
+        }
         if ($remark === '管理员添加余额') {
             return I18n::trans('user.money_remark_admin_add', $locale);
         }

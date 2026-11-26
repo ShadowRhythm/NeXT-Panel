@@ -60,22 +60,23 @@ final class CheckinCommand extends Command
             // 回送信息
             $response = $this->replyWithMessage(
                 [
-                    'text' => I18n::trans('bot.user_not_bind', $_ENV['locale']),
+                    'text' => I18n::trans('bot.user_not_bind', Message::getLocale()),
                     'parse_mode' => 'Markdown',
                     'reply_to_message_id' => $message->messageId,
                 ]
             );
         } else {
+            $locale = Message::getLocale($user);
             if ($user->isAbleToCheckin()) {
                 $traffic = Reward::issueCheckinReward($user->id);
 
                 if (! $traffic) {
-                    $msg = '签到失败';
+                    $msg = I18n::trans('bot.checkin_failed', $locale);
                 } else {
-                    $msg = '获得了 ' . $traffic . 'MB 流量';
+                    $msg = I18n::trans('bot.checkin_success', $locale, ['traffic' => $traffic]);
                 }
             } else {
-                $msg = '你今天已经签到过了';
+                $msg = I18n::trans('bot.checkin_already', $locale);
             }
             // 回送信息
             $response = $this->replyWithMessage(

@@ -91,6 +91,17 @@ final class I18n
         return in_array($locale, self::getLocaleList(), true);
     }
 
+    public static function isRtlLocale(?string $locale = null): bool
+    {
+        $locale = $locale ?? self::getCurrentLocale();
+        $normalized = str_replace('_', '-', strtolower(trim($locale)));
+
+        return str_starts_with($normalized, 'fa')
+            || str_starts_with($normalized, 'ar')
+            || str_starts_with($normalized, 'he')
+            || str_starts_with($normalized, 'ur');
+    }
+
     public static function getCurrentLocale(?User $user = null): string
     {
         if ($user === null && class_exists(Auth::class)) {
@@ -223,9 +234,60 @@ final class I18n
             return 'pt_BR';
         }
 
+        // Spanish subtags: es*
+        if (str_starts_with($normalized, 'es')) {
+            return 'es_ES';
+        }
+
+        // Vietnamese subtags: vi*
+        if (str_starts_with($normalized, 'vi')) {
+            return 'vi_VN';
+        }
+
+        // German subtags: de*
+        if (str_starts_with($normalized, 'de')) {
+            return 'de_DE';
+        }
+
+        // Persian/Farsi subtags: fa*
+        if (str_starts_with($normalized, 'fa')) {
+            return 'fa_IR';
+        }
+
+        // Turkish subtags: tr*
+        if (str_starts_with($normalized, 'tr')) {
+            return 'tr_TR';
+        }
+
+        // Arabic subtags: ar*
+        if (str_starts_with($normalized, 'ar')) {
+            return 'ar_SA';
+        }
+
+        // Indonesian subtags: id* (and legacy in*)
+        if (str_starts_with($normalized, 'id') || $normalized === 'in' || str_starts_with($normalized, 'in-')) {
+            return 'id_ID';
+        }
+
+        // Korean subtags: ko*
+        if (str_starts_with($normalized, 'ko')) {
+            return 'ko_KR';
+        }
+
         $standardized = str_replace('-', '_', $tag);
         if (self::isValidLocale($standardized)) {
             return $standardized;
+        }
+
+        // Fallback: match primary language subtag (e.g. tr -> tr_TR, ko -> ko_KR) against available locales
+        $primary = explode('-', $normalized)[0];
+        if ($primary !== '') {
+            foreach (self::getLocaleList() as $available) {
+                $availPrimary = strtolower(explode('_', $available)[0]);
+                if ($availPrimary === $primary) {
+                    return $available;
+                }
+            }
         }
 
         return null;

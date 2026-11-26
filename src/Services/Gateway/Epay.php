@@ -17,6 +17,7 @@ use App\Services\Auth;
 use App\Services\Gateway\Epay\EpayNotify;
 use App\Services\Gateway\Epay\EpaySubmit;
 use App\Services\Gateway\Epay\EpayTool;
+use App\Services\I18n;
 use App\Services\View;
 use Exception;
 use GuzzleHttp\Client;
@@ -61,10 +62,11 @@ final class Epay extends Base
     public function purchase(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $user = Auth::getUser();
+        $locale = I18n::getCurrentLocale($user);
         if ($user === null) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Please login first',
+                'msg' => I18n::trans('user.gateway_login_first', $locale),
             ]);
         }
 
@@ -77,14 +79,14 @@ final class Epay extends Base
         if ($invoice === null || $invoice->user_id !== $user->id) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Invoice not found',
+                'msg' => I18n::trans('user.invoice_not_found', $locale),
             ]);
         }
 
         if ($invoice->status !== 'unpaid' && $invoice->status !== 'partially_paid') {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Invoice is not payable',
+                'msg' => I18n::trans('user.gateway_invoice_not_payable', $locale),
             ]);
         }
 
@@ -93,7 +95,7 @@ final class Epay extends Base
         if ($price <= 0) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '非法的金额',
+                'msg' => I18n::trans('user.gateway_invalid_amount', $locale),
             ]);
         }
 
@@ -148,7 +150,7 @@ final class Epay extends Base
             if (! is_array($res) || ($res['code'] ?? null) !== 1 || ! self::isValidExternalRedirectUrl($res['payurl'] ?? null)) {
                 return $response->withJson([
                     'ret' => 0,
-                    'msg' => '请求支付失败，网关错误',
+                    'msg' => I18n::trans('user.gateway_epay_error', $locale),
                     //TODO: use syslog to log this error
                 ]);
             }
@@ -157,7 +159,7 @@ final class Epay extends Base
         } catch (GuzzleException) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '请求支付失败，网关错误',
+                'msg' => I18n::trans('user.gateway_epay_error', $locale),
             ]);
         }
     }

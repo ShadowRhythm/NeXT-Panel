@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Models\Config;
 use App\Models\Link;
 use App\Models\SubscribeLog;
+use App\Services\I18n;
 use App\Services\RateLimit;
 use App\Services\Subscribe;
 use App\Utils\ResponseHelper;
@@ -28,7 +29,7 @@ final class SubController extends BaseController
      */
     public function index($request, $response, $args): ResponseInterface
     {
-        $err_msg = '订阅链接无效';
+        $err_msg = I18n::trans('user.invalid_sub_link');
         $subtype = $args['subtype'];
         $subtype_list = [
             'json', 'clash', 'sip008', 'singbox', 'v2rayjson',

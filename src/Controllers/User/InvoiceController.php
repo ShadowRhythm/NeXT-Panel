@@ -86,9 +86,9 @@ final class InvoiceController extends BaseController
                         $item->name = I18n::trans('user.topup');
                     } elseif ($item->name === '退款至账户余额') {
                         $item->name = I18n::trans('user.refund_to_balance');
-                    } elseif (preg_match('/(?:套餐升[级級]折抵|Package Upgrade Credit|Crédit de mise à niveau|パッケージアップグレード割引|Crédito de upgrade|Скидка на апгрейд).*?#(\d+)/u', $item->name, $matches)) {
+                    } elseif (preg_match('/(?:套餐升[级級]折抵|Package Upgrade Credit|Crédit de mise à niveau|パッケージアップグレード割引|Crédito de upgrade|Скидка на апгрейд|Crédito por mejora de paquete|Khấu trừ nâng cấp gói|Paket-Upgrade-Anrechnung|اعتبار ارتقای بسته|Paket Yükseltme Kredisi|رصيد تعويض ترقية الباقة|Kredit Upgrade Paket|요금제 업그레이드 차감).*?#(\d+)/u', $item->name, $matches)) {
                         $item->name = I18n::trans('user.upgrade_credit_item', null, ['id' => $matches[1]]);
-                    } elseif (preg_match('/^(?:优惠码|優惠碼|Coupon)\s+(.+)$/u', $item->name, $matches)) {
+                    } elseif (preg_match('/^(?:优惠码|優惠碼|Coupon Code|Coupon|Code promo|クーポンコード|Código do cupom|Código de cupón|Mã giảm giá|Gutscheincode|Промокод|کد تخفیف|Kupon Kodu|رمز القسيمة|Kode Kupon|쿠폰 코드)\s+(.+)$/u', $item->name, $matches)) {
                         $item->name = I18n::trans('user.coupon') . ' ' . $matches[1];
                     }
                 }

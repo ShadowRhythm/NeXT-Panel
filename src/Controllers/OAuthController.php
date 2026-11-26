@@ -32,8 +32,6 @@ use function time;
 
 final class OAuthController extends BaseController
 {
-    private static string $err_msg = 'OAuth 请求失败';
-
     /**
      * @throws SmartyException
      * @throws GuzzleException

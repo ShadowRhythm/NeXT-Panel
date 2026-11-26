@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\I18n;
 use App\Services\Notification;
 use App\Utils\Tools;
 use Exception;
@@ -11,6 +12,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Database\Query\Builder;
 use Psr\Http\Client\ClientExceptionInterface;
 use Telegram\Bot\Exceptions\TelegramSDKException;
+use function date;
 use function time;
 
 /**
@@ -65,10 +67,14 @@ final class SubscribeLog extends Model
                 ->count() === 0
         ) {
             try {
+                $locale = I18n::getCurrentLocale($user);
                 Notification::notifyUser(
                     $user,
-                    $_ENV['appName'] . '-新订阅通知',
-                    '你的账号于 ' . date('Y-m-d H:i:s') . ' 通过 ' . $this->request_ip . ' 地址订阅了新的节点',
+                    I18n::trans('email.new_sub_subject', $locale, ['app_name' => $_ENV['appName']]),
+                    I18n::trans('email.new_sub_body', $locale, [
+                        'ip' => $this->request_ip,
+                        'time' => date('Y-m-d H:i:s'),
+                    ]),
                 );
             } catch (GuzzleException|ClientExceptionInterface|TelegramSDKException $e) {
                 echo $e->getMessage();

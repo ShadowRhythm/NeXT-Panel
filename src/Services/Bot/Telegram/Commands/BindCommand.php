@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Bot\Telegram\Commands;
 
+use App\Services\Bot\Telegram\Message;
 use App\Services\Bot\Telegram\Telegram;
+use App\Services\I18n;
 use Telegram\Bot\Actions;
 use Telegram\Bot\Commands\Command;
 use function explode;
@@ -37,9 +39,10 @@ final class BindCommand extends Command
             $token = isset($parts[1]) ? trim($parts[1]) : '';
 
             if ($token === '') {
+                $user = Message::getUser((int) $message->from->id);
                 $this->replyWithMessage(
                     [
-                        'text' => '请以 `/bind 绑定码` 的形式发送进行绑定。绑定码可在网站个人中心「IM 绑定」处获取。',
+                        'text' => I18n::trans('bot.bind_usage_tip', Message::getLocale($user)),
                         'parse_mode' => 'Markdown',
                     ]
                 );

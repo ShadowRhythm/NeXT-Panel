@@ -8,6 +8,7 @@ use App\Models\Config;
 use App\Models\Invoice;
 use App\Models\Paylist;
 use App\Services\Auth;
+use App\Services\I18n;
 use App\Services\View;
 use Exception;
 use Psr\Http\Message\ResponseInterface;
@@ -47,7 +48,7 @@ final class Bepusdt extends Base
 
     public static function _readableName(): string
     {
-        return '加密货币 (USDT / USDC)';
+        return I18n::trans('user.gateway_bepusdt_name');
     }
 
     /**
@@ -56,10 +57,11 @@ final class Bepusdt extends Base
     public function purchase(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $user = Auth::getUser();
+        $locale = I18n::getCurrentLocale($user);
         if ($user === null) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Please login first',
+                'msg' => I18n::trans('user.gateway_login_first', $locale),
             ]);
         }
 
@@ -69,14 +71,14 @@ final class Bepusdt extends Base
         if ($invoice === null || $invoice->user_id !== $user->id) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Invoice not found',
+                'msg' => I18n::trans('user.invoice_not_found', $locale),
             ]);
         }
 
         if ($invoice->status !== 'unpaid' && $invoice->status !== 'partially_paid') {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Invoice is not payable',
+                'msg' => I18n::trans('user.gateway_invoice_not_payable', $locale),
             ]);
         }
 
@@ -84,7 +86,7 @@ final class Bepusdt extends Base
         if ($price <= 0) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '非法的金额',
+                'msg' => I18n::trans('user.gateway_invalid_amount', $locale),
             ]);
         }
 
@@ -108,7 +110,7 @@ final class Bepusdt extends Base
         if (! $apiUrl || ! $apiToken) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '请先在后台配置 BEpusdt API 地址和 Token',
+                'msg' => I18n::trans('user.gateway_bepusdt_not_configured', $locale),
             ]);
         }
 
@@ -164,7 +166,7 @@ final class Bepusdt extends Base
         if ($rawResponse === false) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '请求 BEpusdt 失败: ' . $curlError,
+                'msg' => I18n::trans('user.gateway_bepusdt_request_failed', $locale, ['error' => $curlError]),
             ]);
         }
 
@@ -174,7 +176,7 @@ final class Bepusdt extends Base
             $errMsg = $result['message'] ?? $rawResponse;
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '创建订单失败: ' . $errMsg,
+                'msg' => I18n::trans('user.gateway_order_create_failed', $locale, ['error' => $errMsg]),
             ]);
         }
 
@@ -183,13 +185,13 @@ final class Bepusdt extends Base
         if (! self::isValidExternalRedirectUrl($payUrl)) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '未获取到支付地址，请检查配置',
+                'msg' => I18n::trans('user.gateway_no_payment_url', $locale),
             ]);
         }
 
         return $response->withHeader('HX-Redirect', $payUrl)->withJson([
             'ret' => 1,
-            'msg' => '订单创建成功，正在跳转到支付页面...',
+            'msg' => I18n::trans('user.gateway_order_created_redirect', $locale),
         ]);
     }
 

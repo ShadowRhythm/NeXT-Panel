@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Bot\Telegram\Commands;
 
 use App\Models\Config;
+use App\Services\Bot\Telegram\Message;
+use App\Services\I18n;
 use Telegram\Bot\Actions;
 use Telegram\Bot\Commands\Command;
 use function in_array;
@@ -41,12 +43,17 @@ final class HelpCommand extends Command
         }
 
         $this->replyWithChatAction(['action' => Actions::TYPING]);
+        $user = Message::getUser((int) $message->from->id);
+        $locale = Message::getLocale($user);
         $commands = $this->telegram->getCommands();
-        $text = '系统中可用的所有指令：';
+        $text = I18n::trans('bot.help_title', $locale);
         $text .= PHP_EOL . PHP_EOL;
 
         foreach ($commands as $name => $handler) {
-            $text .= '/' . $name . PHP_EOL . '`    - ' . $handler->getDescription() . '`' . PHP_EOL;
+            $descKey = 'bot.cmd_desc_' . $name;
+            $translatedDesc = I18n::trans($descKey, $locale);
+            $desc = ($translatedDesc !== $descKey && $translatedDesc !== '') ? $translatedDesc : $handler->getDescription();
+            $text .= '/' . $name . PHP_EOL . '`    - ' . $desc . '`' . PHP_EOL;
         }
 
         $this->replyWithMessage(

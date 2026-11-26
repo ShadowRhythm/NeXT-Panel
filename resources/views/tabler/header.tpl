@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{$current_locale|replace:'_':'-'}" data-bs-theme="auto">
+<html lang="{$current_locale|replace:'_':'-'}"{if isset($is_rtl) && $is_rtl} dir="rtl"{/if} data-bs-theme="auto">
 
 <head>
     <meta charset="utf-8"/>
@@ -25,7 +25,11 @@
         })()
     </script>
     <!-- CSS files -->
+    {if isset($is_rtl) && $is_rtl}
+    <link href="//{$config['jsdelivr_url']}/npm/@tabler/core@latest/dist/css/tabler.rtl.min.css" rel="stylesheet"/>
+    {else}
     <link href="//{$config['jsdelivr_url']}/npm/@tabler/core@latest/dist/css/tabler.min.css" rel="stylesheet"/>
+    {/if}
     <link href="//{$config['jsdelivr_url']}/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet"/>
     <!-- JS files -->
     <script src="/assets/js/fuck.min.js"></script>

@@ -66,6 +66,8 @@ final class Mail
             }
         }
         $currentLocale = $currentLocale ?: I18n::getCurrentLocale();
+        $smarty->assign('current_locale', $currentLocale);
+        $smarty->assign('is_rtl', I18n::isRtlLocale($currentLocale));
 
         View::registerSmartyI18n($smarty, $currentLocale);
 

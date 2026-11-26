@@ -54,6 +54,17 @@ final class Message
         }
     }
 
+    public static function getLocale(?User $user = null): string
+    {
+        if ($user !== null && ! empty($user->locale) && I18n::isValidLocale($user->locale)) {
+            return $user->locale;
+        }
+
+        $default = $_ENV['locale'] ?? 'en_US';
+
+        return I18n::isValidLocale($default) ? $default : 'en_US';
+    }
+
     /**
      * 回复讯息 | 默认已添加 chat_id 和 message_id
      *
@@ -102,7 +113,7 @@ final class Message
             } else {
                 $this->replyWithMessage(
                     [
-                        'text' => '雷猴啊。',
+                        'text' => I18n::trans('bot.bot_joined_group', self::getLocale()),
                     ]
                 );
             }
@@ -120,7 +131,7 @@ final class Message
             ) {
                 $this->replyWithMessage(
                     [
-                        'text' => $member['name'] . ' 未绑定 Telegram 账户，将被移除。',
+                        'text' => I18n::trans('bot.member_not_bound_removed', self::getLocale(), ['name' => $member['name']]),
                     ]
                 );
 
@@ -135,9 +146,11 @@ final class Message
             }
 
             if (Config::obtain('enable_welcome_message')) {
-                $text = ($new_user->class > 0 ?
-                    I18n::trans('bot.user_join_welcome_paid', $_ENV['locale']) :
-                    I18n::trans('bot.user_join_welcome_free', $_ENV['locale']));
+                $locale = self::getLocale($new_user);
+                $isPaid = $new_user !== null && $new_user->class > 0;
+                $text = $isPaid
+                    ? I18n::trans('bot.user_join_welcome_paid', $locale)
+                    : I18n::trans('bot.user_join_welcome_free', $locale);
 
                 $this->replyWithMessage(
                     [
@@ -148,7 +161,7 @@ final class Message
                             ],
                             [
                                 $member['name'],
-                                $new_user->class,
+                                $new_user->class ?? 0,
                             ],
                             $text
                         ),
@@ -163,12 +176,22 @@ final class Message
      */
     public static function getUserTrafficInfo(User $user): string
     {
+        $locale = self::getLocale($user);
         $text = [
-            '你当前的流量状况：',
+            I18n::trans('bot.traffic_status_title', $locale),
             '',
-            '今日已使用 ' . $user->todayUsedTrafficPercent() . '% ：' . $user->todayUsedTraffic(),
-            '之前已使用 ' . $user->lastUsedTrafficPercent() . '% ：' . $user->lastUsedTraffic(),
-            '流量约剩余 ' . $user->unusedTrafficPercent() . '% ：' . $user->unusedTraffic(),
+            I18n::trans('bot.traffic_used_today', $locale, [
+                'percent' => $user->todayUsedTrafficPercent(),
+                'traffic' => $user->todayUsedTraffic(),
+            ]),
+            I18n::trans('bot.traffic_used_before', $locale, [
+                'percent' => $user->lastUsedTrafficPercent(),
+                'traffic' => $user->lastUsedTraffic(),
+            ]),
+            I18n::trans('bot.traffic_remaining', $locale, [
+                'percent' => $user->unusedTrafficPercent(),
+                'traffic' => $user->unusedTraffic(),
+            ]),
         ];
 
         return implode(PHP_EOL, $text);
@@ -179,11 +202,16 @@ final class Message
      */
     public static function getUserInfo(User $user): string
     {
+        $locale = self::getLocale($user);
+        $speedLimit = $user->node_speedlimit > 0
+            ? $user->node_speedlimit . 'Mbps'
+            : I18n::trans('bot.info_unlimited', $locale);
+
         $text = [
-            '当前余额：' . $user->money,
-            '端口速率：' . ($user->node_speedlimit > 0 ? $user->node_speedlimit . 'Mbps' : '不限制'),
-            '上次使用：' . $user->lastUseTime(),
-            '过期时间：' . $user->class_expire,
+            I18n::trans('bot.info_balance', $locale, ['balance' => $user->money]),
+            I18n::trans('bot.info_speed_limit', $locale, ['limit' => $speedLimit]),
+            I18n::trans('bot.info_last_used', $locale, ['time' => $user->lastUseTime()]),
+            I18n::trans('bot.info_expire_time', $locale, ['time' => $user->class_expire]),
         ];
 
         return implode(PHP_EOL, $text);
@@ -194,13 +222,13 @@ final class Message
      */
     public static function getUserTitle(User $user): string
     {
+        $locale = self::getLocale($user);
+
         if ($user->class > 0) {
-            $text = '付费用户你好：';
-        } else {
-            $text = '免费用户你好：';
+            return I18n::trans('bot.title_paid', $locale);
         }
 
-        return $text;
+        return I18n::trans('bot.title_free', $locale);
     }
 
     /**

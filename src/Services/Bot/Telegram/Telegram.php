@@ -7,6 +7,7 @@ namespace App\Services\Bot\Telegram;
 use App\Models\Config;
 use App\Models\User;
 use App\Services\Cache;
+use App\Services\I18n;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Http\Message\RequestInterface;
 use Telegram\Bot\Api;
@@ -52,38 +53,41 @@ final class Telegram
 
     public static function bindUserWithToken(int $telegram_user_id, string $token): string
     {
+        $defaultLocale = Message::getLocale();
         $token = trim($token);
         if ($token === '') {
-            return '绑定失败：绑定码不能为空。';
+            return I18n::trans('bot.bind_empty_token', $defaultLocale);
         }
 
         try {
             $redis = (new Cache())->initRedis();
             $user_id = $redis->get('telegram_bind_token:' . $token);
         } catch (Throwable) {
-            return '绑定失败：系统缓存服务连接异常。';
+            return I18n::trans('bot.bind_cache_error', $defaultLocale);
         }
 
         if (! $user_id) {
-            return '绑定失败：绑定码不存在或已过期，请在网站重新获取绑定链接。';
+            return I18n::trans('bot.bind_token_expired', $defaultLocale);
         }
 
         $user = (new User())->find((int) $user_id);
         if ($user === null) {
-            return '绑定失败：未找到对应的网站账户。';
+            return I18n::trans('bot.bind_user_not_found', $defaultLocale);
         }
+
+        $userLocale = Message::getLocale($user);
 
         $existing = (new User())->where('im_type', 4)->where('im_value', (string) $telegram_user_id)->first();
         if ($existing !== null) {
             if ((int) $existing->id === (int) $user->id) {
-                return "你的 Telegram 账号已经绑定了该账户 ({$user->email})，无需重复绑定。";
+                return I18n::trans('bot.bind_already_this_account', $userLocale, ['email' => $user->email]);
             }
 
-            return "绑定失败：此 Telegram 账号已绑定至其他账户 ({$existing->email})。如需换绑，请先解绑原账户。";
+            return I18n::trans('bot.bind_telegram_used_by_other', $userLocale, ['email' => $existing->email]);
         }
 
         if ($user->im_type === 4 && $user->im_value !== '') {
-            return "绑定失败：网站账户 ({$user->email}) 已绑定了其他 Telegram 账号。请在网站个人中心先解绑。";
+            return I18n::trans('bot.bind_user_has_other_telegram', $userLocale, ['email' => $user->email]);
         }
 
         $user->im_type = 4;
@@ -97,6 +101,6 @@ final class Telegram
             // Ignore
         }
 
-        return "🎉 *绑定成功*！\n\n你的 Telegram 账号已成功绑定至网站账户 `{$user->email}`。\n发送 /help 获取指令帮助。";
+        return I18n::trans('bot.bind_success', $userLocale, ['email' => $user->email]);
     }
 }

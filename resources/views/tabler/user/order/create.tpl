@@ -145,7 +145,7 @@
                                 <div class="mb-3">
                                     <label class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" id="auto-renew">
-                                        <span class="form-check-label">到期前自动续费（从账户余额扣款）</span>
+                                        <span class="form-check-label">{trans key='user.auto_renew_before_expire'}</span>
                                     </label>
                                 </div>
                             {/if}

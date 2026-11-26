@@ -8,6 +8,7 @@ use App\Models\Config;
 use App\Models\Invoice;
 use App\Models\Paylist;
 use App\Services\Auth;
+use App\Services\I18n;
 use App\Services\View;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
@@ -56,7 +57,7 @@ final class Smogate extends Base
 
     public static function _readableName(): string
     {
-        return '支付宝在线充值';
+        return I18n::trans('user.gateway_smogate_alipay_name');
     }
 
     public function post($data)
@@ -97,10 +98,11 @@ final class Smogate extends Base
     public function purchase(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $user = Auth::getUser();
+        $locale = I18n::getCurrentLocale($user);
         if ($user === null) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Please login first',
+                'msg' => I18n::trans('user.gateway_login_first', $locale),
             ]);
         }
 
@@ -110,14 +112,14 @@ final class Smogate extends Base
         if ($invoice === null || $invoice->user_id !== $user->id) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Invoice not found',
+                'msg' => I18n::trans('user.invoice_not_found', $locale),
             ]);
         }
 
         if ($invoice->status !== 'unpaid' && $invoice->status !== 'partially_paid') {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Invoice is not payable',
+                'msg' => I18n::trans('user.gateway_invoice_not_payable', $locale),
             ]);
         }
 
@@ -125,7 +127,7 @@ final class Smogate extends Base
         if ($price <= 0) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '订单金额错误',
+                'msg' => I18n::trans('user.gateway_order_amount_error', $locale),
             ]);
         }
 

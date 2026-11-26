@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\Paylist;
 use App\Services\Auth;
 use App\Services\Exchange;
+use App\Services\I18n;
 use App\Services\View;
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
@@ -49,10 +50,11 @@ final class Stripe extends Base
     public function purchase(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $user = Auth::getUser();
+        $locale = I18n::getCurrentLocale($user);
         if ($user === null) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Please login first',
+                'msg' => I18n::trans('user.gateway_login_first', $locale),
             ]);
         }
 
@@ -62,14 +64,14 @@ final class Stripe extends Base
         if ($invoice === null || $invoice->user_id !== $user->id) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Invoice not found',
+                'msg' => I18n::trans('user.invoice_not_found', $locale),
             ]);
         }
 
         if ($invoice->status !== 'unpaid' && $invoice->status !== 'partially_paid') {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Invoice is not payable',
+                'msg' => I18n::trans('user.gateway_invoice_not_payable', $locale),
             ]);
         }
 
@@ -80,7 +82,7 @@ final class Stripe extends Base
         ) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Price out of range',
+                'msg' => I18n::trans('user.gateway_price_out_of_range', $locale),
             ]);
         }
 
@@ -104,7 +106,7 @@ final class Stripe extends Base
         } catch (GuzzleException|RedisException) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => '汇率获取失败',
+                'msg' => I18n::trans('user.gateway_exchange_rate_failed', $locale),
             ]);
         }
         // https://docs.stripe.com/currencies?presentment-currency=US#zero-decimal
@@ -151,7 +153,7 @@ final class Stripe extends Base
         } catch (ApiErrorException) {
             return $response->withJson([
                 'ret' => 0,
-                'msg' => 'Stripe API error',
+                'msg' => I18n::trans('user.gateway_stripe_api_error', $locale),
             ]);
         }
 

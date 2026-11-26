@@ -351,16 +351,21 @@ final class Cron
 
         foreach ($paidUsers as $user) {
             try {
-                $text = '你好，系统发现你的账号等级已经过期了。';
+                $locale = I18n::getCurrentLocale($user);
+                $text = I18n::trans('email.class_expired_body', $locale);
                 $reset_traffic = (int) Config::obtain('class_expire_reset_traffic');
 
                 if ($reset_traffic >= 0) {
                     $user->transfer_enable = Tools::gbToB($reset_traffic);
-                    $text .= '流量已经被重置为' . $reset_traffic . 'GB。';
+                    $text .= ' ' . I18n::trans('email.class_expired_reset_body', $locale, ['bandwidth' => $reset_traffic]);
                 }
 
                 try {
-                    Notification::notifyUser($user, $_ENV['appName'] . '-你的账号等级已经过期了', $text);
+                    Notification::notifyUser(
+                        $user,
+                        I18n::trans('email.class_expired_subject', $locale, ['app_name' => $_ENV['appName']]),
+                        $text
+                    );
                 } catch (GuzzleException|ClientExceptionInterface|TelegramSDKException $e) {
                     echo $e->getMessage() . PHP_EOL;
                 }
@@ -765,10 +770,14 @@ final class Cron
                         $user = $users->get($order->user_id);
                         if ($user !== null) {
                             try {
+                                $locale = I18n::getCurrentLocale($user);
                                 Notification::notifyUser(
                                     $user,
-                                    $_ENV['appName'] . ' - 订单自动续费已停用',
-                                    "您的商品【{$order->product_name}】(订单 #{$order->id}) 因商品已下架或停售，系统已自动关闭该订单的自动续费。请及时前往商城选购其他套餐。"
+                                    I18n::trans('email.auto_renew_disabled_subject', $locale, ['app_name' => $_ENV['appName']]),
+                                    I18n::trans('email.auto_renew_disabled_off_shelf_body', $locale, [
+                                        'product' => $order->product_name,
+                                        'order_id' => $order->id,
+                                    ])
                                 );
                             } catch (Throwable $e) {
                                 echo $e->getMessage() . PHP_EOL;
@@ -820,16 +829,19 @@ final class Cron
                             $lockedOrder->auto_renew = 2;
                             $lockedOrder->save();
                             try {
-                                $tip = $lockedOrder->product_type === 'tabp'
-                                    ? '请在订单到期前及时充值，系统会继续尝试续费；订单过期后将不再自动重试。'
-                                    : '请及时充值，充值后系统将自动重试续费。';
-                                $prefix = $lockedOrder->product_type === 'tabp'
-                                    ? "您的商品【{$product->name}】(订单 #{$lockedOrder->id}) 即将到期，自动续费扣款失败（需要 ¥{$price}，当前账户余额 ¥{$user->money}）。"
-                                    : "您的商品【{$product->name}】(订单 #{$lockedOrder->id}) 自动续费扣款失败（需要 ¥{$price}，当前账户余额 ¥{$user->money}）。";
+                                $locale = I18n::getCurrentLocale($user);
+                                $bodyKey = $lockedOrder->product_type === 'tabp'
+                                    ? 'email.auto_renew_failed_tabp_body'
+                                    : 'email.auto_renew_failed_time_body';
                                 Notification::notifyUser(
                                     $user,
-                                    $_ENV['appName'] . ' - 订单自动续费扣款失败提醒',
-                                    "{$prefix}{$tip}"
+                                    I18n::trans('email.auto_renew_failed_subject', $locale, ['app_name' => $_ENV['appName']]),
+                                    I18n::trans($bodyKey, $locale, [
+                                        'product' => $product->name,
+                                        'order_id' => $lockedOrder->id,
+                                        'price' => $price,
+                                        'balance' => $user->money,
+                                    ])
                                 );
                             } catch (Throwable $e) {
                                 echo $e->getMessage() . PHP_EOL;
@@ -843,10 +855,14 @@ final class Cron
                             $lockedOrder->auto_renew = 2;
                             $lockedOrder->save();
                             try {
+                                $locale = I18n::getCurrentLocale($user);
                                 Notification::notifyUser(
                                     $user,
-                                    $_ENV['appName'] . ' - 订单自动续费库存不足提醒',
-                                    "您的商品【{$product->name}】(订单 #{$lockedOrder->id}) 即将到期，因商品暂时售罄无法自动续费。请留意库存补充或前往商城选购其他套餐。"
+                                    I18n::trans('email.auto_renew_out_of_stock_subject', $locale, ['app_name' => $_ENV['appName']]),
+                                    I18n::trans('email.auto_renew_out_of_stock_body', $locale, [
+                                        'product' => $product->name,
+                                        'order_id' => $lockedOrder->id,
+                                    ])
                                 );
                             } catch (Throwable $e) {
                                 echo $e->getMessage() . PHP_EOL;
@@ -913,10 +929,15 @@ final class Cron
                     echo "订单 #{$lockedOrder->id} 自动续费成功，创建新订单 #{$newOrder->id}。\n";
 
                     try {
+                        $locale = I18n::getCurrentLocale($user);
                         Notification::notifyUser(
                             $user,
-                            $_ENV['appName'] . ' - 订单自动续费成功',
-                            "您的商品【{$product->name}】已成功自动续费，生成新订单 #{$newOrder->id}，扣除余额 ¥{$price}。"
+                            I18n::trans('email.auto_renew_success_subject', $locale, ['app_name' => $_ENV['appName']]),
+                            I18n::trans('email.auto_renew_success_body', $locale, [
+                                'product' => $product->name,
+                                'order_id' => $newOrder->id,
+                                'price' => $price,
+                            ])
                         );
                     } catch (Throwable $e) {
                         echo $e->getMessage() . PHP_EOL;
@@ -1054,10 +1075,11 @@ final class Cron
         foreach ($freeUsers as $user) {
             try {
                 try {
+                    $locale = I18n::getCurrentLocale($user);
                     Notification::notifyUser(
                         $user,
-                        $_ENV['appName'] . '-免费流量重置通知',
-                        '你好，你的免费流量已经被重置为' . $user->auto_reset_bandwidth . 'GB。'
+                        I18n::trans('email.free_traffic_reset_subject', $locale, ['app_name' => $_ENV['appName']]),
+                        I18n::trans('email.free_traffic_reset_body', $locale, ['bandwidth' => $user->auto_reset_bandwidth])
                     );
                 } catch (GuzzleException|ClientExceptionInterface|TelegramSDKException $e) {
                     echo $e->getMessage() . PHP_EOL;
@@ -1201,10 +1223,14 @@ final class Cron
 
                 if ($under_limit && ! $user->traffic_notified) {
                     try {
+                        $locale = I18n::getCurrentLocale($user);
                         Notification::notifyUser(
                             $user,
-                            $_ENV['appName'] . '-你的剩余流量过低',
-                            '你好，系统发现你剩余流量已经低于 ' . Config::obtain('notify_limit_value') . $unit_text . ' 。',
+                            I18n::trans('email.low_traffic_subject', $locale, ['app_name' => $_ENV['appName']]),
+                            I18n::trans('email.low_traffic_body', $locale, [
+                                'limit' => Config::obtain('notify_limit_value'),
+                                'unit' => $unit_text,
+                            ]),
                         );
 
                         $user->traffic_notified = true;

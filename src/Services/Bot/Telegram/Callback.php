@@ -11,6 +11,7 @@ use App\Models\OnlineLog;
 use App\Models\Payback;
 use App\Models\SubscribeLog;
 use App\Models\User;
+use App\Services\I18n;
 use App\Services\Reward;
 use App\Services\Subscribe;
 use App\Utils\Tools;
@@ -175,26 +176,29 @@ final class Callback
 
     public static function getUserIndexKeyboard($user): array
     {
-        $checkin = (! $user->isAbleToCheckin() ? '已签到' : '签到');
+        $locale = Message::getLocale($user);
+        $checkin = (! $user->isAbleToCheckin()
+            ? I18n::trans('bot.btn_checked_in', $locale)
+            : I18n::trans('bot.btn_checkin', $locale));
 
         $keyboard = [
             [
                 [
-                    'text' => '用户中心',
+                    'text' => I18n::trans('bot.btn_user_center', $locale),
                     'callback_data' => 'user.center',
                 ],
                 [
-                    'text' => '资料编辑',
+                    'text' => I18n::trans('bot.btn_edit_profile', $locale),
                     'callback_data' => 'user.edit',
                 ],
             ],
             [
                 [
-                    'text' => '订阅中心',
+                    'text' => I18n::trans('bot.btn_sub_center', $locale),
                     'callback_data' => 'user.subscribe',
                 ],
                 [
-                    'text' => '分享计划',
+                    'text' => I18n::trans('bot.btn_share_plan', $locale),
                     'callback_data' => 'user.invite',
                 ],
             ],
@@ -223,12 +227,13 @@ final class Callback
     {
         if ($this->user === null) {
             $this->answerCallbackQuery([
-                'text' => '你好，你尚未绑定账户，无法进行操作。',
+                'text' => I18n::trans('bot.callback_not_bound', Message::getLocale()),
                 'show_alert' => true,
             ]);
             return;
         }
 
+        $locale = Message::getLocale($this->user);
         $CallbackDataExplode = explode('|', $this->callback_data);
         $Operate = explode('.', $CallbackDataExplode[0]);
         $op_1 = $Operate[1];
@@ -250,7 +255,7 @@ final class Callback
                 // 签到
                 if ((int) $Operate[2] !== $this->trigger_user['id']) {
                     $this->answerCallbackQuery([
-                        'text' => '你好，你无法操作他人的账户。',
+                        'text' => I18n::trans('bot.callback_other_account', $locale),
                         'show_alert' => true,
                     ]);
                 }
@@ -280,32 +285,33 @@ final class Callback
 
     public function getUserCenterKeyboard(): array
     {
+        $locale = Message::getLocale($this->user);
         $text = Message::getUserTrafficInfo($this->user);
 
         $keyboard = [
             [
                 [
-                    'text' => '登录记录',
+                    'text' => I18n::trans('bot.btn_login_log', $locale),
                     'callback_data' => 'user.center.login_log',
                 ],
                 [
-                    'text' => '在线 IP',
+                    'text' => I18n::trans('bot.btn_online_ip', $locale),
                     'callback_data' => 'user.center.usage_log',
                 ],
             ],
             [
                 [
-                    'text' => '返利记录',
+                    'text' => I18n::trans('bot.btn_rebate_log', $locale),
                     'callback_data' => 'user.center.rebate_log',
                 ],
                 [
-                    'text' => '订阅记录',
+                    'text' => I18n::trans('bot.btn_sub_log', $locale),
                     'callback_data' => 'user.center.subscribe_log',
                 ],
             ],
             [
                 [
-                    'text' => '回主菜单',
+                    'text' => I18n::trans('bot.btn_main_menu', $locale),
                     'callback_data' => 'user.index',
                 ],
             ],
@@ -324,14 +330,15 @@ final class Callback
      */
     public function userCenter(): void
     {
+        $locale = Message::getLocale($this->user);
         $back = [
             [
                 [
-                    'text' => '回主菜单',
+                    'text' => I18n::trans('bot.btn_main_menu', $locale),
                     'callback_data' => 'user.index',
                 ],
                 [
-                    'text' => '回上一页',
+                    'text' => I18n::trans('bot.btn_prev_page', $locale),
                     'callback_data' => 'user.center',
                 ],
             ],
@@ -349,13 +356,13 @@ final class Callback
                     ->orderBy('datetime', 'desc')
                     ->take(10)
                     ->get();
-                $text = '<strong>以下是你最近 10 次的登录 IP 和地理位置：</strong>' . PHP_EOL . PHP_EOL;
+                $text = '<strong>' . I18n::trans('bot.recent_login_title', $locale) . '</strong>' . PHP_EOL . PHP_EOL;
 
                 foreach ($total as $single) {
                     $text .= $single->ip . ' - ' . Tools::getIpLocation($single->ip) . PHP_EOL;
                 }
 
-                $text .= PHP_EOL . '<strong>注意：地理位置根据 MaxMind GeoIP2 数据库预估，可能与实际位置不符，仅供参考</strong>' . PHP_EOL;
+                $text .= PHP_EOL . '<strong>' . I18n::trans('bot.geoip_notice', $locale) . '</strong>' . PHP_EOL;
 
                 $sendMessage = [
                     'text' => $text,
@@ -374,14 +381,14 @@ final class Callback
                 // 使用记录
                 $logs = (new OnlineLog())->where('user_id', $this->user->id)
                     ->where('last_time', '>', time() - 90)->orderByDesc('last_time')->get('ip');
-                $text = '<strong>以下是你账户在线 IP 和地理位置：</strong>' . PHP_EOL . PHP_EOL;
+                $text = '<strong>' . I18n::trans('bot.online_ip_title', $locale) . '</strong>' . PHP_EOL . PHP_EOL;
 
                 foreach ($logs as $log) {
                     $ip = $log->ip();
                     $text .= $ip . ' - ' . Tools::getIpLocation($ip) . PHP_EOL;
                 }
 
-                $text .= PHP_EOL . '<strong>注意：地理位置根据 MaxMind GeoIP2 数据库预估，可能与实际位置不符，仅供参考</strong>' . PHP_EOL;
+                $text .= PHP_EOL . '<strong>' . I18n::trans('bot.geoip_notice', $locale) . '</strong>' . PHP_EOL;
 
                 $sendMessage = [
                     'text' => $text,
@@ -399,12 +406,12 @@ final class Callback
             case 'rebate_log':
                 // 返利记录
                 $paybacks = (new Payback())->where('ref_by', $this->user->id)->orderBy('datetime', 'desc')->take(10)->get();
-                $text = '<strong>以下是你最近 10 次返利记录：</strong>' . PHP_EOL . PHP_EOL;
+                $text = '<strong>' . I18n::trans('bot.recent_rebate_title', $locale) . '</strong>' . PHP_EOL . PHP_EOL;
 
                 foreach ($paybacks as $payback) {
                     $text .= '<code>#' . $payback->id .
-                        '：' . ($payback->user() !== null ? $payback->user()->user_name : '已注销') . '：' .
-                        $payback->ref_get . ' 元</code>' . PHP_EOL;
+                        '：' . ($payback->user() !== null ? $payback->user()->user_name : I18n::trans('bot.user_deleted', $locale)) . '：' .
+                        $payback->ref_get . '</code>' . PHP_EOL;
                 }
 
                 $sendMessage = [
@@ -424,17 +431,20 @@ final class Callback
                 // 订阅记录
                 if (Config::obtain('subscribe_log')) {
                     $logs = (new SubscribeLog())->orderBy('id', 'desc')->where('user_id', $this->user->id)->take(10)->get();
-                    $text = '<strong>以下是你最近 10 次订阅记录：</strong>' . PHP_EOL . PHP_EOL;
+                    $text = '<strong>' . I18n::trans('bot.recent_sub_title', $locale) . '</strong>' . PHP_EOL . PHP_EOL;
 
                     foreach ($logs as $log) {
-                        $text .= '<code>' . Tools::toDateTime($log->request_time) .
-                            ' 在 [' . $log->request_ip . '] ' . Tools::getIpLocation($log->request_ip) .
-                            ' 访问了 ' . $log->type . ' 订阅</code>' . PHP_EOL;
+                        $text .= '<code>' . I18n::trans('bot.sub_log_item', $locale, [
+                            'time' => Tools::toDateTime($log->request_time),
+                            'ip' => $log->request_ip,
+                            'location' => Tools::getIpLocation($log->request_ip),
+                            'type' => $log->type,
+                        ]) . '</code>' . PHP_EOL;
                     }
 
-                    $text .= PHP_EOL . '<strong>注意：地理位置根据 MaxMind GeoIP2 数据库预估，可能与实际位置不符，仅供参考</strong>' . PHP_EOL;
+                    $text .= PHP_EOL . '<strong>' . I18n::trans('bot.geoip_notice', $locale) . '</strong>' . PHP_EOL;
                 } else {
-                    $text = '站点未开启订阅记录功能';
+                    $text = I18n::trans('bot.sub_log_disabled', $locale);
                 }
 
                 $sendMessage = [
@@ -472,41 +482,42 @@ final class Callback
 
     public function getUserEditKeyboard(): array
     {
-        $text = '你可在此编辑你的资料或连接信息：' . PHP_EOL . PHP_EOL;
-        $text .= '端口：' . $this->user->port . PHP_EOL;
-        $text .= '密码：' . $this->user->passwd . PHP_EOL;
-        $text .= '加密：' . $this->user->method;
+        $locale = Message::getLocale($this->user);
+        $text = I18n::trans('bot.edit_conn_title', $locale) . PHP_EOL . PHP_EOL;
+        $text .= I18n::trans('bot.edit_conn_port', $locale, ['port' => $this->user->port]) . PHP_EOL;
+        $text .= I18n::trans('bot.edit_conn_passwd', $locale, ['passwd' => $this->user->passwd]) . PHP_EOL;
+        $text .= I18n::trans('bot.edit_conn_method', $locale, ['method' => $this->user->method]);
 
         $keyboard = [
             [
                 [
-                    'text' => '重置订阅链接',
+                    'text' => I18n::trans('bot.btn_reset_sub', $locale),
                     'callback_data' => 'user.edit.update_link',
                 ],
                 [
-                    'text' => '重置链接密码',
+                    'text' => I18n::trans('bot.btn_reset_passwd', $locale),
                     'callback_data' => 'user.edit.update_passwd',
                 ],
             ],
             [
                 [
-                    'text' => '更改加密方式',
+                    'text' => I18n::trans('bot.btn_change_method', $locale),
                     'callback_data' => 'user.edit.encrypt',
                 ],
                 [
-                    'text' => '账户解绑',
+                    'text' => I18n::trans('bot.btn_unbind', $locale),
                     'callback_data' => 'user.edit.unbind',
                 ],
             ],
             [
                 [
-                    'text' => '群组解封',
+                    'text' => I18n::trans('bot.btn_unban', $locale),
                     'callback_data' => 'user.edit.unban',
                 ],
             ],
             [
                 [
-                    'text' => '回主菜单',
+                    'text' => I18n::trans('bot.btn_main_menu', $locale),
                     'callback_data' => 'user.index',
                 ],
             ],
@@ -525,9 +536,10 @@ final class Callback
      */
     public function userEdit(): void
     {
+        $locale = Message::getLocale($this->user);
         if ($this->chat_id < 0) {
             $this->answerCallbackQuery([
-                'text' => '无法在群组中进行该操作。',
+                'text' => I18n::trans('bot.group_action_denied', $locale),
                 'show_alert' => true,
             ]);
         }
@@ -535,11 +547,11 @@ final class Callback
         $back = [
             [
                 [
-                    'text' => '回主菜单',
+                    'text' => I18n::trans('bot.btn_main_menu', $locale),
                     'callback_data' => 'user.index',
                 ],
                 [
-                    'text' => '回上一页',
+                    'text' => I18n::trans('bot.btn_prev_page', $locale),
                     'callback_data' => 'user.edit',
                 ],
             ],
@@ -556,7 +568,7 @@ final class Callback
                 $this->user->removeLink();
 
                 $this->answerCallbackQuery([
-                    'text' => '订阅链接重置成功，请在下方重新更新订阅。',
+                    'text' => I18n::trans('bot.sub_reset_success', $locale),
                     'show_alert' => true,
                 ]);
 
@@ -579,10 +591,10 @@ final class Callback
                 $this->user->passwd = Tools::genPasswd(16);
 
                 if ($this->user->save()) {
-                    $answerCallbackQuery = '连接密码更新成功，请在下方重新更新订阅。';
+                    $answerCallbackQuery = I18n::trans('bot.passwd_reset_success', $locale);
                     $temp = $this->getUserSubscribeKeyboard();
                 } else {
-                    $answerCallbackQuery = '出现错误，连接密码更新失败，请联系管理员。';
+                    $answerCallbackQuery = I18n::trans('bot.passwd_reset_failed', $locale);
                     $temp = $this->getUserEditKeyboard();
                 }
 
@@ -612,12 +624,12 @@ final class Callback
                     if (in_array($CallbackDataExplode[1], $method)) {
                         $temp = $this->user->setMethod($CallbackDataExplode[1]);
                         if ($temp['ok']) {
-                            $text = '你当前的加密方式为：' . $this->user->method . PHP_EOL . PHP_EOL . $temp['msg'];
+                            $text = I18n::trans('bot.current_method', $locale, ['method' => $this->user->method]) . PHP_EOL . PHP_EOL . $temp['msg'];
                         } else {
-                            $text = '发生错误，请重新选择。' . PHP_EOL . PHP_EOL . $temp['msg'];
+                            $text = I18n::trans('bot.error_retry', $locale) . PHP_EOL . PHP_EOL . $temp['msg'];
                         }
                     } else {
-                        $text = '发生错误，请重新选择。';
+                        $text = I18n::trans('bot.error_retry', $locale);
                     }
                 } else {
                     $Encrypts = [];
@@ -637,7 +649,7 @@ final class Callback
                     }
 
                     $keyboard[] = $back[0];
-                    $text = '你当前的加密方式为：' . $this->user->method;
+                    $text = I18n::trans('bot.current_method', $locale, ['method' => $this->user->method]);
                 }
 
                 $sendMessage = [
@@ -654,9 +666,9 @@ final class Callback
             case 'unbind':
                 // Telegram 账户解绑
                 $this->allow_edit_message = false;
-                $text = '发送 **/unbind 账户邮箱** 进行解绑。';
+                $text = I18n::trans('bot.unbind_prompt_md', $locale);
                 if (Config::obtain('telegram_unbind_kick_member')) {
-                    $text .= PHP_EOL . PHP_EOL . '根据管理员的设定，你解绑账户将会被自动移出用户群。';
+                    $text .= PHP_EOL . PHP_EOL . I18n::trans('bot.unbind_kick_warning', $locale);
                 }
                 $sendMessage = [
                     'text' => $text,
@@ -669,7 +681,7 @@ final class Callback
             case 'unban':
                 // 群组解封
                 $sendMessage = [
-                    'text' => '如果你已经身处用户群，请勿随意点击解封，否则会导致你被移除出群组。',
+                    'text' => I18n::trans('bot.unban_warning', $locale),
                     'disable_web_page_preview' => false,
                     'reply_to_message_id' => null,
                     'reply_markup' => json_encode(
@@ -677,7 +689,7 @@ final class Callback
                             'inline_keyboard' => [
                                 [
                                     [
-                                        'text' => '点击提交解封',
+                                        'text' => I18n::trans('bot.btn_submit_unban', $locale),
                                         'callback_data' => 'user.edit.unban_update',
                                     ],
                                 ],
@@ -698,7 +710,7 @@ final class Callback
                 );
 
                 $this->answerCallbackQuery([
-                    'text' => '已提交解封，如你仍无法加入群组，请联系管理员。',
+                    'text' => I18n::trans('bot.unban_submitted', $locale),
                     'show_alert' => true,
                 ]);
 
@@ -729,7 +741,8 @@ final class Callback
 
     public function getUserSubscribeKeyboard(): array
     {
-        $text = '选择你想要使用的订阅链接类型：';
+        $locale = Message::getLocale($this->user);
+        $text = I18n::trans('bot.select_sub_type', $locale);
 
         $buttons = [
             [
@@ -792,7 +805,7 @@ final class Callback
         $keyboard = array_chunk($validButtons, 3);
         $keyboard[] = [
             [
-                'text' => '回主菜单',
+                'text' => I18n::trans('bot.btn_main_menu', $locale),
                 'callback_data' => 'user.index',
             ],
         ];
@@ -810,6 +823,7 @@ final class Callback
      */
     public function userSubscribe(): void
     {
+        $locale = Message::getLocale($this->user);
         $CallbackDataExplode = explode('|', $this->callback_data);
         // 订阅中心
         if (isset($CallbackDataExplode[1])) {
@@ -818,11 +832,11 @@ final class Callback
             $temp['keyboard'] = [
                 [
                     [
-                        'text' => '回主菜单',
+                        'text' => I18n::trans('bot.btn_main_menu', $locale),
                         'callback_data' => 'user.index',
                     ],
                     [
-                        'text' => '回上一页',
+                        'text' => I18n::trans('bot.btn_prev_page', $locale),
                         'callback_data' => 'user.subscribe',
                     ],
                 ],
@@ -831,25 +845,25 @@ final class Callback
             $UniversalSub_Url = Subscribe::getUniversalSubLink($this->user);
 
             $text = match ($CallbackDataExplode[1]) {
-                'json' => 'Json 通用订阅地址：' . PHP_EOL . PHP_EOL .
+                'json' => I18n::trans('bot.sub_url_universal', $locale, ['name' => 'Json']) . PHP_EOL . PHP_EOL .
                     '<code>' . $UniversalSub_Url . '/json</code>' . PHP_EOL . PHP_EOL,
-                'clash' => 'Clash 通用订阅地址：' . PHP_EOL . PHP_EOL .
+                'clash' => I18n::trans('bot.sub_url_universal', $locale, ['name' => 'Clash']) . PHP_EOL . PHP_EOL .
                     '<code>' . $UniversalSub_Url . '/clash</code>' . PHP_EOL . PHP_EOL,
-                'singbox' => 'SingBox 通用订阅地址：' . PHP_EOL . PHP_EOL .
+                'singbox' => I18n::trans('bot.sub_url_universal', $locale, ['name' => 'SingBox']) . PHP_EOL . PHP_EOL .
                     '<code>' . $UniversalSub_Url . '/singbox</code>' . PHP_EOL . PHP_EOL,
-                'v2rayjson' => 'V2RayJson 通用订阅地址：' . PHP_EOL . PHP_EOL .
+                'v2rayjson' => I18n::trans('bot.sub_url_universal', $locale, ['name' => 'V2RayJson']) . PHP_EOL . PHP_EOL .
                     '<code>' . $UniversalSub_Url . '/v2rayjson</code>' . PHP_EOL . PHP_EOL,
-                'sip008' => 'SIP008 通用订阅地址：' . PHP_EOL . PHP_EOL .
+                'sip008' => I18n::trans('bot.sub_url_universal', $locale, ['name' => 'SIP008']) . PHP_EOL . PHP_EOL .
                     '<code>' . $UniversalSub_Url . '/sip008</code>' . PHP_EOL . PHP_EOL,
-                'ss' => 'Shadowsocks 客户端订阅地址：' . PHP_EOL . PHP_EOL .
+                'ss' => I18n::trans('bot.sub_url_client', $locale, ['name' => 'Shadowsocks']) . PHP_EOL . PHP_EOL .
                     '<code>' . $UniversalSub_Url . '/ss</code>' . PHP_EOL . PHP_EOL,
-                'sip002' => 'SIP002 客户端订阅地址：' . PHP_EOL . PHP_EOL .
+                'sip002' => I18n::trans('bot.sub_url_client', $locale, ['name' => 'SIP002']) . PHP_EOL . PHP_EOL .
                     '<code>' . $UniversalSub_Url . '/sip002</code>' . PHP_EOL . PHP_EOL,
-                'v2' => 'V2Ray 客户端订阅地址：' . PHP_EOL . PHP_EOL .
+                'v2' => I18n::trans('bot.sub_url_client', $locale, ['name' => 'V2Ray']) . PHP_EOL . PHP_EOL .
                     '<code>' . $UniversalSub_Url . '/v2ray</code>' . PHP_EOL . PHP_EOL,
-                'trojan' => 'Trojan 客户端订阅地址：' . PHP_EOL . PHP_EOL .
+                'trojan' => I18n::trans('bot.sub_url_client', $locale, ['name' => 'Trojan']) . PHP_EOL . PHP_EOL .
                     '<code>' . $UniversalSub_Url . '/trojan</code>' . PHP_EOL . PHP_EOL,
-                default => '未知参数' . PHP_EOL . PHP_EOL,
+                default => I18n::trans('bot.unknown_param', $locale) . PHP_EOL . PHP_EOL,
             };
 
             $sendMessage = [
@@ -889,6 +903,7 @@ final class Callback
 
     public function getUserInviteKeyboard(): array
     {
+        $locale = Message::getLocale($this->user);
         $paybacks_sum = (new Payback())->where('ref_by', $this->user->id)->sum('ref_get');
 
         if (is_null($paybacks_sum)) {
@@ -896,25 +911,25 @@ final class Callback
         }
 
         $text = [
-            '<strong>你每邀请 <code>1</code> 位用户注册：</strong>',
+            '<strong>' . I18n::trans('bot.invite_per_user_title', $locale) . '</strong>',
             '',
-            '- 你会获得 <code>' . Config::obtain('invite_reg_traffic_reward') . 'G</code> 流量奖励。',
-            '- 对方将获得 <code>' . Config::obtain('invite_reg_money_reward') . '元</code> 初始账户余额。',
-            '- 对方支付账单时你会获得对方账单金额的 <code>' . Config::obtain('invite_reward_rate') * 100 . '%</code> 的返利。',
+            I18n::trans('bot.invite_traffic_reward', $locale, ['traffic' => Config::obtain('invite_reg_traffic_reward')]),
+            I18n::trans('bot.invite_money_reward', $locale, ['money' => Config::obtain('invite_reg_money_reward')]),
+            I18n::trans('bot.invite_rebate_rate', $locale, ['rate' => Config::obtain('invite_reward_rate') * 100]),
             '',
-            '已获得返利：' . $paybacks_sum . ' 元。',
+            I18n::trans('bot.invite_total_rebate', $locale, ['amount' => $paybacks_sum]),
         ];
 
         $keyboard = [
             [
                 [
-                    'text' => '获取我的邀请链接',
+                    'text' => I18n::trans('bot.btn_get_invite_link', $locale),
                     'callback_data' => 'user.invite.get',
                 ],
             ],
             [
                 [
-                    'text' => '回主菜单',
+                    'text' => I18n::trans('bot.btn_main_menu', $locale),
                     'callback_data' => 'user.index',
                 ],
             ],
@@ -986,16 +1001,17 @@ final class Callback
      */
     public function userCheckin(): void
     {
+        $locale = Message::getLocale($this->user);
         if ($this->user->isAbleToCheckin()) {
             $traffic = Reward::issueCheckinReward($this->user->id);
 
             if (! $traffic) {
-                $msg = '签到失败';
+                $msg = I18n::trans('bot.checkin_failed', $locale);
             } else {
-                $msg = '获得了 ' . $traffic . 'MB 流量';
+                $msg = I18n::trans('bot.checkin_success', $locale, ['traffic' => $traffic]);
             }
         } else {
-            $msg = '你今天已经签到过了';
+            $msg = I18n::trans('bot.checkin_already', $locale);
         }
 
         $this->answerCallbackQuery([
@@ -1011,7 +1027,9 @@ final class Callback
             $temp['keyboard'] = [
                 [
                     [
-                        'text' => (! $this->user->isAbleToCheckin() ? '已签到' : '签到'),
+                        'text' => (! $this->user->isAbleToCheckin()
+                            ? I18n::trans('bot.btn_checked_in', $locale)
+                            : I18n::trans('bot.btn_checkin', $locale)),
                         'callback_data' => 'user.checkin.' . $this->trigger_user['id'],
                     ],
                 ],

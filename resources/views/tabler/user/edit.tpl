@@ -776,20 +776,20 @@
                 success: function (res) {
                     if (res.ret === 1 && res.bound) {
                         stopTgPolling();
-                        $('#success-message').text('Telegram 账号绑定成功！');
+                        $('#success-message').text('{trans key="user.tg_bind_success" escape="js"}');
                         if (window.successDialog) {
                             successDialog.show();
                         } else if (typeof showToast === 'function') {
-                            showToast('Telegram 账号绑定成功！');
+                            showToast('{trans key="user.tg_bind_success" escape="js"}');
                         }
                         setTimeout(function () {
                             location.reload();
                         }, 1200);
                     } else if (manual) {
                         if (typeof showToast === 'function') {
-                            showToast('尚未检测到绑定完成，请在 Telegram 中确认操作', 'danger');
+                            showToast('{trans key="user.tg_bind_not_detected" escape="js"}', 'danger');
                         } else {
-                            $('#error-message').text('尚未检测到绑定完成，请在 Telegram 中确认操作');
+                            $('#error-message').text('{trans key="user.tg_bind_not_detected" escape="js"}');
                             if (window.failDialog) {
                                 failDialog.show();
                             }
@@ -799,7 +799,7 @@
                 error: function () {
                     if (manual) {
                         if (typeof showToast === 'function') {
-                            showToast('检查状态失败，请稍后重试', 'danger');
+                            showToast('{trans key="user.tg_bind_check_failed" escape="js"}', 'danger');
                         }
                     }
                 }
@@ -819,34 +819,37 @@
         }
 
         function renderTelegramUI(data) {
+            let tgInstruction = '{trans key="user.tg_bind_instruction" escape="js"}'
+                .replace('%bot%', data.bot_username)
+                .replace(/%token%/g, data.token);
             let html = '<div class="w-100">' +
                 '<div class="card bg-light-lt border mb-3">' +
                 '<div class="card-body p-3">' +
                 '<div class="d-flex align-items-center justify-content-between mb-2">' +
-                '<span class="text-secondary fw-semibold">Telegram 绑定码</span>' +
+                '<span class="text-secondary fw-semibold">{trans key="user.tg_bind_code_label" escape="js"}</span>' +
                 '<button type="button" class="btn btn-sm btn-outline-secondary copy-token-btn" data-token="' + data.token + '">' +
-                '<i class="ti ti-copy icon"></i> 复制绑定码' +
+                '<i class="ti ti-copy icon"></i> {trans key="user.tg_copy_code" escape="js"}' +
                 '</button>' +
                 '</div>' +
                 '<div class="text-center my-2">' +
                 '<code class="fs-2 fw-bold text-primary bg-body px-3 py-1 rounded border">' + data.token + '</code>' +
                 '</div>' +
                 '<div class="text-secondary small mt-2">' +
-                '可在 Telegram 中向 <strong>@' + data.bot_username + '</strong> 发送 <code>/start ' + data.token + '</code> 或 <code>/bind ' + data.token + '</code>，或直接点击下方按钮一键完成绑定。' +
+                tgInstruction +
                 '</div>' +
                 '</div>' +
                 '</div>' +
                 '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2">' +
                 '<div class="btn-list">' +
                 '<a href="' + data.bind_url + '" target="_blank" class="btn btn-primary">' +
-                '<i class="ti ti-brand-telegram icon"></i> 一键打开 Telegram 绑定' +
+                '<i class="ti ti-brand-telegram icon"></i> {trans key="user.tg_open_bind" escape="js"}' +
                 '</a>' +
                 '<button type="button" class="btn btn-outline-primary" id="refresh-tg-status">' +
-                '<i class="ti ti-refresh icon"></i> 刷新绑定状态' +
+                '<i class="ti ti-refresh icon"></i> {trans key="user.tg_refresh_status" escape="js"}' +
                 '</button>' +
                 '</div>' +
                 '<div>' +
-                '<a href="javascript:void(0)" id="toggle-tg-widget" class="text-secondary small ms-2">网页组件绑定</a>' +
+                '<a href="javascript:void(0)" id="toggle-tg-widget" class="text-secondary small ms-2">{trans key="user.tg_web_widget_bind" escape="js"}</a>' +
                 '</div>' +
                 '</div>' +
                 '<div id="tg-widget-container" class="mt-3 text-center d-none"></div>' +
@@ -872,7 +875,7 @@
                 oauthProvider.empty().html(
                     '<div class="d-flex align-items-center py-2">' +
                     '<div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>' +
-                    '<span class="text-secondary small">正在获取绑定信息...</span>' +
+                    '<span class="text-secondary small">{trans key="user.tg_fetching_bind_info" escape="js"}</span>' +
                     '</div>'
                 );
 
@@ -890,7 +893,7 @@
                         }
                     },
                     error: function () {
-                        oauthProvider.html('<div class="text-danger small py-2">获取绑定信息失败，请刷新重试</div>');
+                        oauthProvider.html('<div class="text-danger small py-2">{trans key="user.tg_fetch_bind_info_failed" escape="js"}</div>');
                     }
                 });
             }
@@ -901,18 +904,18 @@
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(token).then(function () {
                     if (typeof showToast === 'function') {
-                        showToast('绑定码已复制到剪贴板');
+                        showToast('{trans key="user.tg_code_copied" escape="js"}');
                     } else {
-                        $('#success-message').text('绑定码已复制到剪贴板');
+                        $('#success-message').text('{trans key="user.tg_code_copied" escape="js"}');
                         if (window.successDialog) {
                             successDialog.show();
                         }
                     }
                 }).catch(function () {
-                    prompt('请手动复制绑定码：', token);
+                    prompt('{trans key="user.tg_copy_code_manual" escape="js"}', token);
                 });
             } else {
-                prompt('请手动复制绑定码：', token);
+                prompt('{trans key="user.tg_copy_code_manual" escape="js"}', token);
             }
         });
 

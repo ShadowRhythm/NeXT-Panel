@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Services\Bot\Telegram\Commands;
 
 use App\Models\Config;
+use App\Services\Bot\Telegram\Message;
 use App\Services\Bot\Telegram\Telegram;
+use App\Services\I18n;
 use Telegram\Bot\Actions;
 use Telegram\Bot\Commands\Command;
 use function explode;
@@ -51,9 +53,10 @@ final class StartCommand extends Command
             }
 
             // 回送信息
+            $user = Message::getUser((int) $message->from->id);
             $this->replyWithMessage(
                 [
-                    'text' => '发送 /help 获取帮助',
+                    'text' => I18n::trans('bot.start_help_prompt', Message::getLocale($user)),
                     'parse_mode' => 'Markdown',
                 ]
             );
