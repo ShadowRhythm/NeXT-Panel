@@ -21,6 +21,7 @@ use Smarty\Exception;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use function array_merge;
 use function count;
+use function is_array;
 use function json_decode;
 use function json_encode;
 use function nl2br;
@@ -128,10 +129,14 @@ final class TicketController extends BaseController
             return ResponseHelper::error($response, I18n::trans('user.ticket_not_found', $locale));
         }
 
-        $content_old = json_decode($ticket->content, true);
+        $content_old = json_decode((string) $ticket->content, true);
+        if (! is_array($content_old)) {
+            $content_old = [];
+        }
+        $lastCommentId = $content_old !== [] ? (int) ($content_old[count($content_old) - 1]['comment_id'] ?? 0) : -1;
         $content_new = [
             [
-                'comment_id' => $content_old[count($content_old) - 1]['comment_id'] + 1,
+                'comment_id' => $lastCommentId + 1,
                 'commenter_type' => 'user',
                 'commenter_name' => $this->user->user_name,
                 'comment' => $this->antiXss->xss_clean($comment),

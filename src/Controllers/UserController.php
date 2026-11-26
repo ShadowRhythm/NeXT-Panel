@@ -9,6 +9,7 @@ use App\Models\Config;
 use App\Services\Analytics;
 use App\Models\Node;
 use App\Models\StreamMedia;
+use App\Services\Cache;
 use App\Services\DB;
 use App\Services\Auth;
 use App\Services\Captcha;
@@ -54,29 +55,43 @@ final class UserController extends BaseController
         }
 
         if (Config::obtain('traffic_log')) {
-            $hourly_usage_data = Analytics::getUserPast24HoursUsage($this->user->id);
+            $chartData = Cache::remember('user_dashboard_traffic_' . $this->user->id, 60, function (): array {
+                $uid = $this->user->id;
+                $hourly_usage_data = Analytics::getUserPast24HoursUsage($uid);
+                $daily_usage_data = Analytics::getUserPast30DaysUsage($uid);
+                $monthly_usage_data = Analytics::getUserPast12MonthsUsage($uid);
 
-            foreach ($hourly_usage_data['usage'] as $usage) {
-                $traffic_logs[] = Tools::bToMB((int) $usage);
-            }
+                $traffic_logs = [];
+                foreach ($hourly_usage_data['usage'] as $usage) {
+                    $traffic_logs[] = Tools::bToMB((int) $usage);
+                }
 
-            $traffic_logs_labels = $hourly_usage_data['labels'];
+                $daily_traffic_logs = [];
+                foreach ($daily_usage_data['usage'] as $usage) {
+                    $daily_traffic_logs[] = Tools::bToMB((int) $usage);
+                }
 
-            $daily_usage_data = Analytics::getUserPast30DaysUsage($this->user->id);
+                $monthly_traffic_logs = [];
+                foreach ($monthly_usage_data['usage'] as $usage) {
+                    $monthly_traffic_logs[] = Tools::bToGB((int) $usage);
+                }
 
-            foreach ($daily_usage_data['usage'] as $usage) {
-                $daily_traffic_logs[] = Tools::bToMB((int) $usage);
-            }
+                return [
+                    'traffic_logs' => $traffic_logs,
+                    'traffic_logs_labels' => $hourly_usage_data['labels'],
+                    'daily_traffic_logs' => $daily_traffic_logs,
+                    'daily_traffic_labels' => $daily_usage_data['labels'],
+                    'monthly_traffic_logs' => $monthly_traffic_logs,
+                    'monthly_traffic_labels' => $monthly_usage_data['labels'],
+                ];
+            });
 
-            $daily_traffic_labels = $daily_usage_data['labels'];
-
-            $monthly_usage_data = Analytics::getUserPast12MonthsUsage($this->user->id);
-
-            foreach ($monthly_usage_data['usage'] as $usage) {
-                $monthly_traffic_logs[] = Tools::bToGB((int) $usage);
-            }
-
-            $monthly_traffic_labels = $monthly_usage_data['labels'];
+            $traffic_logs = $chartData['traffic_logs'];
+            $traffic_logs_labels = $chartData['traffic_logs_labels'];
+            $daily_traffic_logs = $chartData['daily_traffic_logs'];
+            $daily_traffic_labels = $chartData['daily_traffic_labels'];
+            $monthly_traffic_logs = $chartData['monthly_traffic_logs'];
+            $monthly_traffic_labels = $chartData['monthly_traffic_labels'];
         }
 
         $universalSub = Subscribe::getUniversalSubLink($this->user);
@@ -136,70 +151,84 @@ final class UserController extends BaseController
      */	
     public function media(ServerRequest $request, Response $response, array $args)
     {
-        $results = [];
         $default_unlock_keys = ['YouTube', 'Netflix', 'Disney+', 'OpenAI', 'Gemini', 'TikTok', 'Abema'];
         $ip_keys = ['IPType', 'IPattributes', 'IPRisk'];
-        $discovered_unlock_keys = [];
 
-        try {
-            $node_ids = StreamMedia::select('node_id')->distinct()->pluck('node_id')->toArray();
-        } catch (\Throwable) {
-            $node_ids = [];
-        }
+        $cached = Cache::remember('user_media_unlock_results', 60, static function () use ($default_unlock_keys, $ip_keys): array {
+            $results = [];
+            $discovered_unlock_keys = [];
 
-        foreach ($node_ids as $node_id) {
-            $node = (new Node())->find($node_id);
-            $unlock = StreamMedia::where('node_id', $node_id)
-                ->orderBy('id', 'desc')
-                ->where('created_at', '>', \time() - 86460) // 只获取最近一天零一分钟内上报的数据
-                ->first();
-
-            if ($unlock !== null && $node !== null) {
-                $details = \json_decode($unlock->result, true);
-                if (! \is_array($details)) {
-                    $details = [];
-                }
-
-                // 从 result JSON 中提取 IP 质量字段，剩余为流媒体解锁结果
-                $ip_info = [];
-                foreach ($ip_keys as $key) {
-                    if (isset($details[$key])) {
-                        $ip_info[$key] = $details[$key];
-                        unset($details[$key]);
-                    }
-                }
-
-                // 移除解锁结果中多余的 (Native) 标识（如 OpenAI 的 Yes (Native) -> Yes）
-                foreach ($details as $k => $v) {
-                    if (\is_string($v)) {
-                        $details[$k] = \trim(\str_replace([' (Native)', '(Native)'], '', $v));
-                    }
-                }
-
-                foreach (\array_keys($details) as $key) {
-                    if (! \in_array($key, $discovered_unlock_keys, true)) {
-                        $discovered_unlock_keys[] = $key;
-                    }
-                }
-
-                $info = [
-                    'node_name'   => $node->name,
-                    'created_at'  => $unlock->created_at,
-                    'unlock_item' => $details,
-                    'ip_info'     => $ip_info,
-                ];
-                $results[] = $info;
+            try {
+                $latestIds = StreamMedia::where('created_at', '>', \time() - 86460)
+                    ->selectRaw('MAX(id) as max_id')
+                    ->groupBy('node_id')
+                    ->pluck('max_id')
+                    ->all();
+            } catch (\Throwable) {
+                $latestIds = [];
             }
-        }
-		
-        $node_names = array_column($results, 'node_name');
-        array_multisort($node_names, SORT_ASC, $results);
 
-        $unlock_keys = \array_values(\array_unique(\array_merge($default_unlock_keys, $discovered_unlock_keys)));
+            if ($latestIds !== []) {
+                $unlocks = StreamMedia::whereIn('id', $latestIds)->get();
+                $nodeIds = $unlocks->pluck('node_id')->unique()->filter()->values()->all();
+                $nodes = $nodeIds !== []
+                    ? Node::whereIn('id', $nodeIds)->get(['id', 'name'])->keyBy('id')
+                    : null;
+
+                foreach ($unlocks as $unlock) {
+                    $node = $nodes?->get($unlock->node_id);
+                    if ($node === null) {
+                        continue;
+                    }
+
+                    $details = \json_decode($unlock->result, true);
+                    if (! \is_array($details)) {
+                        $details = [];
+                    }
+
+                    // 从 result JSON 中提取 IP 质量字段，剩余为流媒体解锁结果
+                    $ip_info = [];
+                    foreach ($ip_keys as $key) {
+                        if (isset($details[$key])) {
+                            $ip_info[$key] = $details[$key];
+                            unset($details[$key]);
+                        }
+                    }
+
+                    // 移除解锁结果中多余的 (Native) 标识（如 OpenAI 的 Yes (Native) -> Yes）
+                    foreach ($details as $k => $v) {
+                        if (\is_string($v)) {
+                            $details[$k] = \trim(\str_replace([' (Native)', '(Native)'], '', $v));
+                        }
+                    }
+
+                    foreach (\array_keys($details) as $key) {
+                        if (! \in_array($key, $discovered_unlock_keys, true)) {
+                            $discovered_unlock_keys[] = $key;
+                        }
+                    }
+
+                    $results[] = [
+                        'node_name'   => $node->name,
+                        'created_at'  => $unlock->created_at,
+                        'unlock_item' => $details,
+                        'ip_info'     => $ip_info,
+                    ];
+                }
+            }
+
+            $node_names = array_column($results, 'node_name');
+            array_multisort($node_names, SORT_ASC, $results);
+
+            return [
+                'results' => $results,
+                'unlock_keys' => \array_values(\array_unique(\array_merge($default_unlock_keys, $discovered_unlock_keys))),
+            ];
+        });
 
         return $response->write($this->view()
-            ->assign('results', $results)
-            ->assign('unlock_keys', $unlock_keys)
+            ->assign('results', $cached['results'])
+            ->assign('unlock_keys', $cached['unlock_keys'])
             ->assign('ip_keys', $ip_keys)
             ->fetch('user/media.tpl'));
     }

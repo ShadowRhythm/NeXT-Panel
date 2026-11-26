@@ -100,7 +100,7 @@ final class Cryptomus extends Base
             ]);
         }
 
-        $redir = $this->antiXss->xss_clean($request->getParam('redir'));
+        $redir = self::sanitizeReturnUrl($this->antiXss->xss_clean($request->getParam('redir')));
 
         $pl = (new Paylist())->where('invoice_id', $invoiceId)->first();
 
@@ -138,7 +138,15 @@ final class Cryptomus extends Base
             ]);
         }
 
-        return $response->withHeader('HX-Redirect', $payment['url'])->withJson([
+        $payUrl = $payment['url'] ?? null;
+        if (! self::isValidExternalRedirectUrl($payUrl)) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '请求支付失败，网关返回地址无效',
+            ]);
+        }
+
+        return $response->withHeader('HX-Redirect', $payUrl)->withJson([
             'ret' => 1,
             'msg' => '订单发起成功，正在跳转到支付页面...',
         ]);

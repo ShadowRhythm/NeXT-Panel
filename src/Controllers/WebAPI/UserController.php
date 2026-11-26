@@ -17,11 +17,13 @@ use App\Utils\Tools;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
+use function array_chunk;
 use function count;
 use function date;
 use function is_array;
 use function is_numeric;
 use function json_decode;
+use function max;
 use function time;
 
 final class UserController extends BaseController
@@ -82,6 +84,8 @@ final class UserController extends BaseController
         };
 
         $users = [];
+        $hasIpLimit = $users_raw->contains(static fn (User $u): bool => (int) $u->node_iplimit !== 0);
+        $onlineIpCounts = $hasIpLimit ? OnlineLog::getActiveIpCounts() : [];
 
         foreach ($users_raw as $user_raw) {
             if ($user_raw->transfer_enable <= $user_raw->u + $user_raw->d) {
@@ -93,12 +97,8 @@ final class UserController extends BaseController
                 }
             }
 
-            if ($user_raw->node_iplimit !== 0 &&
-                $user_raw->node_iplimit <
-                (new OnlineLog())
-                    ->where('user_id', $user_raw->id)
-                    ->where('last_time', '>', time() - 90)
-                    ->count()
+            if ((int) $user_raw->node_iplimit !== 0 &&
+                (int) $user_raw->node_iplimit < ($onlineIpCounts[$user_raw->id] ?? 0)
             ) {
                 continue;
             }
@@ -181,29 +181,36 @@ final class UserController extends BaseController
 
         $sum = 0;
         $is_traffic_log = Config::obtain('traffic_log');
+        $hourlyUsages = [];
+        $now = time();
 
         foreach ($data as $log) {
             $u = $log?->u ?? 0;
             $d = $log?->d ?? 0;
-            $user_id = $log?->user_id;
+            $user_id = (int) ($log?->user_id ?? 0);
+            $bytes = (int) ($u + $d);
 
-            if ($user_id) {
+            if ($user_id > 0 && $bytes > 0) {
                 $billed_u = $u * $rate;
                 $billed_d = $d * $rate;
 
                 User::where('id', $user_id)->incrementEach([
                     'u' => $billed_u,
                     'd' => $billed_d,
-                    'transfer_total' => $u + $d,
+                    'transfer_total' => $bytes,
                     'transfer_today' => $billed_u + $billed_d,
-                ], ['last_use_time' => time(), 'is_inactive' => 0]);
+                ], ['last_use_time' => $now, 'is_inactive' => 0]);
+
+                if ($is_traffic_log) {
+                    $hourlyUsages[$user_id] = ($hourlyUsages[$user_id] ?? 0) + $bytes;
+                }
             }
 
-            if ($is_traffic_log) {
-                (new HourlyUsage())->add((int) $user_id, (int) ($u + $d));
-            }
+            $sum += $bytes;
+        }
 
-            $sum += $u + $d;
+        if ($is_traffic_log && $hourlyUsages !== []) {
+            HourlyUsage::addBatch($hourlyUsages);
         }
 
         Node::where('id', $node->id)->increment('node_bandwidth', $sum, [
@@ -236,30 +243,7 @@ final class UserController extends BaseController
             return ResponseHelper::error($response, 'Node is not enabled.');
         }
 
-        foreach ($data as $log) {
-            $ip = (string) $log?->ip;
-            $user_id = (int) $log?->user_id;
-
-            if (Tools::isIPv4($ip)) {
-                // convert IPv4 Address to IPv4-mapped IPv6 Address
-                $ip = '::ffff:' . $ip;
-            } elseif (! Tools::isIPv6($ip)) {
-                // either IPv4 or IPv6 Address
-                continue;
-            }
-
-            (new OnlineLog())->upsert(
-                [
-                    'user_id' => $user_id,
-                    'ip' => $ip,
-                    'node_id' => $node_id,
-                    'first_time' => time(),
-                    'last_time' => time(),
-                ],
-                ['user_id', 'ip'],
-                ['node_id', 'last_time']
-            );
-        }
+        OnlineLog::recordBatch((int) $node->id, $data);
 
         return ResponseHelper::success($response, 'ok');
     }
@@ -287,16 +271,27 @@ final class UserController extends BaseController
             return ResponseHelper::error($response, 'Node is not enabled.');
         }
 
-        foreach ($data as $log) {
-            $list_id = (int) $log?->list_id;
-            $user_id = (int) $log?->user_id;
+        $now = time();
+        $rows = [];
 
-            (new DetectLog())->insert([
+        foreach ($data as $log) {
+            $list_id = (int) ($log?->list_id ?? 0);
+            $user_id = (int) ($log?->user_id ?? 0);
+
+            if ($user_id <= 0 || $list_id <= 0) {
+                continue;
+            }
+
+            $rows[] = [
                 'user_id' => $user_id,
                 'list_id' => $list_id,
-                'node_id' => $node_id,
-                'datetime' => time(),
-            ]);
+                'node_id' => $node->id,
+                'datetime' => $now,
+            ];
+        }
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            (new DetectLog())->insert($chunk);
         }
 
         return ResponseHelper::success($response, 'ok');

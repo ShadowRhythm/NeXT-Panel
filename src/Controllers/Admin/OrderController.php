@@ -99,18 +99,32 @@ final class OrderController extends BaseController
         $order->content = json_decode($order->product_content);
 
         $invoice = (new Invoice())->where('order_id', $id)->first();
-        $invoice->raw_status = $invoice->status;
-        $invoice->already_collected = 0.0;
+        if ($invoice !== null) {
+            $invoice->raw_status = $invoice->status;
+            $invoice->already_collected = 0.0;
 
-        if ($invoice->raw_status === 'partially_paid') {
-            $invoice->already_collected = max(0.0, round((float) $order->price - (float) $invoice->price, 2));
+            if ($invoice->raw_status === 'partially_paid') {
+                $invoice->already_collected = max(0.0, round((float) $order->price - (float) $invoice->price, 2));
+            }
+
+            $invoice->status = $invoice->status();
+            $invoice->create_time = Tools::toDateTime($invoice->create_time);
+            $invoice->update_time = Tools::toDateTime($invoice->update_time);
+            $invoice->pay_time = Tools::toDateTime($invoice->pay_time);
+            $invoice->content = json_decode($invoice->content);
+        } else {
+            $invoice = (object) [
+                'id' => 0,
+                'raw_status' => '',
+                'already_collected' => 0.0,
+                'price' => '-',
+                'status' => '无关联账单',
+                'create_time' => '-',
+                'update_time' => '-',
+                'pay_time' => '-',
+                'content' => [],
+            ];
         }
-
-        $invoice->status = $invoice->status();
-        $invoice->create_time = Tools::toDateTime($invoice->create_time);
-        $invoice->update_time = Tools::toDateTime($invoice->update_time);
-        $invoice->pay_time = Tools::toDateTime($invoice->pay_time);
-        $invoice->content = json_decode($invoice->content);
 
         return $response->write(
             $this->view()
@@ -241,7 +255,7 @@ final class OrderController extends BaseController
 
         $invoice = (new Invoice())->where('order_id', $order_id)->first();
 
-        if ($order->delete() && $invoice->delete()) {
+        if ($order->delete() && ($invoice === null || $invoice->delete())) {
             return $response->withJson([
                 'ret' => 1,
                 'msg' => '删除成功',
@@ -249,7 +263,7 @@ final class OrderController extends BaseController
         }
 
         return $response->withJson([
-            'ret' => 1,
+            'ret' => 0,
             'msg' => '删除失败',
         ]);
     }

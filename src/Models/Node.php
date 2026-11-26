@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Cache;
 use App\Utils\Tools;
 use Exception;
 use Illuminate\Database\Query\Builder;
 use function dns_get_record;
+use function hash;
 use function time;
 use const DNS_A;
 use const DNS_AAAA;
@@ -117,6 +119,28 @@ final class Node extends Model
     public function getNodeOnlineStatus(): int
     {
         return (int) $this->node_heartbeat === 0 ? 0 : ((int) $this->node_heartbeat + 600 > time() ? 1 : -1);
+    }
+
+    public static function tokenCacheKey(string $token): string
+    {
+        return 'node_token_' . hash('sha256', $token);
+    }
+
+    public static function forgetTokenCache(?string $token): void
+    {
+        if ($token === null || $token === '') {
+            return;
+        }
+
+        Cache::forget(self::tokenCacheKey($token));
+    }
+
+    public static function forgetAllTokenCaches(): void
+    {
+        $passwords = self::pluck('password');
+        foreach ($passwords as $password) {
+            self::forgetTokenCache((string) $password);
+        }
     }
 
     /**

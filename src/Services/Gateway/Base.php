@@ -20,8 +20,16 @@ use Slim\Http\ServerRequest;
 use voku\helper\AntiXSS;
 use function get_called_class;
 use function in_array;
-use function json_decode;
+use function is_array;
+use function is_string;
+use function parse_url;
+use function rtrim;
+use function str_starts_with;
+use function strtolower;
 use function time;
+use function trim;
+use const PHP_URL_HOST;
+use const PHP_URL_SCHEME;
 
 abstract class Base
 {
@@ -152,15 +160,58 @@ abstract class Base
         return $_ENV['baseUrl'] . '/user/payment/return/' . get_called_class()::_name();
     }
 
-    protected static function getActiveGateway(string $key): bool
+    /**
+     * Restrict gateway return URLs to same-origin paths or the configured baseUrl host.
+     */
+    protected static function sanitizeReturnUrl(mixed $redir): string
     {
-        $payment_gateways = (new Config())->where('item', 'payment_gateway')->first();
-        $active_gateways = json_decode($payment_gateways->value);
-
-        if (in_array($key, $active_gateways)) {
-            return true;
+        $fallback = static::getUserReturnUrl();
+        if (! is_string($redir)) {
+            return $fallback;
         }
 
-        return false;
+        $redir = trim($redir);
+        if ($redir === '') {
+            return $fallback;
+        }
+
+        $baseUrl = rtrim((string) ($_ENV['baseUrl'] ?? ''), '/');
+        if (str_starts_with($redir, '/') && ! str_starts_with($redir, '//')) {
+            return $baseUrl . $redir;
+        }
+
+        $scheme = strtolower((string) parse_url($redir, PHP_URL_SCHEME));
+        $host = strtolower((string) parse_url($redir, PHP_URL_HOST));
+        $baseHost = strtolower((string) parse_url($baseUrl, PHP_URL_HOST));
+
+        if (in_array($scheme, ['http', 'https'], true) && $host !== '' && $host === $baseHost) {
+            return $redir;
+        }
+
+        return $fallback;
+    }
+
+    /**
+     * Validate that an upstream gateway redirect URL uses an explicit HTTP(S) scheme and host.
+     */
+    protected static function isValidExternalRedirectUrl(mixed $url): bool
+    {
+        if (! is_string($url)) {
+            return false;
+        }
+
+        $url = trim($url);
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        $host = (string) parse_url($url, PHP_URL_HOST);
+
+        return in_array($scheme, ['http', 'https'], true) && $host !== '';
+    }
+
+    protected static function getActiveGateway(string $key): bool
+    {
+        $raw = Config::obtain('payment_gateway');
+        $active_gateways = is_array($raw) ? $raw : Config::parseArrayValue($raw);
+
+        return in_array($key, $active_gateways, true);
     }
 }

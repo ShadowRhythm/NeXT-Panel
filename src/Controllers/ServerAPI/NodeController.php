@@ -83,6 +83,9 @@ final class NodeController extends BaseController
         if ($shouldRestart) {
             Node::where('id', $node->id)->update(['restart_pending' => 0]);
         }
+        if ($shouldUpgrade || $shouldRestart) {
+            Node::forgetTokenCache((string) $node->password);
+        }
 
         return $response->withJson(array_filter([
             'data'    => 'ok',

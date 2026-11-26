@@ -22,6 +22,7 @@ use function json_encode;
 use function round;
 use function str_replace;
 use function trim;
+use const ENT_QUOTES;
 
 final class NodeController extends BaseController
 {
@@ -98,11 +99,21 @@ final class NodeController extends BaseController
      */
     public function add(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
+        $name = trim((string) $this->antiXss->xss_clean((string) ($request->getParam('name') ?? '')));
+        $server = trim((string) $this->antiXss->xss_clean((string) ($request->getParam('server') ?? '')));
+
+        if ($name === '' || $server === '') {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '节点名称和地址不能为空',
+            ]);
+        }
+
         $node = new Node();
 
-        $node->name = $request->getParam('name');
+        $node->name = $name;
         $node->node_group = $request->getParam('node_group');
-        $node->server = trim($request->getParam('server'));
+        $node->server = $server;
         $node->traffic_rate = $request->getParam('traffic_rate') ?? 1;
         $node->is_dynamic_rate = $request->getParam('is_dynamic_rate') === 'true' ? 1 : 0;
         $node->dynamic_rate_type = $request->getParam('dynamic_rate_type') ?? 0;
@@ -199,9 +210,26 @@ final class NodeController extends BaseController
     {
         $node = (new Node())->find($args['id']);
 
-        $node->name = $request->getParam('name');
+        if ($node === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '节点不存在',
+            ]);
+        }
+
+        $name = trim((string) $this->antiXss->xss_clean((string) ($request->getParam('name') ?? '')));
+        $server = trim((string) $this->antiXss->xss_clean((string) ($request->getParam('server') ?? '')));
+
+        if ($name === '' || $server === '') {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '节点名称和地址不能为空',
+            ]);
+        }
+
+        $node->name = $name;
         $node->node_group = $request->getParam('node_group') ?? 0;
-        $node->server = trim($request->getParam('server'));
+        $node->server = $server;
         $node->traffic_rate = $request->getParam('traffic_rate') ?? 1;
         $node->is_dynamic_rate = $request->getParam('is_dynamic_rate') === 'true' ? 1 : 0;
         $node->dynamic_rate_type = $request->getParam('dynamic_rate_type') ?? 0;
@@ -234,6 +262,8 @@ final class NodeController extends BaseController
             ]);
         }
 
+        Node::forgetTokenCache((string) $node->password);
+
         if (Config::obtain('im_bot_group_notify_update_node')) {
             try {
                 Notification::notifyUserGroup(
@@ -260,8 +290,18 @@ final class NodeController extends BaseController
     public function resetPassword(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $node = (new Node())->find($args['id']);
+
+        if ($node === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '节点不存在',
+            ]);
+        }
+
+        $oldPassword = (string) $node->password;
         $node->password = Tools::genRandomChar(32);
         $node->save();
+        Node::forgetTokenCache($oldPassword);
 
         return $response->withJson([
             'ret' => 1,
@@ -272,8 +312,17 @@ final class NodeController extends BaseController
     public function resetBandwidth(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $node = (new Node())->find($args['id']);
+
+        if ($node === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '节点不存在',
+            ]);
+        }
+
         $node->node_bandwidth = 0;
         $node->save();
+        Node::forgetTokenCache((string) $node->password);
 
         return $response->withJson([
             'ret' => 1,
@@ -294,6 +343,7 @@ final class NodeController extends BaseController
 
         $node->upgrade_pending = 1;
         $node->save();
+        Node::forgetTokenCache((string) $node->password);
 
         return $response->withJson([
             'ret' => 1,
@@ -313,6 +363,7 @@ final class NodeController extends BaseController
         }
 
         (new Node())->where('id', '>', 0)->update(['upgrade_pending' => 1]);
+        Node::forgetAllTokenCaches();
 
         return $response->withJson([
             'ret' => 1,
@@ -333,6 +384,7 @@ final class NodeController extends BaseController
 
         $node->restart_pending = 1;
         $node->save();
+        Node::forgetTokenCache((string) $node->password);
 
         return $response->withJson([
             'ret' => 1,
@@ -347,12 +399,23 @@ final class NodeController extends BaseController
     {
         $node = (new Node())->find($args['id']);
 
+        if ($node === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '节点不存在',
+            ]);
+        }
+
+        $password = (string) $node->password;
+
         if (! $node->delete()) {
             return $response->withJson([
                 'ret' => 0,
                 'msg' => '删除失败',
             ]);
         }
+
+        Node::forgetTokenCache($password);
 
         if (Config::obtain('im_bot_group_notify_delete_node')) {
             try {
@@ -380,6 +443,14 @@ final class NodeController extends BaseController
     public function copy($request, $response, $args)
     {
         $old_node = (new Node())->find($args['id']);
+
+        if ($old_node === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '节点不存在',
+            ]);
+        }
+
         $new_node = $old_node->replicate([
             'node_bandwidth',
         ]);
@@ -429,6 +500,8 @@ final class NodeController extends BaseController
                 ? '<span class="text-secondary">从未连接</span>'
                 : Tools::toDateTime((int) $node->node_heartbeat);
 
+            $node->name = htmlspecialchars((string) $node->name, ENT_QUOTES, 'UTF-8');
+            $node->server = htmlspecialchars((string) $node->server, ENT_QUOTES, 'UTF-8');
             $node->type = $node->type();
             $node->sort = $node->sort();
             $node->is_dynamic_rate = $node->isDynamicRate();

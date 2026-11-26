@@ -88,7 +88,7 @@ final class Bepusdt extends Base
             ]);
         }
 
-        $redir = $this->antiXss->xss_clean($request->getParam('redir'));
+        $redir = self::sanitizeReturnUrl($this->antiXss->xss_clean($request->getParam('redir')));
 
         $pl = (new Paylist())->where('invoice_id', $invoiceId)->first();
         if ($pl === null) {
@@ -180,7 +180,7 @@ final class Bepusdt extends Base
 
         $payUrl = $result['data']['payment_url'] ?? null;
 
-        if (! $payUrl) {
+        if (! self::isValidExternalRedirectUrl($payUrl)) {
             return $response->withJson([
                 'ret' => 0,
                 'msg' => '未获取到支付地址，请检查配置',

@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Utils\Tools;
 use Illuminate\Database\Query\Builder;
+use function array_chunk;
+use function array_values;
 use function substr;
+use function time;
 
 /**
  * @property int    $id         记录ID
@@ -44,6 +48,61 @@ final class OnlineLog extends Model
         }
 
         return $ip;
+    }
+
+    /**
+     * Fetch active IP counts per user within the recent window in a single grouped query.
+     *
+     * @return array<int, int>
+     */
+    public static function getActiveIpCounts(int $windowSeconds = 90): array
+    {
+        return self::where('last_time', '>', time() - $windowSeconds)
+            ->selectRaw('user_id, count(*) as ip_count')
+            ->groupBy('user_id')
+            ->pluck('ip_count', 'user_id')
+            ->map(static fn ($count): int => (int) $count)
+            ->toArray();
+    }
+
+    /**
+     * Normalize, deduplicate, and batch-upsert online IP records for a node.
+     *
+     * @param array<int, object|null> $logs
+     */
+    public static function recordBatch(int $nodeId, array $logs): void
+    {
+        $now = time();
+        $rows = [];
+
+        foreach ($logs as $log) {
+            $ip = (string) ($log?->ip ?? '');
+            $userId = (int) ($log?->user_id ?? 0);
+
+            if ($userId <= 0) {
+                continue;
+            }
+
+            if (Tools::isIPv4($ip)) {
+                // convert IPv4 Address to IPv4-mapped IPv6 Address
+                $ip = '::ffff:' . $ip;
+            } elseif (! Tools::isIPv6($ip)) {
+                // either IPv4 or IPv6 Address
+                continue;
+            }
+
+            $rows[$userId . '|' . $ip] = [
+                'user_id' => $userId,
+                'ip' => $ip,
+                'node_id' => $nodeId,
+                'first_time' => $now,
+                'last_time' => $now,
+            ];
+        }
+
+        foreach (array_chunk(array_values($rows), 500) as $chunk) {
+            (new self())->upsert($chunk, ['user_id', 'ip'], ['node_id', 'last_time']);
+        }
     }
 
     public function nodeName(): string

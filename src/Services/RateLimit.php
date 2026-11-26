@@ -17,7 +17,7 @@ final class RateLimit
 
     public function __construct()
     {
-        $this->redis = (new Cache())->initRedis();
+        $this->redis = Cache::client() ?? (new Cache())->initRedis();
     }
 
     public function checkRateLimit(string $limit_type, string $value): bool

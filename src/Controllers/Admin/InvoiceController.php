@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Paylist;
 use App\Services\Cron;
+use App\Services\DB;
 use App\Services\DataTable;
 use App\Utils\Tools;
 use Exception;
@@ -54,6 +55,11 @@ final class InvoiceController extends BaseController
     {
         $id = $args['id'];
         $invoice = (new Invoice())->find($id);
+
+        if ($invoice === null) {
+            return $response->withStatus(302)->withHeader('Location', '/admin/invoice');
+        }
+
         $paylist = [];
 
         if ($invoice->status === 'paid_gateway') {
@@ -78,38 +84,58 @@ final class InvoiceController extends BaseController
     public function markPaid(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $invoice_id = $args['id'];
-        $invoice = (new Invoice())->find($invoice_id);
 
-        if (in_array($invoice->status, ['paid_gateway', 'paid_balance', 'paid_admin'])) {
-            return $response->withJson([
-                'ret' => 0,
-                'msg' => '不能标记已经支付的账单',
-            ]);
-        }
+        $result = DB::transaction(static function () use ($invoice_id): array {
+            $invoice = (new Invoice())->where('id', $invoice_id)->lockForUpdate()->first();
 
-        $order = (new Order())->find($invoice->order_id);
+            if ($invoice === null) {
+                return [
+                    'ret' => 0,
+                    'msg' => '账单不存在',
+                ];
+            }
 
-        if ($order->status === 'cancelled') {
-            return $response->withJson([
-                'ret' => 0,
-                'msg' => '关联订单已被取消，标记失败',
-            ]);
-        }
+            if (in_array($invoice->status, ['paid_gateway', 'paid_balance', 'paid_admin'], true)) {
+                return [
+                    'ret' => 0,
+                    'msg' => '不能标记已经支付的账单',
+                ];
+            }
 
-        $order->update_time = time();
-        $order->status = 'pending_activation';
-        $order->save();
-        Cron::activateOrder($order);
+            $order = (new Order())->where('id', $invoice->order_id)->lockForUpdate()->first();
 
-        $invoice->update_time = time();
-        $invoice->pay_time = time();
-        $invoice->status = 'paid_admin';
-        $invoice->save();
+            if ($order === null) {
+                return [
+                    'ret' => 0,
+                    'msg' => '关联订单不存在',
+                ];
+            }
 
-        return $response->withJson([
-            'ret' => 1,
-            'msg' => '成功标记账单为已支付（管理员）',
-        ]);
+            if ($order->status === 'cancelled') {
+                return [
+                    'ret' => 0,
+                    'msg' => '关联订单已被取消，标记失败',
+                ];
+            }
+
+            $now = time();
+            $invoice->update_time = $now;
+            $invoice->pay_time = $now;
+            $invoice->status = 'paid_admin';
+            $invoice->save();
+
+            $order->update_time = $now;
+            $order->status = 'pending_activation';
+            $order->save();
+            Cron::activateOrder($order);
+
+            return [
+                'ret' => 1,
+                'msg' => '成功标记账单为已支付（管理员）',
+            ];
+        });
+
+        return $response->withJson($result);
     }
 
     public function ajax(ServerRequest $request, Response $response, array $args): ResponseInterface

@@ -21,6 +21,7 @@ use Smarty\Exception;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use function array_merge;
 use function count;
+use function is_array;
 use function json_decode;
 use function json_encode;
 use function nl2br;
@@ -68,10 +69,14 @@ final class TicketController extends BaseController
             return ResponseHelper::error($response, I18n::trans('user.ticket_not_found'));
         }
 
-        $content_old = json_decode($ticket->content, true);
+        $content_old = json_decode((string) $ticket->content, true);
+        if (! is_array($content_old)) {
+            $content_old = [];
+        }
+        $lastCommentId = $content_old !== [] ? (int) ($content_old[count($content_old) - 1]['comment_id'] ?? 0) : -1;
         $content_new = [
             [
-                'comment_id' => $content_old[count($content_old) - 1]['comment_id'] + 1,
+                'comment_id' => $lastCommentId + 1,
                 'commenter_type' => 'admin',
                 'commenter_name' => 'Admin',
                 'comment' => $this->antiXss->xss_clean($comment),
@@ -113,7 +118,10 @@ final class TicketController extends BaseController
             return ResponseHelper::error($response, I18n::trans('user.ticket_not_found'));
         }
 
-        $content_old = json_decode($ticket->content, true);
+        $content_old = json_decode((string) $ticket->content, true);
+        if (! is_array($content_old)) {
+            $content_old = [];
+        }
 
         if (count($content_old) === 1) {
             $context = [
@@ -123,7 +131,7 @@ final class TicketController extends BaseController
                 ],
                 [
                     'role' => 'user',
-                    'content' => $content_old[0]['comment'],
+                    'content' => $content_old[0]['comment'] ?? '',
                 ],
             ];
         } else {
@@ -135,18 +143,25 @@ final class TicketController extends BaseController
             ];
 
             foreach ($content_old as $comment) {
+                $type = $comment['commenter_type'] ?? null;
+                $role = match ($type) {
+                    'admin', 'llm' => 'admin',
+                    'user' => 'user',
+                    default => ($comment['commenter_name'] ?? '') === 'Admin' ? 'admin' : 'user',
+                };
                 $context[] = [
-                    'role' => $comment['commenter_type'] ?? $comment['commenter_name'] === 'Admin' ? 'admin' : 'user',
-                    'content' => $comment['comment'],
+                    'role' => $role,
+                    'content' => $comment['comment'] ?? '',
                 ];
             }
         }
 
         $llm_response = LLM::genTextResponseWithContext($context);
 
+        $lastCommentId = $content_old !== [] ? (int) ($content_old[count($content_old) - 1]['comment_id'] ?? 0) : -1;
         $content_new = [
             [
-                'comment_id' => $content_old[count($content_old) - 1]['comment_id'] + 1,
+                'comment_id' => $lastCommentId + 1,
                 'commenter_type' => 'llm',
                 'commenter_name' => 'AI Assistant',
                 'comment' => $this->antiXss->xss_clean($llm_response),

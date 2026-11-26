@@ -144,6 +144,13 @@ final class UserController extends BaseController
         );
         $user = (new User())->where('email', $email)->first();
 
+        if ($user === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '添加失败，用户未能创建',
+            ]);
+        }
+
         if ($ref_by !== '') {
             $user->ref_by = (int) $ref_by;
             $user->save();
@@ -272,6 +279,13 @@ final class UserController extends BaseController
     {
         $id = $args['id'];
         $user = (new User())->find((int) $id);
+
+        if ($user === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '用户不存在',
+            ]);
+        }
 
         if (! $user->kill()) {
             return $response->withJson([

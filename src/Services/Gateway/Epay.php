@@ -71,7 +71,7 @@ final class Epay extends Base
         $invoice_id = $this->antiXss->xss_clean($request->getParam('invoice_id'));
         // EPay 特定参数
         $type = $this->antiXss->xss_clean($request->getParam('type'));
-        $redir = $this->antiXss->xss_clean($request->getParam('redir'));
+        $redir = self::sanitizeReturnUrl($this->antiXss->xss_clean($request->getParam('redir')));
         $invoice = (new Invoice())->find($invoice_id);
 
         if ($invoice === null || $invoice->user_id !== $user->id) {
@@ -145,7 +145,7 @@ final class Epay extends Base
                 true
             );
 
-            if ($res['code'] !== 1 || ! isset($res['payurl'])) {
+            if (! is_array($res) || ($res['code'] ?? null) !== 1 || ! self::isValidExternalRedirectUrl($res['payurl'] ?? null)) {
                 return $response->withJson([
                     'ret' => 0,
                     'msg' => '请求支付失败，网关错误',

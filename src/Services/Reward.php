@@ -120,32 +120,34 @@ final class Reward
 
     public static function issueCheckinReward($user_id): int|false
     {
-        $user = (new User())->where('id', $user_id)->first();
+        return DB::transaction(static function () use ($user_id): int|false {
+            $user = (new User())->where('id', $user_id)->lockForUpdate()->first();
 
-        if ($user === null) {
-            return false;
-        }
-
-        $checkin_min = Config::obtain('checkin_min');
-        $checkin_max = Config::obtain('checkin_max');
-
-        if ($checkin_min === $checkin_max) {
-            $traffic = $checkin_min;
-        } else {
-            try {
-                $traffic = random_int($checkin_min, $checkin_max);
-            } catch (Exception) {
-                $traffic = 0;
+            if ($user === null || ! $user->isAbleToCheckin()) {
+                return false;
             }
-        }
 
-        if ($traffic !== 0) {
-            $user->transfer_enable += Tools::mbToB($traffic);
-            $user->last_check_in_time = time();
-            $user->is_inactive = 0;
-            $user->save();
-        }
+            $checkin_min = (int) Config::obtain('checkin_min');
+            $checkin_max = (int) Config::obtain('checkin_max');
 
-        return $traffic;
+            if ($checkin_min >= $checkin_max) {
+                $traffic = $checkin_min;
+            } else {
+                try {
+                    $traffic = random_int($checkin_min, $checkin_max);
+                } catch (Exception) {
+                    $traffic = 0;
+                }
+            }
+
+            if ($traffic !== 0) {
+                $user->transfer_enable += Tools::mbToB($traffic);
+                $user->last_check_in_time = time();
+                $user->is_inactive = 0;
+                $user->save();
+            }
+
+            return $traffic;
+        });
     }
 }

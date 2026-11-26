@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Query\Builder;
+use function array_chunk;
 use function array_fill;
+use function array_keys;
+use function count;
 use function date;
+use function is_array;
 use function json_decode;
 use function json_encode;
 
@@ -25,22 +29,67 @@ final class HourlyUsage extends Model
 
     public function add(int $user_id, int $usage): void
     {
+        if ($user_id <= 0 || $usage <= 0) {
+            return;
+        }
+
+        self::addBatch([$user_id => $usage]);
+    }
+
+    /**
+     * Batch-accumulate hourly usage for multiple users using a single lookup query.
+     *
+     * @param array<int, int> $userUsages Map of user_id => bytes
+     */
+    public static function addBatch(array $userUsages): void
+    {
+        $filtered = [];
+        foreach ($userUsages as $userId => $usage) {
+            $uid = (int) $userId;
+            $bytes = (int) $usage;
+            if ($uid > 0 && $bytes > 0) {
+                $filtered[$uid] = ($filtered[$uid] ?? 0) + $bytes;
+            }
+        }
+
+        if ($filtered === []) {
+            return;
+        }
+
         $hour = (int) date('H');
         $date = date('Y-m-d');
-        $exist_usage = $this->where('user_id', $user_id)->where('date', $date)->first();
+        $existing = self::where('date', $date)
+            ->whereIn('user_id', array_keys($filtered))
+            ->get()
+            ->keyBy('user_id');
 
-        if ($exist_usage === null) {
-            $new_usage_array = array_fill(0, 24, 0);
-            $new_usage_array[$hour] = $usage;
-            $this->user_id = $user_id;
-            $this->date = $date;
-            $this->usage = json_encode($new_usage_array);
-            $this->save();
-        } else {
-            $exist_usage_array = json_decode($exist_usage->usage, true);
-            $exist_usage_array[$hour] += $usage;
-            $exist_usage->usage = json_encode($exist_usage_array);
-            $exist_usage->save();
+        $inserts = [];
+        foreach ($filtered as $userId => $usage) {
+            $record = $existing->get($userId);
+            if ($record === null) {
+                $usageArray = array_fill(0, 24, 0);
+                $usageArray[$hour] = $usage;
+                $inserts[] = [
+                    'user_id' => $userId,
+                    'date' => $date,
+                    'usage' => json_encode($usageArray),
+                ];
+            } else {
+                $usageArray = json_decode((string) $record->usage, true);
+                if (! is_array($usageArray) || count($usageArray) !== 24) {
+                    $usageArray = array_fill(0, 24, 0);
+                }
+                $usageArray[$hour] = (int) ($usageArray[$hour] ?? 0) + $usage;
+                self::where('id', $record->id)->update([
+                    'usage' => json_encode($usageArray),
+                ]);
+            }
+        }
+
+        if ($inserts !== []) {
+            foreach (array_chunk($inserts, 500) as $chunk) {
+                self::insert($chunk);
+            }
         }
     }
 }

@@ -236,7 +236,10 @@ final class User extends Model
      */
     public function isNewUser(): bool
     {
-        return ! (new Order())->where('user_id', $this->id)->exists();
+        return ! (new Order())->where('user_id', $this->id)
+            ->where('status', '!=', 'cancelled')
+            ->where('product_type', '!=', 'topup')
+            ->exists();
     }
 
     /**

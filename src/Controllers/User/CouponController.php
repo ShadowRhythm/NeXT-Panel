@@ -78,7 +78,10 @@ final class CouponController extends BaseController
         $use_limit = $limit->use_time;
 
         if ($use_limit > 0) {
-            $user_use_count = (new Order())->where('user_id', $user->id)->where('coupon', $coupon->code)->count();
+            $user_use_count = (new Order())->where('user_id', $user->id)
+                ->where('coupon', $coupon->code)
+                ->where('status', '!=', 'cancelled')
+                ->count();
             if ($user_use_count >= $use_limit) {
                 return $response->withJson([
                     'ret' => 0,

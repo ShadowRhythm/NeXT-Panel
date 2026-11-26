@@ -125,7 +125,8 @@ final class OrderController extends BaseController
      */
     public function create(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
-        $product_id = $this->antiXss->xss_clean($request->getQueryParams()['product_id']) ?? null;
+        $rawProductId = $request->getQueryParams()['product_id'] ?? null;
+        $product_id = $rawProductId !== null ? $this->antiXss->xss_clean($rawProductId) : null;
         $redir = Cookie::get('redir');
 
         if ($redir !== '') {
@@ -414,7 +415,10 @@ final class OrderController extends BaseController
                         $coupon_use_limit = (int) ($coupon_limit->use_time ?? 0);
 
                         if ($coupon_use_limit > 0) {
-                            $user_use_count = Order::where('user_id', $user->id)->where('coupon', $coupon->code)->count();
+                            $user_use_count = Order::where('user_id', $user->id)
+                                ->where('coupon', $coupon->code)
+                                ->where('status', '!=', 'cancelled')
+                                ->count();
                             if ($user_use_count >= $coupon_use_limit) {
                                 throw new Exception(I18n::trans('user.coupon_limit_reached', $locale));
                             }
@@ -450,7 +454,10 @@ final class OrderController extends BaseController
                 }
 
                 if (isset($product_limit->new_user_required) && (int) $product_limit->new_user_required !== 0) {
-                    $order_count = Order::where('user_id', $user->id)->count();
+                    $order_count = Order::where('user_id', $user->id)
+                        ->where('status', '!=', 'cancelled')
+                        ->where('product_type', '!=', 'topup')
+                        ->count();
                     if ($order_count > 0) {
                         throw new Exception(I18n::trans('user.product_new_user_only', $locale));
                     }
