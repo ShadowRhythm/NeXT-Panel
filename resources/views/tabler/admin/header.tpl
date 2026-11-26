@@ -43,20 +43,6 @@
                      class="navbar-brand-image" style="filter: none;">
             </h1>
             <div class="navbar-nav flex-row order-md-last">
-                <div class="nav-item dropdown me-2">
-                    <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Change language">
-                        <i class="ti ti-language icon"></i>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-end shadow">
-                        <a class="dropdown-item {if $current_locale == 'zh_CN'}active{/if}" href="/locale/zh_CN">🇨🇳 简体中文</a>
-                        <a class="dropdown-item {if $current_locale == 'zh_TW'}active{/if}" href="/locale/zh_TW">🇭🇰 繁體中文</a>
-                        <a class="dropdown-item {if $current_locale == 'en_US'}active{/if}" href="/locale/en_US">🇺🇸 English</a>
-                        <a class="dropdown-item {if $current_locale == 'ja_JP'}active{/if}" href="/locale/ja_JP">🇯🇵 日本語</a>
-                        <a class="dropdown-item {if $current_locale == 'ru_RU'}active{/if}" href="/locale/ru_RU">🇷🇺 Русский</a>
-                        <a class="dropdown-item {if $current_locale == 'fr_FR'}active{/if}" href="/locale/fr_FR">🇫🇷 Français</a>
-                        <a class="dropdown-item {if $current_locale == 'pt_BR'}active{/if}" href="/locale/pt_BR">🇧🇷 Português</a>
-                    </div>
-                </div>
                 <div class="nav-item dropdown">
                     <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown"
                        aria-label="Open user menu">

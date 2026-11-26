@@ -211,9 +211,17 @@
                                             {elseif $locale === 'zh_TW'}🇭🇰 繁體中文 (zh_TW)
                                             {elseif $locale === 'en_US'}🇺🇸 English (en_US)
                                             {elseif $locale === 'ja_JP'}🇯🇵 日本語 (ja_JP)
+                                            {elseif $locale === 'ko_KR'}🇰🇷 한국어 (ko_KR)
                                             {elseif $locale === 'ru_RU'}🇷🇺 Русский (ru_RU)
                                             {elseif $locale === 'fr_FR'}🇫🇷 Français (fr_FR)
+                                            {elseif $locale === 'de_DE'}🇩🇪 Deutsch (de_DE)
+                                            {elseif $locale === 'es_ES'}🇪🇸 Español (es_ES)
                                             {elseif $locale === 'pt_BR'}🇧🇷 Português (pt_BR)
+                                            {elseif $locale === 'vi_VN'}🇻🇳 Tiếng Việt (vi_VN)
+                                            {elseif $locale === 'id_ID'}🇮🇩 Bahasa Indonesia (id_ID)
+                                            {elseif $locale === 'tr_TR'}🇹🇷 Türkçe (tr_TR)
+                                            {elseif $locale === 'ar_SA'}🇸🇦 العربية (ar_SA)
+                                            {elseif $locale === 'fa_IR'}🇮🇷 فارسی (fa_IR)
                                             {else}{$locale|escape}
                                             {/if}
                                         </option>
