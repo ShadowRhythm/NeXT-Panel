@@ -1,5 +1,94 @@
 {include file='admin/header.tpl'}
 
+{literal}
+<style>
+    .analytics-kpi-grid {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.5rem;
+    }
+
+    .badge-wrap {
+        white-space: normal !important;
+        word-break: break-word;
+        text-align: left;
+        line-height: 1.45;
+        max-width: 100%;
+    }
+
+    #analytics-tabs .nav-link {
+        white-space: nowrap;
+    }
+
+    .tab-content .card {
+        overflow: hidden;
+    }
+
+    @media (max-width: 767.98px) {
+        .analytics-kpi-grid {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem 0.75rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid var(--tblr-border-color-translucent, rgba(0, 0, 0, 0.08));
+        }
+
+        .analytics-kpi-grid > div {
+            min-width: 0;
+        }
+
+        .analytics-kpi-grid > div:first-child {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        #analytics-tabs {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        #analytics-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .page-body .card-header {
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .page-body .card-header .card-title {
+            flex: 1 1 100%;
+            margin-bottom: 0;
+        }
+
+        .page-body .card-header .card-actions {
+            margin: 0 !important;
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        .tab-content .card-body {
+            padding: 0.875rem;
+        }
+
+        #day-picker-panel,
+        #month-picker-panel,
+        #year-picker-panel {
+            max-width: calc(100vw - 2rem);
+        }
+    }
+</style>
+{/literal}
+
 <div class="page-wrapper">
     <div class="container-xl">
         <div class="page-header d-print-none text-white">
@@ -29,7 +118,7 @@
                         </div>
 
                         <!-- 日视图：按某天查看 -->
-                        <div id="day-controls" class="d-flex align-items-center gap-2 d-none">
+                        <div id="day-controls" class="d-flex align-items-center gap-2 flex-wrap d-none">
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="day-btn-today">今天</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="day-btn-yesterday">昨天</button>
                             <div class="btn-group btn-group-sm" role="group">
@@ -70,7 +159,7 @@
                         </div>
 
                         <!-- 月视图：按某月查看 -->
-                        <div id="month-controls" class="d-flex align-items-center gap-2">
+                        <div id="month-controls" class="d-flex align-items-center gap-2 flex-wrap">
                             <button type="button" class="btn btn-sm btn-secondary active" id="month-btn-current">本月</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="month-btn-last">上月</button>
                             <div class="btn-group btn-group-sm" role="group">
@@ -108,7 +197,7 @@
                         </div>
 
                         <!-- 年视图：按某年查看 -->
-                        <div id="year-controls" class="d-flex align-items-center gap-2 d-none">
+                        <div id="year-controls" class="d-flex align-items-center gap-2 flex-wrap d-none">
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="year-btn-current">今年</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="year-btn-last">去年</button>
                             <div class="btn-group btn-group-sm" role="group">
@@ -146,25 +235,25 @@
                         </div>
 
                         <!-- 右侧 KPI 摘要 -->
-                        <div class="ms-auto d-flex align-items-center gap-4 flex-wrap text-nowrap">
+                        <div class="ms-md-auto analytics-kpi-grid">
                             <div>
                                 <span class="text-secondary small">期间流水</span>
                                 <span class="ms-1 fw-medium" id="kpi-income">—</span>
                                 <span class="ms-1 badge d-none" id="kpi-income-diff"></span>
                             </div>
-                            <div>
+                            <div class="text-nowrap">
                                 <span class="text-secondary small">新增用户</span>
                                 <span class="ms-1 fw-medium" id="kpi-users">—</span>
                             </div>
-                            <div>
+                            <div class="text-nowrap">
                                 <span class="text-secondary small">期间流量</span>
                                 <span class="ms-1 fw-medium" id="kpi-traffic">—</span>
                             </div>
-                            <div>
+                            <div class="text-nowrap">
                                 <span class="text-secondary small" id="kpi-active-label">活跃用户</span>
                                 <span class="ms-1 fw-medium" id="kpi-active">—</span>
                             </div>
-                            <div>
+                            <div class="text-nowrap">
                                 <span class="text-secondary small">期间签到</span>
                                 <span class="ms-1 fw-medium" id="kpi-checkin">—</span>
                             </div>
@@ -406,12 +495,12 @@
                                             <button type="button" class="btn btn-primary active" id="btn-hourly-avg">日均</button>
                                             <button type="button" class="btn btn-outline-primary" id="btn-hourly-total">累计</button>
                                         </div>
-                                        <span class="badge bg-orange-lt" id="peak-hour-badge"></span>
                                         <span class="text-secondary small" id="hourly-source-note"></span>
+                                        <span class="badge bg-orange-lt badge-wrap" id="peak-hour-badge"></span>
                                     </div>
                                 </div>
                                 <div class="card-body">
-                                    <div id="chart-hourly" style="min-height: 300px;"></div>
+                                    <div id="chart-hourly" style="min-height: 250px;"></div>
                                 </div>
                             </div>
                         </div>
@@ -949,15 +1038,16 @@
             const items = (productItems || []).slice(0, 10).reverse();
             const categories = items.map(p => p.product_name || ('商品 #' + p.product_id));
             const data = items.map(p => Number(p.order_count) || 0);
+            const mobile = isMobileView();
             destroyAndRender('chart-products', {
-                chart: { type: 'bar', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
+                chart: { type: 'bar', fontFamily: 'inherit', height: mobile ? 260 : 300, parentHeightOffset: 0, toolbar: { show: false } },
                 plotOptions: { bar: { horizontal: true, barHeight: '55%', borderRadius: 3 } },
-                dataLabels: { enabled: true, formatter: v => v + ' 单', style: { colors: ['#fff'] } },
+                dataLabels: { enabled: true, formatter: v => v + ' 单', style: { colors: ['#fff'], fontSize: mobile ? '11px' : '12px' } },
                 series: [{ name: '销量', data }],
                 colors: ['#206bc4'],
-                grid: { strokeDashArray: 4, padding: { top: -20, right: 10, left: 10, bottom: 0 } },
-                xaxis: { categories, labels: { formatter: v => Math.round(v) } },
-                yaxis: { labels: { style: { fontSize: '12px' } } },
+                grid: { strokeDashArray: 4, padding: { top: -20, right: 10, left: mobile ? 2 : 10, bottom: 0 } },
+                xaxis: { categories, labels: { style: { fontSize: mobile ? '10px' : '12px' }, formatter: v => Math.round(v) } },
+                yaxis: { labels: { maxWidth: mobile ? 100 : 180, style: { fontSize: mobile ? '11px' : '12px' } } },
                 tooltip: {
                     theme: 'dark',
                     y: { formatter: (val, opt) => {
@@ -1084,15 +1174,21 @@
             const avgArr = res.hourlyAvgGb || [];
             const totArr = res.hourlyGb || [];
 
+            const mobile = isMobileView();
             destroyAndRender('chart-hourly', {
-                chart: { type: 'bar', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
-                plotOptions: { bar: { columnWidth: '60%', borderRadius: 2 } },
+                chart: { type: 'bar', fontFamily: 'inherit', height: mobile ? 250 : 300, parentHeightOffset: 0, toolbar: { show: false } },
+                plotOptions: { bar: { columnWidth: mobile ? '65%' : '60%', borderRadius: 2 } },
                 dataLabels: { enabled: false },
                 series: [{ name: isAvg ? '日均流量 (GB/时)' : `累计流量 (${days}天 GB)`, data: seriesData }],
                 colors: ['#f76707'],
-                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
+                grid: { strokeDashArray: 4, padding: { top: -15, right: mobile ? 6 : 0, left: mobile ? 2 : 10, bottom: 0 } },
                 xaxis: buildTimeXAxis(hourLabels, true),
-                yaxis: { labels: { formatter: v => Number(v || 0).toFixed(1) + ' GB' } },
+                yaxis: {
+                    labels: {
+                        style: { fontSize: mobile ? '10px' : '12px' },
+                        formatter: v => (mobile && Number(v || 0) >= 10 ? Math.round(v) : Number(v || 0).toFixed(1)) + ' GB'
+                    }
+                },
                 tooltip: {
                     theme: 'dark',
                     y: {
@@ -1263,87 +1359,102 @@
         });
 
         // ── 图表渲染函数 ─────────────────────────────────────────────────
+        function isMobileView() {
+            return window.innerWidth < 768;
+        }
+
         function buildTimeXAxis(labels, forceAll = false) {
-            const labelCfg = forceAll
+            const mobile = isMobileView();
+            const labelCfg = (forceAll && !mobile)
                 ? { style: { fontSize: '11px' }, rotate: -45, rotateAlways: true, hideOverlappingLabels: false }
-                : { style: { fontSize: '12px' }, rotate: -45 };
-            return { categories: labels, labels: labelCfg, tooltip: { enabled: false } };
+                : { style: { fontSize: mobile ? '10px' : '12px' }, rotate: -45, hideOverlappingLabels: true };
+            return {
+                categories: labels,
+                tickAmount: mobile && labels.length > 8 ? 6 : undefined,
+                labels: labelCfg,
+                tooltip: { enabled: false }
+            };
         }
 
         function renderLineChart(id, name, labels, data, color = '#206bc4', formatter = v => '¥' + Number(v || 0).toFixed(2), forceAllXLabels = false) {
+            const mobile = isMobileView();
             destroyAndRender(id, {
-                chart: { type: 'line', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
+                chart: { type: 'line', fontFamily: 'inherit', height: mobile ? 250 : 300, parentHeightOffset: 0, toolbar: { show: false } },
                 stroke: { curve: 'smooth', width: 2 },
-                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
+                grid: { strokeDashArray: 4, padding: { top: -15, right: mobile ? 6 : 0, left: mobile ? 2 : 10, bottom: 0 } },
                 series: [{ name, data }],
                 colors: [color],
                 xaxis: buildTimeXAxis(labels, forceAllXLabels),
-                yaxis: { labels: { formatter } },
+                yaxis: { labels: { style: { fontSize: mobile ? '10px' : '12px' }, formatter } },
                 tooltip: { theme: 'dark', y: { formatter } },
                 noData: { text: '暂无数据' }
             });
         }
 
         function renderDualLineChart(id, labels, series, colors) {
+            const mobile = isMobileView();
             destroyAndRender(id, {
-                chart: { type: 'line', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
+                chart: { type: 'line', fontFamily: 'inherit', height: mobile ? 250 : 300, parentHeightOffset: 0, toolbar: { show: false } },
                 stroke: { curve: 'smooth', width: 2 },
-                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
+                grid: { strokeDashArray: 4, padding: { top: -15, right: mobile ? 6 : 0, left: mobile ? 2 : 10, bottom: 0 } },
                 series,
                 colors,
                 xaxis: buildTimeXAxis(labels, false),
-                yaxis: { labels: { formatter: v => Math.round(v) } },
+                yaxis: { labels: { style: { fontSize: mobile ? '10px' : '12px' }, formatter: v => Math.round(v) } },
                 tooltip: { theme: 'dark', y: { formatter: v => Math.round(v) + ' 人' } },
-                legend: { position: 'top', horizontalAlign: 'right' },
+                legend: { position: 'top', horizontalAlign: mobile ? 'left' : 'right' },
                 noData: { text: '暂无数据' }
             });
         }
 
         function renderAreaChart(id, name, labels, data, forceAllXLabels = false) {
+            const mobile = isMobileView();
             destroyAndRender(id, {
-                chart: { type: 'area', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
+                chart: { type: 'area', fontFamily: 'inherit', height: mobile ? 250 : 300, parentHeightOffset: 0, toolbar: { show: false } },
                 stroke: { curve: 'smooth', width: 2 },
                 fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05, stops: [0, 90, 100] } },
-                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
+                grid: { strokeDashArray: 4, padding: { top: -15, right: mobile ? 6 : 0, left: mobile ? 2 : 10, bottom: 0 } },
                 series: [{ name, data }],
                 colors: ['#f76707'],
                 xaxis: buildTimeXAxis(labels, forceAllXLabels),
-                yaxis: { labels: { formatter: v => Number(v || 0).toFixed(2) + ' GB' } },
+                yaxis: { labels: { style: { fontSize: mobile ? '10px' : '12px' }, formatter: v => Number(v || 0).toFixed(2) + ' GB' } },
                 tooltip: { theme: 'dark', y: { formatter: v => Number(v || 0).toFixed(2) + ' GB' } },
                 noData: { text: '暂无数据' }
             });
         }
 
         function renderClassLineChart(id, labels, classSeries) {
+            const mobile = isMobileView();
             const sorted = Object.keys(classSeries || {}).sort((a, b) => Number(a) - Number(b));
             destroyAndRender(id, {
-                chart: { type: 'line', fontFamily: 'inherit', height: 350, parentHeightOffset: 0, toolbar: { show: false } },
+                chart: { type: 'line', fontFamily: 'inherit', height: mobile ? 280 : 350, parentHeightOffset: 0, toolbar: { show: false } },
                 stroke: { curve: 'smooth', width: 2 },
                 dataLabels: { enabled: false },
                 series: sorted.map(cls => ({ name: '等级 ' + cls, data: classSeries[cls] || [] })),
                 colors: sorted.map(cls => classColor(cls)),
-                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
+                grid: { strokeDashArray: 4, padding: { top: -15, right: mobile ? 6 : 0, left: mobile ? 2 : 10, bottom: 0 } },
                 xaxis: buildTimeXAxis(labels, false),
-                yaxis: { labels: { formatter: v => Math.round(v) } },
+                yaxis: { labels: { style: { fontSize: mobile ? '10px' : '12px' }, formatter: v => Math.round(v) } },
                 tooltip: { theme: 'dark', y: { formatter: v => v + ' 人' } },
-                legend: { position: 'top', horizontalAlign: 'right' },
+                legend: { position: 'top', horizontalAlign: mobile ? 'left' : 'right' },
                 noData: { text: '暂无数据' }
             });
         }
 
         function renderClassSnapshotBar(id, snapshot) {
+            const mobile = isMobileView();
             const sorted = Object.keys(snapshot || {}).sort((a, b) => Number(a) - Number(b));
             const labels = sorted.map(cls => '等级 ' + cls);
             const values = sorted.map(cls => Number(snapshot[cls] || 0));
             destroyAndRender(id, {
-                chart: { type: 'bar', fontFamily: 'inherit', height: 350, parentHeightOffset: 0, toolbar: { show: false } },
+                chart: { type: 'bar', fontFamily: 'inherit', height: mobile ? 280 : 350, parentHeightOffset: 0, toolbar: { show: false } },
                 plotOptions: { bar: { columnWidth: '45%', borderRadius: 4, distributed: true } },
                 dataLabels: { enabled: true, formatter: v => Math.round(v) + ' 人' },
                 series: [{ name: '用户数', data: values }],
                 colors: sorted.map(cls => classColor(cls)),
-                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
-                xaxis: { categories: labels, labels: { style: { fontSize: '12px' } }, tooltip: { enabled: false } },
-                yaxis: { labels: { formatter: v => Math.round(v) } },
+                grid: { strokeDashArray: 4, padding: { top: -15, right: mobile ? 6 : 0, left: mobile ? 2 : 10, bottom: 0 } },
+                xaxis: { categories: labels, labels: { style: { fontSize: mobile ? '10px' : '12px' } }, tooltip: { enabled: false } },
+                yaxis: { labels: { style: { fontSize: mobile ? '10px' : '12px' }, formatter: v => Math.round(v) } },
                 legend: { show: false },
                 tooltip: { theme: 'dark', y: { formatter: v => Math.round(v) + ' 人' } },
                 noData: { text: '暂无等级分布快照' }
@@ -1351,15 +1462,16 @@
         }
 
         function renderActivitySnapshotBar(id, activeCount, checkinCount) {
+            const mobile = isMobileView();
             destroyAndRender(id, {
-                chart: { type: 'bar', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
+                chart: { type: 'bar', fontFamily: 'inherit', height: mobile ? 250 : 300, parentHeightOffset: 0, toolbar: { show: false } },
                 plotOptions: { bar: { columnWidth: '35%', borderRadius: 4, distributed: true } },
                 dataLabels: { enabled: true, formatter: v => Math.round(v) + ' 人' },
                 series: [{ name: '人数', data: [Number(activeCount || 0), Number(checkinCount || 0)] }],
                 colors: ['#206bc4', '#17a589'],
-                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
-                xaxis: { categories: ['活跃用户', '当日签到'], labels: { style: { fontSize: '12px' } }, tooltip: { enabled: false } },
-                yaxis: { labels: { formatter: v => Math.round(v) } },
+                grid: { strokeDashArray: 4, padding: { top: -15, right: mobile ? 6 : 0, left: mobile ? 2 : 10, bottom: 0 } },
+                xaxis: { categories: ['活跃用户', '当日签到'], labels: { style: { fontSize: mobile ? '11px' : '12px' } }, tooltip: { enabled: false } },
+                yaxis: { labels: { style: { fontSize: mobile ? '10px' : '12px' }, formatter: v => Math.round(v) } },
                 legend: { show: false },
                 tooltip: { theme: 'dark', y: { formatter: v => Math.round(v) + ' 人' } },
                 noData: { text: '暂无活跃签到数据' }
@@ -1393,6 +1505,24 @@
                 noData: { text: '暂无数据' }
             });
         }
+
+        // ── 响应式断点切换重绘图表 ───────────────────────────────────────
+        let lastMobileState = isMobileView();
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const nowMobile = isMobileView();
+                if (nowMobile !== lastMobileState) {
+                    lastMobileState = nowMobile;
+                    if (activeTab === 'traffic' && cachedTrafficData) {
+                        renderHourlyChart();
+                    } else {
+                        reloadAll();
+                    }
+                }
+            }, 200);
+        });
 
         // ── 初始化 ───────────────────────────────────────────────────────
         if (document.readyState === 'loading') {
