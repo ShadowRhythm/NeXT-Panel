@@ -34,4 +34,13 @@
     <!-- JS files -->
     <script src="/assets/js/fuck.min.js"></script>
     <script src="//{$config['jsdelivr_url']}/npm/htmx.org@v2/dist/htmx.min.js"></script>
+    <style>
+        [dir="rtl"] code,
+        [dir="rtl"] pre,
+        [dir="rtl"] input[type="url"],
+        [dir="rtl"] input[type="email"] {
+            direction: ltr;
+            unicode-bidi: isolate;
+        }
+    </style>
 </head>

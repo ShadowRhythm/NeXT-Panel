@@ -60,13 +60,13 @@ final class TicketController extends BaseController
         $comment = $request->getParam('comment') ?? '';
 
         if ($comment === '') {
-            return ResponseHelper::error($response, I18n::trans('user.ticket_comment_empty'));
+            return ResponseHelper::error($response, '评论不能为空');
         }
 
         $ticket = (new Ticket())->where('id', $id)->first();
 
         if ($ticket === null) {
-            return ResponseHelper::error($response, I18n::trans('user.ticket_not_found'));
+            return ResponseHelper::error($response, '工单不存在');
         }
 
         $content_old = json_decode((string) $ticket->content, true);
@@ -115,7 +115,7 @@ final class TicketController extends BaseController
         $ticket = (new Ticket())->where('id', $id)->first();
 
         if ($ticket === null) {
-            return ResponseHelper::error($response, I18n::trans('user.ticket_not_found'));
+            return ResponseHelper::error($response, '工单不存在');
         }
 
         $content_old = json_decode((string) $ticket->content, true);
@@ -232,7 +232,7 @@ final class TicketController extends BaseController
         $ticket = (new Ticket())->where('id', '=', $id)->first();
 
         if ($ticket === null) {
-            return ResponseHelper::error($response, I18n::trans('user.ticket_not_found'));
+            return ResponseHelper::error($response, '工单不存在');
         }
 
         if ($ticket->status === 'closed') {

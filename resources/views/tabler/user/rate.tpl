@@ -38,7 +38,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div id="rate-chart"></div>
+                            <div id="rate-chart" dir="ltr"></div>
                         </div>
                     </div>
                 </div>
@@ -88,9 +88,9 @@
                 },
                 grid: {
                     padding: {
-                        top: -20,
-                        right: 0,
-                        left: -4,
+                        top: -10,
+                        right: 12,
+                        left: 12,
                         bottom: -4
                     },
                     strokeDashArray: 4,

@@ -28,6 +28,20 @@
         .home-title {
             font-size: 36px;
         }
+
+        [dir="rtl"] code,
+        [dir="rtl"] pre,
+        [dir="rtl"] input[type="url"],
+        [dir="rtl"] input[type="email"] {
+            direction: ltr;
+            unicode-bidi: isolate;
+        }
+
+        .row > [class*="col-"],
+        .card,
+        .card-body {
+            min-width: 0;
+        }
     </style>
 </head>
 

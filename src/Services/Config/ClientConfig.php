@@ -4,8 +4,26 @@ declare(strict_types=1);
 
 namespace App\Services\Config;
 
+use App\Services\I18n;
+
 final class ClientConfig
 {
+    private const CLIENT_DESC_KEYS = [
+        'Clash Verge Rev' => 'user.client_desc_clash_verge_rev',
+        'Clash Nyanpasu' => 'user.client_desc_clash_nyanpasu',
+        'FlClash' => 'user.client_desc_flclash',
+        'Hiddify' => 'user.client_desc_hiddify',
+        'SFM' => 'user.client_desc_sfm',
+        'SFA' => 'user.client_desc_sfa',
+        'sing-box MT' => 'user.client_desc_sing_box_mt',
+        'CMFA' => 'user.client_desc_cmfa',
+        'ClashMi' => 'user.client_desc_clashmi',
+        'V2RayNG' => 'user.client_desc_v2rayng',
+        'V2RayN' => 'user.client_desc_v2rayn',
+        'Shadowrocket' => 'user.client_desc_shadowrocket',
+        'Quantumult X' => 'user.client_desc_quantumult_x',
+    ];
+
     private static ?array $config = null;
 
     public static function getClients(string $sub, string $name, bool $r2): array
@@ -32,9 +50,13 @@ final class ClientConfig
         foreach (self::$config['clients'] as $client) {
             foreach ($client['platforms'] as $platform => $data) {
                 $subUrlForClient = $sub . ($client['format'] !== '' ? '/' . $client['format'] : '');
+                $defaultDescription = $data['desc'] ?? $client['description'];
+                $descKey = self::CLIENT_DESC_KEYS[$client['name']] ?? null;
+                $translated = ! isset($data['desc']) && $descKey !== null ? I18n::trans($descKey) : $defaultDescription;
+                $description = $translated !== $descKey ? $translated : $defaultDescription;
                 $result[$platform][] = [
                     'name' => $client['name'],
-                    'description' => $data['desc'] ?? $client['description'],
+                    'description' => $description,
                     'format' => $client['format'],
                     'importUrl' => str_replace(
                         ['{sub}', '{name}', '{sub_base64}'],

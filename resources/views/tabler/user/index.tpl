@@ -117,10 +117,28 @@
     overflow-x: auto;
     white-space: nowrap;
     scrollbar-width: none;
+    min-width: 0;
+    direction: ltr;
+    text-align: left;
+    justify-content: flex-start;
 }
 
 .universal-sub-container::-webkit-scrollbar {
     display: none;
+}
+
+#sub-qrcode-url {
+    direction: ltr;
+    text-align: left;
+}
+
+.client-action-group {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.client-action-btn {
+    white-space: nowrap;
 }
 </style>
 
@@ -188,7 +206,7 @@
                                     <i class="ti ti-link"></i> {trans key='user.exclusive_sub_url'}
                                 </h4>
                                 <div class="input-group mb-2">
-                                    <div class="form-control d-flex align-items-center text-nowrap universal-sub-container" id="universal-sub-link" style="user-select: all; cursor: text;">
+                                    <div class="form-control d-flex align-items-center text-nowrap universal-sub-container" id="universal-sub-link" dir="ltr" style="user-select: all; cursor: text;">
                                         {if isset($subUrlPrefix) && $subUrlToken !== ''}
                                             <span>{$subUrlPrefix|escape}</span><span class="spoiler">{$subUrlToken|escape}</span>
                                         {else}
@@ -391,7 +409,7 @@
                                     </div>
                                 </div>
                                 <div class="card-body">
-                                    <div id="traffic-log"></div>
+                                    <div id="traffic-log" dir="ltr"></div>
                                 </div>
                             </div>
                         </div>
@@ -548,9 +566,9 @@
                 },
                 grid: {
                     padding: {
-                        top: -20,
-                        right: 0,
-                        left: 0,
+                        top: -10,
+                        right: 12,
+                        left: 16,
                         bottom: 0
                     },
                     strokeDashArray: 4
@@ -573,10 +591,11 @@
                 yaxis: {
                     title: {
                         text: conf.yTitle,
-                        rotate: -90
+                        rotate: -90,
+                        offsetX: 4
                     },
                     labels: {
-                        padding: 14
+                        padding: 12
                     }
                 },
                 colors: [getThemeColor()],
@@ -1119,7 +1138,7 @@
                     </div>
                     <p class="text-secondary small mb-3">{trans key='user.scan_sub_qrcode_desc'}</p>
                     <div class="input-group input-group-sm">
-                        <input type="text" class="form-control" id="sub-qrcode-url" readonly>
+                        <input type="text" class="form-control" id="sub-qrcode-url" dir="ltr" readonly>
                         <button class="btn btn-primary copy" id="sub-qrcode-copy" type="button" data-clipboard-text="" title="{trans key='common.copy'}">
                             <i class="ti ti-copy"></i>
                         </button>
