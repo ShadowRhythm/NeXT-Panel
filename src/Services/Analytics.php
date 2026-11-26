@@ -34,6 +34,7 @@ use function floatval;
 use function is_array;
 use function is_null;
 use function json_decode;
+use function json_encode;
 use function max;
 use function min;
 use function preg_match;
@@ -307,43 +308,75 @@ final class Analytics
      *
      * @return array{startDate: string, endDate: string, startTs: int, endTs: int, prevStartTs: int, prevEndTs: int}
      */
-    private static function resolvePeriod(string $mode, string $month, string $year): array
+    private static function resolvePeriod(string $mode, string $month, string $year, string $date = ''): array
     {
-        if (! preg_match('/^\d{4}-\d{2}$/', $month) || ! checkdate((int) substr($month, 5, 2), 1, (int) substr($month, 0, 4))) {
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
+            || ! checkdate((int) substr($date, 5, 2), (int) substr($date, 8, 2), (int) substr($date, 0, 4))
+            || (int) substr($date, 0, 4) < 1970
+            || (int) substr($date, 0, 4) > 2100
+        ) {
+            $date = date('Y-m-d');
+        }
+        if (! preg_match('/^\d{4}-\d{2}$/', $month)
+            || ! checkdate((int) substr($month, 5, 2), 1, (int) substr($month, 0, 4))
+            || (int) substr($month, 0, 4) < 1970
+            || (int) substr($month, 0, 4) > 2100
+        ) {
             $month = date('Y-m');
         }
         if (! preg_match('/^\d{4}$/', $year) || (int) $year < 1970 || (int) $year > 2100) {
             $year = date('Y');
         }
 
-        if ($mode === 'year') {
-            $startDate = $year . '-01-01';
-            $endDate = $year . '-12-31';
-            $prevYear = (string) ((int) $year - 1);
+        $now = time();
+
+        if ($mode === 'day') {
+            $startTs = strtotime($date . ' 00:00:00');
+            $prevDate = date('Y-m-d', strtotime($date . ' -1 day'));
+            $prevStartTs = strtotime($prevDate . ' 00:00:00');
+            $prevDayEndTs = strtotime($prevDate . ' 23:59:59');
+
+            if ($date === date('Y-m-d')) {
+                $endTs = $now;
+                $prevEndTs = min($prevDayEndTs, $prevStartTs + max(0, $now - $startTs));
+            } else {
+                $endTs = strtotime($date . ' 23:59:59');
+                $prevEndTs = $prevDayEndTs;
+            }
 
             return [
-                'startDate'   => $startDate,
-                'endDate'     => $endDate,
-                'startTs'     => strtotime($startDate . ' 00:00:00'),
-                'endTs'       => strtotime($endDate . ' 23:59:59'),
-                'prevStartTs' => strtotime($prevYear . '-01-01 00:00:00'),
-                'prevEndTs'   => strtotime($prevYear . '-12-31 23:59:59'),
+                'startDate'   => $date,
+                'endDate'     => $date,
+                'startTs'     => $startTs,
+                'endTs'       => $endTs,
+                'prevStartTs' => $prevStartTs,
+                'prevEndTs'   => $prevEndTs,
             ];
         }
 
-        if ($mode === 'month') {
-            $startDate = date('Y-m-01', strtotime('-11 months'));
-            $endDate = date('Y-m-d');
-            $prevStartDate = date('Y-m-01', strtotime('-23 months'));
-            $prevEndDate = date('Y-m-t', strtotime('-12 months'));
+        if ($mode === 'year') {
+            $startDate = $year . '-01-01';
+            $endDate = $year . '-12-31';
+            $startTs = strtotime($startDate . ' 00:00:00');
+            $prevYear = (string) ((int) $year - 1);
+            $prevStartTs = strtotime($prevYear . '-01-01 00:00:00');
+            $prevYearEndTs = strtotime($prevYear . '-12-31 23:59:59');
+
+            if ($year === date('Y')) {
+                $endTs = $now;
+                $prevEndTs = min($prevYearEndTs, $prevStartTs + max(0, $now - $startTs));
+            } else {
+                $endTs = strtotime($endDate . ' 23:59:59');
+                $prevEndTs = $prevYearEndTs;
+            }
 
             return [
                 'startDate'   => $startDate,
                 'endDate'     => $endDate,
-                'startTs'     => strtotime($startDate . ' 00:00:00'),
-                'endTs'       => time(),
-                'prevStartTs' => strtotime($prevStartDate . ' 00:00:00'),
-                'prevEndTs'   => strtotime($prevEndDate . ' 23:59:59'),
+                'startTs'     => $startTs,
+                'endTs'       => $endTs,
+                'prevStartTs' => $prevStartTs,
+                'prevEndTs'   => $prevEndTs,
             ];
         }
 
@@ -351,16 +384,16 @@ final class Analytics
         $endDate = date('Y-m-t', strtotime($startDate));
         $startTs = strtotime($startDate . ' 00:00:00');
         $prevMonthStart = strtotime($startDate . ' -1 month');
+        $prevMonthEndTs = strtotime(date('Y-m-t', $prevMonthStart) . ' 23:59:59');
 
         if ($month === date('Y-m')) {
-            $now = time();
             $endTs = $now;
             $prevStartTs = $prevMonthStart;
-            $prevEndTs = $prevMonthStart + max(0, $now - $startTs);
+            $prevEndTs = min($prevMonthEndTs, $prevMonthStart + max(0, $now - $startTs));
         } else {
             $endTs = strtotime($endDate . ' 23:59:59');
             $prevStartTs = $prevMonthStart;
-            $prevEndTs = strtotime(date('Y-m-t', $prevMonthStart) . ' 23:59:59');
+            $prevEndTs = $prevMonthEndTs;
         }
 
         return [
@@ -400,15 +433,197 @@ final class Analytics
     }
 
     /**
-     * 日视图：查某月每天的全站统计
-     * $month 格式 'YYYY-MM'，返回该月每天一条记录
+     * 汇总指定日期 24 小时全站流量字节数
+     *
+     * @return array<int, int>
+     */
+    private static function sumHourlyUsageBytes(string $date): array
+    {
+        $hourlyBytes = array_fill(0, 24, 0);
+        HourlyUsage::where('date', $date)->chunk(500, static function ($records) use (&$hourlyBytes): void {
+            foreach ($records as $record) {
+                $hours = json_decode((string) $record->usage, true);
+                if (! is_array($hours)) {
+                    continue;
+                }
+                for ($h = 0; $h < 24; $h++) {
+                    $hourlyBytes[$h] += (int) ($hours[$h] ?? 0);
+                }
+            }
+        });
+
+        return $hourlyBytes;
+    }
+
+    /**
+     * 为尚未落盘 SiteDailyStat 的当日生成实时统计行
+     */
+    private static function buildLiveDayRow(string $date): object
+    {
+        $dayStart = strtotime($date . ' 00:00:00');
+        $dayEnd = time();
+        $hourlyBytes = self::sumHourlyUsageBytes($date);
+
+        $income = (float) (Paylist::where('status', 1)
+            ->whereBetween('datetime', [$dayStart, $dayEnd])
+            ->sum('total') ?? 0);
+        $newUsers = User::whereBetween('reg_date', [$date . ' 00:00:00', $date . ' 23:59:59'])->count();
+        $checkinUsers = User::whereBetween('last_check_in_time', [$dayStart, $dayEnd])->count();
+        $activeUsers = User::where('is_inactive', 0)->count();
+        $classSnapshot = self::getUserClassDistribution();
+
+        return (object) [
+            'date'           => $date,
+            'income'         => round($income, 2),
+            'new_users'      => $newUsers,
+            'active_users'   => $activeUsers,
+            'checkin_users'  => $checkinUsers,
+            'traffic'        => array_sum($hourlyBytes),
+            'class_snapshot' => json_encode($classSnapshot === [] ? (object) [] : $classSnapshot),
+        ];
+    }
+
+    /**
+     * 若区间覆盖今天且今天尚未落盘 SiteDailyStat，则追加今日实时数据行
+     *
+     * @param iterable<int, object> $rows
+     *
+     * @return array<int, object>
+     */
+    private static function appendTodayIfMissing(iterable $rows, string $startDate, string $endDate): array
+    {
+        $list = [];
+        $today = date('Y-m-d');
+        $hasToday = false;
+
+        foreach ($rows as $row) {
+            $list[] = $row;
+            if ((string) $row->date === $today) {
+                $hasToday = true;
+            }
+        }
+
+        if (! $hasToday && $today >= $startDate && $today <= $endDate) {
+            $list[] = self::buildLiveDayRow($today);
+        }
+
+        return $list;
+    }
+
+    /**
+     * 日视图：查看指定某天的 24 小时分时明细与当日快照
+     */
+    public static function getSiteDailyStats(string $date): array
+    {
+        $period = self::resolvePeriod('day', date('Y-m'), date('Y'), $date);
+        $resolvedDate = $period['startDate'];
+        $dayStart = $period['startTs'];
+        $dayEnd = $period['endTs'];
+        $today = date('Y-m-d');
+
+        $stat = SiteDailyStat::where('date', $resolvedDate)->first();
+
+        $hourlyIncome = array_fill(0, 24, 0.0);
+        $paylists = Paylist::where('status', 1)
+            ->whereBetween('datetime', [$dayStart, $dayEnd])
+            ->get(['total', 'datetime']);
+        foreach ($paylists as $p) {
+            $h = (int) date('H', (int) $p->datetime);
+            $hourlyIncome[$h] += (float) $p->total;
+        }
+        $hourlyIncome = array_map(static fn (float $v): float => round($v, 2), $hourlyIncome);
+
+        $hourlyNewUsers = array_fill(0, 24, 0);
+        $regRows = User::whereBetween('reg_date', [$resolvedDate . ' 00:00:00', $resolvedDate . ' 23:59:59'])
+            ->get(['reg_date']);
+        foreach ($regRows as $u) {
+            $h = (int) substr((string) $u->reg_date, 11, 2);
+            if ($h >= 0 && $h < 24) {
+                $hourlyNewUsers[$h]++;
+            }
+        }
+
+        $hourlyBytes = null;
+        if ($stat !== null && $stat->hourly_traffic !== null) {
+            $decoded = json_decode((string) $stat->hourly_traffic, true);
+            if (is_array($decoded) && count($decoded) === 24) {
+                $hourlyBytes = array_map(static fn ($v): int => (int) $v, $decoded);
+            }
+        }
+        if ($hourlyBytes === null) {
+            $hourlyBytes = self::sumHourlyUsageBytes($resolvedDate);
+        }
+        $trafficGb = array_map(static fn (int $b): float => round($b / (1024 ** 3), 2), $hourlyBytes);
+
+        if ($stat !== null) {
+            $activeCount = (int) $stat->active_users;
+            $checkinCount = (int) ($stat->checkin_users ?? 0);
+            $snapshot = json_decode((string) $stat->class_snapshot, true) ?: [];
+        } elseif ($resolvedDate === $today) {
+            $activeCount = User::where('is_inactive', 0)->count();
+            $checkinCount = User::whereBetween('last_check_in_time', [$dayStart, $dayEnd])->count();
+            $snapshot = self::getUserClassDistribution();
+        } else {
+            $activeCount = 0;
+            $checkinCount = 0;
+            $snapshot = [];
+        }
+
+        $summaryIncome = ($paylists->isEmpty() && $stat !== null && (float) $stat->income > 0)
+            ? round((float) $stat->income, 2)
+            : round(array_sum($hourlyIncome), 2);
+        $summaryNewUsers = ($regRows->isEmpty() && $stat !== null && (int) $stat->new_users > 0)
+            ? (int) $stat->new_users
+            : (int) array_sum($hourlyNewUsers);
+        $hourlySumBytes = array_sum($hourlyBytes);
+        $summaryTrafficGb = ($hourlySumBytes === 0 && $stat !== null && (int) $stat->traffic > 0)
+            ? round((int) $stat->traffic / (1024 ** 3), 2)
+            : round($hourlySumBytes / (1024 ** 3), 2);
+
+        $hours = [];
+        for ($h = 0; $h < 24; $h++) {
+            $hours[] = str_pad((string) $h, 2, '0', STR_PAD_LEFT) . ':00';
+        }
+
+        $incomeComparison = self::computeIncomeComparison(
+            $period['startTs'],
+            $period['endTs'],
+            $period['prevStartTs'],
+            $period['prevEndTs']
+        );
+
+        return [
+            'date'             => $resolvedDate,
+            'hours'            => $hours,
+            'income'           => $hourlyIncome,
+            'newUsers'         => $hourlyNewUsers,
+            'trafficGb'        => $trafficGb,
+            'activeUsers'      => [$activeCount],
+            'checkinUsers'     => [$checkinCount],
+            'classSnapshot'    => (object) $snapshot,
+            'isLive'           => $stat === null && $resolvedDate === $today,
+            'summary'          => [
+                'income'       => $summaryIncome,
+                'newUsers'     => $summaryNewUsers,
+                'trafficGb'    => $summaryTrafficGb,
+                'activeUsers'  => $activeCount,
+                'checkinUsers' => $checkinCount,
+            ],
+            'incomeComparison' => $incomeComparison,
+        ];
+    }
+
+    /**
+     * 月视图：查指定月份每天的全站统计（若为本月则补充今日实时数据）
+     * $month 格式 'YYYY-MM'
      */
     public static function getSiteDailyByMonth(string $month): array
     {
-        $period = self::resolvePeriod('day', $month, date('Y'));
-        $rows = SiteDailyStat::whereBetween('date', [$period['startDate'], $period['endDate']])
+        $period = self::resolvePeriod('month', $month, date('Y'));
+        $rawRows = SiteDailyStat::whereBetween('date', [$period['startDate'], $period['endDate']])
             ->orderBy('date')
             ->get();
+        $rows = self::appendTodayIfMissing($rawRows, $period['startDate'], $period['endDate']);
 
         $dates        = [];
         $income       = [];
@@ -442,7 +657,7 @@ final class Analytics
     /**
      * 按 YYYY-MM 聚合多天站点统计记录
      *
-     * @param iterable<int, SiteDailyStat> $rows
+     * @param iterable<int, object> $rows
      *
      * @return array<string, array{income: float, new_users: int, active_users: int, checkin_users: int, traffic: int, class_snapshot: array<string, int>}>
      */
@@ -473,56 +688,15 @@ final class Analytics
     }
 
     /**
-     * 月视图：最近12个月汇总
-     * 返回每月 SUM(income), SUM(new_users), SUM(traffic)，class_snapshot 与 active_users 取该月最后一天
-     */
-    public static function getSiteMonthlyStats(): array
-    {
-        $period = self::resolvePeriod('month', date('Y-m'), date('Y'));
-        $rows = SiteDailyStat::whereBetween('date', [$period['startDate'], $period['endDate']])
-            ->orderBy('date')
-            ->get();
-
-        $monthly = self::aggregateRowsByMonth($rows);
-
-        $months       = [];
-        $income       = [];
-        $newUsers     = [];
-        $activeUsers  = [];
-        $checkinUsers = [];
-        $trafficGb    = [];
-        $snapshots    = [];
-
-        foreach ($monthly as $ym => $data) {
-            $months[]       = $ym;
-            $income[]       = round($data['income'], 2);
-            $newUsers[]     = $data['new_users'];
-            $activeUsers[]  = $data['active_users'];
-            $checkinUsers[] = $data['checkin_users'];
-            $trafficGb[]    = round($data['traffic'] / (1024 ** 3), 2);
-            $snapshots[]    = $data['class_snapshot'];
-        }
-
-        $classSeries = self::normalizeClassSeries($snapshots);
-        $incomeComparison = self::computeIncomeComparison(
-            $period['startTs'],
-            $period['endTs'],
-            $period['prevStartTs'],
-            $period['prevEndTs']
-        );
-
-        return compact('months', 'income', 'newUsers', 'activeUsers', 'checkinUsers', 'trafficGb', 'classSeries', 'incomeComparison');
-    }
-
-    /**
-     * 年视图：指定年份全年12个月汇总
+     * 年视图：指定年份全年12个月汇总（若为今年则补充今日实时数据）
      */
     public static function getSiteYearlyStats(string $year): array
     {
         $period = self::resolvePeriod('year', date('Y-m'), $year);
-        $rows = SiteDailyStat::whereBetween('date', [$period['startDate'], $period['endDate']])
+        $rawRows = SiteDailyStat::whereBetween('date', [$period['startDate'], $period['endDate']])
             ->orderBy('date')
             ->get();
+        $rows = self::appendTodayIfMissing($rawRows, $period['startDate'], $period['endDate']);
 
         $monthly = self::aggregateRowsByMonth($rows);
 
@@ -619,7 +793,17 @@ final class Analytics
     }
 
     /**
-     * 商品销量排行（直接查 order 表）
+     * 日视图：指定某天商品销量排行（直接查 order 表）
+     */
+    public static function getProductSalesRankingByDate(string $date): array
+    {
+        $period = self::resolvePeriod('day', date('Y-m'), date('Y'), $date);
+
+        return self::queryProductSalesRanking($period['startTs'], $period['endTs']);
+    }
+
+    /**
+     * 月视图：指定月份或全部时间商品销量排行（直接查 order 表）
      * $month: 'YYYY-MM' 或 null（查全部）
      */
     public static function getProductSalesRanking(?string $month = null): array
@@ -628,22 +812,9 @@ final class Analytics
             return self::queryProductSalesRanking(null, null);
         }
 
-        $period = self::resolvePeriod('day', $month, date('Y'));
-        $start = $period['startTs'];
-        $end = strtotime($period['endDate'] . ' 23:59:59');
+        $period = self::resolvePeriod('month', $month, date('Y'));
 
-        return self::queryProductSalesRanking($start, $end);
-    }
-
-    /**
-     * 最近 N 个月商品销量排行（默认最近 12 个月，对齐月视图时间范围）
-     */
-    public static function getProductSalesRankingRecentMonths(int $months = 12): array
-    {
-        $offset = max(0, $months - 1);
-        $start = strtotime(date('Y-m-01 00:00:00', strtotime("-{$offset} months")));
-
-        return self::queryProductSalesRanking($start, time());
+        return self::queryProductSalesRanking($period['startTs'], $period['endTs']);
     }
 
     /**
@@ -754,9 +925,9 @@ final class Analytics
     /**
      * 营收拆解与转化质量分析（支付网关、商品构成、新购/复购、优惠码、自动续费健康度）
      */
-    public static function getRevenueAnalysis(string $mode, string $month, string $year): array
+    public static function getRevenueAnalysis(string $mode, string $month, string $year, string $date = ''): array
     {
-        $period = self::resolvePeriod($mode, $month, $year);
+        $period = self::resolvePeriod($mode, $month, $year, $date);
         $startTs = $period['startTs'];
         $endTs = $period['endTs'];
 
@@ -1033,9 +1204,9 @@ final class Analytics
     /**
      * 24小时全站高峰时段分布 & 订阅客户端占比（优先读 site_daily_stat，近期未入库日期补查保留日志）
      */
-    public static function getTrafficAndClientStats(string $mode, string $month, string $year): array
+    public static function getTrafficAndClientStats(string $mode, string $month, string $year, string $date = ''): array
     {
-        $period = self::resolvePeriod($mode, $month, $year);
+        $period = self::resolvePeriod($mode, $month, $year, $date);
         $startDate = $period['startDate'];
         $endDate = $period['endDate'];
 
@@ -1252,9 +1423,9 @@ final class Analytics
     /**
      * 当前周期节点负载排行 + 用户留存/流失预警 + 邀请返利排行
      */
-    public static function getNodeAndRetentionStats(string $mode, string $month, string $year): array
+    public static function getNodeAndRetentionStats(string $mode, string $month, string $year, string $date = ''): array
     {
-        $period = self::resolvePeriod($mode, $month, $year);
+        $period = self::resolvePeriod($mode, $month, $year, $date);
 
         return [
             'nodeStats' => self::buildCurrentNodeLoad(),

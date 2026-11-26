@@ -1,8 +1,5 @@
 {include file='admin/header.tpl'}
 
-{assign var="current_month" value=$smarty.now|date_format:"%Y-%m"}
-{assign var="last_month" value=($smarty.now - 2592000)|date_format:"%Y-%m"}
-
 <div class="page-wrapper">
     <div class="container-xl">
         <div class="page-header d-print-none text-white">
@@ -25,48 +22,129 @@
             <div class="card mb-3">
                 <div class="card-body py-2">
                     <div class="d-flex align-items-center gap-3 flex-wrap">
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-primary active" id="btn-day">日</button>
-                            <button type="button" class="btn btn-outline-primary" id="btn-month">月</button>
+                        <div class="btn-group btn-group-sm" role="group" aria-label="时间维度">
+                            <button type="button" class="btn btn-outline-primary" id="btn-day">日</button>
+                            <button type="button" class="btn btn-primary active" id="btn-month">月</button>
                             <button type="button" class="btn btn-outline-primary" id="btn-year">年</button>
                         </div>
-                        <div id="day-shortcuts" class="d-flex align-items-center gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-secondary day-shortcut" data-month="{$current_month}">本月</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary day-shortcut" data-month="{$last_month}">上月</button>
-                            <!-- 自定义月份选择器 -->
-                            <div class="dropdown" id="month-picker-wrap">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1"
-                                        type="button" id="month-picker-btn" data-bs-toggle="dropdown"
-                                        data-bs-auto-close="outside" aria-expanded="false">
-                                    <i class="ti ti-calendar icon"></i>
-                                    <span id="month-picker-label">{$current_month|date_format:"%Y年%-m月"}</span>
+
+                        <!-- 日视图：按某天查看 -->
+                        <div id="day-controls" class="d-flex align-items-center gap-2 d-none">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="day-btn-today">今天</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="day-btn-yesterday">昨天</button>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-secondary px-2" id="day-prev" type="button" title="前一天">
+                                    <i class="ti ti-chevron-left"></i>
                                 </button>
-                                <div class="dropdown-menu p-3 shadow" style="min-width:260px;" id="month-picker-panel">
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <button class="btn btn-sm btn-ghost-secondary px-2" id="picker-prev-year" type="button">
-                                            <i class="ti ti-chevron-left"></i>
-                                        </button>
-                                        <span class="fw-semibold fs-4" id="picker-year-label">2026</span>
-                                        <button class="btn btn-sm btn-ghost-secondary px-2" id="picker-next-year" type="button">
-                                            <i class="ti ti-chevron-right"></i>
-                                        </button>
-                                    </div>
-                                    <div class="row g-1" id="picker-month-grid"></div>
-                                    <div class="d-flex justify-content-between mt-2 pt-2 border-top">
-                                        <button class="btn btn-sm btn-link text-secondary px-0" id="picker-clear" type="button">清除</button>
-                                        <button class="btn btn-sm btn-link px-0" id="picker-this-month" type="button">本月</button>
+                                <div class="btn-group btn-group-sm dropdown" role="group" id="day-picker-wrap">
+                                    <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1"
+                                            type="button" id="day-picker-btn" data-bs-toggle="dropdown"
+                                            data-bs-auto-close="outside" aria-expanded="false">
+                                        <i class="ti ti-calendar icon"></i>
+                                        <span id="day-picker-label">{$current_date}</span>
+                                    </button>
+                                    <div class="dropdown-menu p-3 shadow" style="min-width:280px;" id="day-picker-panel">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <button class="btn btn-sm btn-ghost-secondary px-2" id="day-cal-prev-month" type="button">
+                                                <i class="ti ti-chevron-left"></i>
+                                            </button>
+                                            <span class="fw-semibold fs-4" id="day-cal-header"></span>
+                                            <button class="btn btn-sm btn-ghost-secondary px-2" id="day-cal-next-month" type="button">
+                                                <i class="ti ti-chevron-right"></i>
+                                            </button>
+                                        </div>
+                                        <div class="text-center text-secondary small mb-1" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">
+                                            <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+                                        </div>
+                                        <div id="day-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;"></div>
+                                        <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+                                            <button class="btn btn-sm btn-link text-secondary px-0" id="day-picker-close" type="button">关闭</button>
+                                            <button class="btn btn-sm btn-link px-0" id="day-picker-today" type="button">今天</button>
+                                        </div>
                                     </div>
                                 </div>
+                                <button class="btn btn-outline-secondary px-2" id="day-next" type="button" title="后一天">
+                                    <i class="ti ti-chevron-right"></i>
+                                </button>
                             </div>
                         </div>
-                        <div id="month-shortcuts" class="d-flex align-items-center gap-2 d-none">
-                            <span class="text-secondary small">最近 12 个月</span>
+
+                        <!-- 月视图：按某月查看 -->
+                        <div id="month-controls" class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-secondary active" id="month-btn-current">本月</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="month-btn-last">上月</button>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-secondary px-2" id="month-prev" type="button" title="上一个月">
+                                    <i class="ti ti-chevron-left"></i>
+                                </button>
+                                <div class="btn-group btn-group-sm dropdown" role="group" id="month-picker-wrap">
+                                    <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1"
+                                            type="button" id="month-picker-btn" data-bs-toggle="dropdown"
+                                            data-bs-auto-close="outside" aria-expanded="false">
+                                        <i class="ti ti-calendar icon"></i>
+                                        <span id="month-picker-label"></span>
+                                    </button>
+                                    <div class="dropdown-menu p-3 shadow" style="min-width:260px;" id="month-picker-panel">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <button class="btn btn-sm btn-ghost-secondary px-2" id="picker-prev-year" type="button">
+                                                <i class="ti ti-chevron-left"></i>
+                                            </button>
+                                            <span class="fw-semibold fs-4" id="picker-year-label"></span>
+                                            <button class="btn btn-sm btn-ghost-secondary px-2" id="picker-next-year" type="button">
+                                                <i class="ti ti-chevron-right"></i>
+                                            </button>
+                                        </div>
+                                        <div class="row g-1" id="picker-month-grid"></div>
+                                        <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+                                            <button class="btn btn-sm btn-link text-secondary px-0" id="picker-clear" type="button">关闭</button>
+                                            <button class="btn btn-sm btn-link px-0" id="picker-this-month" type="button">本月</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-outline-secondary px-2" id="month-next" type="button" title="下一个月">
+                                    <i class="ti ti-chevron-right"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div id="year-shortcuts" class="d-flex align-items-center gap-2 d-none">
-                            <button class="btn btn-sm btn-ghost-secondary px-2" id="year-prev" type="button"><i class="ti ti-chevron-left"></i></button>
-                            <span class="fw-semibold" id="year-label" style="min-width:4rem;text-align:center"></span>
-                            <button class="btn btn-sm btn-ghost-secondary px-2" id="year-next" type="button"><i class="ti ti-chevron-right"></i></button>
+
+                        <!-- 年视图：按某年查看 -->
+                        <div id="year-controls" class="d-flex align-items-center gap-2 d-none">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="year-btn-current">今年</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="year-btn-last">去年</button>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-secondary px-2" id="year-prev" type="button" title="上一年">
+                                    <i class="ti ti-chevron-left"></i>
+                                </button>
+                                <div class="btn-group btn-group-sm dropdown" role="group" id="year-picker-wrap">
+                                    <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1"
+                                            type="button" id="year-picker-btn" data-bs-toggle="dropdown"
+                                            data-bs-auto-close="outside" aria-expanded="false">
+                                        <i class="ti ti-calendar icon"></i>
+                                        <span id="year-label"></span>
+                                    </button>
+                                    <div class="dropdown-menu p-3 shadow" style="min-width:250px;" id="year-picker-panel">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <button class="btn btn-sm btn-ghost-secondary px-2" id="yr-picker-prev" type="button">
+                                                <i class="ti ti-chevron-left"></i>
+                                            </button>
+                                            <span class="fw-semibold fs-4" id="yr-picker-range"></span>
+                                            <button class="btn btn-sm btn-ghost-secondary px-2" id="yr-picker-next" type="button">
+                                                <i class="ti ti-chevron-right"></i>
+                                            </button>
+                                        </div>
+                                        <div class="row g-1" id="yr-picker-grid"></div>
+                                        <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+                                            <button class="btn btn-sm btn-link text-secondary px-0" id="yr-picker-close" type="button">关闭</button>
+                                            <button class="btn btn-sm btn-link px-0" id="yr-picker-this-year" type="button">今年</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-outline-secondary px-2" id="year-next" type="button" title="下一年">
+                                    <i class="ti ti-chevron-right"></i>
+                                </button>
+                            </div>
                         </div>
+
                         <!-- 右侧 KPI 摘要 -->
                         <div class="ms-auto d-flex align-items-center gap-4 flex-wrap text-nowrap">
                             <div>
@@ -83,7 +161,7 @@
                                 <span class="ms-1 fw-medium" id="kpi-traffic">—</span>
                             </div>
                             <div>
-                                <span class="text-secondary small">当前活跃</span>
+                                <span class="text-secondary small" id="kpi-active-label">活跃用户</span>
                                 <span class="ms-1 fw-medium" id="kpi-active">—</span>
                             </div>
                             <div>
@@ -126,7 +204,10 @@
                     <div class="row row-cards mb-3">
                         <div class="col-12 col-lg-6">
                             <div class="card">
-                                <div class="card-header"><h3 class="card-title">收入趋势</h3></div>
+                                <div class="card-header">
+                                    <h3 class="card-title">收入趋势</h3>
+                                    <div class="card-actions text-secondary small" id="income-card-note"></div>
+                                </div>
                                 <div class="card-body">
                                     <div id="chart-income" style="min-height: 300px;"></div>
                                 </div>
@@ -134,7 +215,10 @@
                         </div>
                         <div class="col-12 col-lg-6">
                             <div class="card">
-                                <div class="card-header"><h3 class="card-title">新增用户</h3></div>
+                                <div class="card-header">
+                                    <h3 class="card-title">新增用户</h3>
+                                    <div class="card-actions text-secondary small" id="users-card-note"></div>
+                                </div>
                                 <div class="card-body">
                                     <div id="chart-users" style="min-height: 300px;"></div>
                                 </div>
@@ -145,7 +229,10 @@
                     <div class="row row-cards mb-3">
                         <div class="col-12">
                             <div class="card">
-                                <div class="card-header"><h3 class="card-title">用户等级分布</h3></div>
+                                <div class="card-header">
+                                    <h3 class="card-title">用户等级分布</h3>
+                                    <div class="card-actions text-secondary small" id="class-card-note"></div>
+                                </div>
                                 <div class="card-body">
                                     <div id="chart-class" style="min-height: 350px;"></div>
                                 </div>
@@ -157,8 +244,8 @@
                         <div class="col-12">
                             <div class="card">
                                 <div class="card-header">
-                                    <h3 class="card-title">活跃与每日签到趋势</h3>
-                                    <div class="card-actions text-secondary small">每日凌晨快照汇总</div>
+                                    <h3 class="card-title">活跃与签到趋势</h3>
+                                    <div class="card-actions text-secondary small" id="activity-card-note">每日凌晨快照汇总</div>
                                 </div>
                                 <div class="card-body">
                                     <div id="chart-activity" style="min-height: 300px;"></div>
@@ -170,7 +257,10 @@
                     <div class="row row-cards mb-3">
                         <div class="col-12 col-lg-6">
                             <div class="card">
-                                <div class="card-header"><h3 class="card-title">流量趋势</h3></div>
+                                <div class="card-header">
+                                    <h3 class="card-title">流量趋势</h3>
+                                    <div class="card-actions text-secondary small" id="traffic-card-note"></div>
+                                </div>
                                 <div class="card-body">
                                     <div id="chart-traffic" style="min-height: 300px;"></div>
                                 </div>
@@ -457,12 +547,19 @@
     <script src="//{$config['jsdelivr_url']}/npm/@tabler/core@latest/dist/libs/apexcharts/dist/apexcharts.min.js"></script>
 
     <script>
-        let currentMode = 'day';
-        let currentMonth = '{$current_month}';
+        const TODAY_DATE     = '{$current_date}';
+        const YESTERDAY_DATE = '{$yesterday_date}';
+        const THIS_MONTH     = '{$current_month}';
+        const LAST_MONTH     = '{$last_month}';
+        const THIS_YEAR      = parseInt('{$current_year}', 10);
+        const LAST_YEAR      = parseInt('{$last_year}', 10);
 
         {literal}
         const chartInstances = {};
-        let currentYear = new Date().getFullYear();
+        let currentMode  = 'month';
+        let currentDate  = TODAY_DATE;
+        let currentMonth = THIS_MONTH;
+        let currentYear  = THIS_YEAR;
         let activeTab = 'overview';
         const loadedPeriod = { overview: '', revenue: '', traffic: '', retention: '' };
         let cachedOverviewData = null;
@@ -476,11 +573,13 @@
         }
 
         function getPeriodKey() {
-            return `${currentMode}:${currentMonth}:${currentYear}`;
+            if (currentMode === 'day') return `day:${currentDate}`;
+            if (currentMode === 'year') return `year:${currentYear}`;
+            return `month:${currentMonth}`;
         }
 
         function buildQuery() {
-            return `mode=${encodeURIComponent(currentMode)}&month=${encodeURIComponent(currentMonth)}&year=${encodeURIComponent(currentYear)}`;
+            return `mode=${encodeURIComponent(currentMode)}&date=${encodeURIComponent(currentDate)}&month=${encodeURIComponent(currentMonth)}&year=${encodeURIComponent(currentYear)}`;
         }
 
         // ── 10色板，相邻等级颜色差异明显 ──────────────────────────────────
@@ -492,20 +591,24 @@
             return CLASS_COLORS[Number(cls)] ?? CLASS_COLORS[CLASS_COLORS.length - 1];
         }
 
-        // ── 自定义月份选择器（月视图 + 年视图）────────────────────────────
+        // ── 日 / 月 / 年通用日期辅助与自定义选择器 ───────────────────────
         const MONTHS_ZH = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-        let pickerYear = parseInt(currentMonth.split('-')[0], 10);
-        let pickerView = 'month';
-        let pickerDecadeStart = Math.floor(pickerYear / 12) * 12;
 
+        function fmtYmd(dt) {
+            return dt.getUTCFullYear() + '-' + String(dt.getUTCMonth() + 1).padStart(2, '0') + '-' + String(dt.getUTCDate()).padStart(2, '0');
+        }
+        function parseYmdUtc(ymd) {
+            const [y, m, d] = ymd.split('-').map(n => parseInt(n, 10));
+            return new Date(Date.UTC(y, m - 1, d));
+        }
         function pickerFmtLabel(ym) {
             const [y, m] = ym.split('-');
             return y + '年' + parseInt(m, 10) + '月';
         }
 
-        function hideMonthPicker() {
-            const btn = document.getElementById('month-picker-btn');
-            const panel = document.getElementById('month-picker-panel');
+        function hideDropdown(btnId, panelId) {
+            const btn = document.getElementById(btnId);
+            const panel = document.getElementById(panelId);
             let closed = false;
             try {
                 const B = window.bootstrap || (typeof bootstrap !== 'undefined' ? bootstrap : null) || window.tabler?.bootstrap || window.tabler;
@@ -531,6 +634,120 @@
             }
         }
 
+        function syncShortcutHighlights() {
+            const setBtn = (id, active) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.toggle('btn-secondary', active);
+                el.classList.toggle('btn-outline-secondary', !active);
+                el.classList.toggle('active', active);
+            };
+            setBtn('day-btn-today', currentDate === TODAY_DATE);
+            setBtn('day-btn-yesterday', currentDate === YESTERDAY_DATE);
+            setBtn('month-btn-current', currentMonth === THIS_MONTH);
+            setBtn('month-btn-last', currentMonth === LAST_MONTH);
+            setBtn('year-btn-current', currentYear === THIS_YEAR);
+            setBtn('year-btn-last', currentYear === LAST_YEAR);
+        }
+
+        function applyDate(ymd, triggerReload = true) {
+            currentDate = ymd;
+            document.getElementById('day-picker-label').textContent = ymd;
+            syncShortcutHighlights();
+            if (triggerReload) reloadAll();
+        }
+        function applyMonth(ym, triggerReload = true) {
+            currentMonth = ym;
+            document.getElementById('month-picker-label').textContent = pickerFmtLabel(ym);
+            syncShortcutHighlights();
+            if (triggerReload) reloadAll();
+        }
+        function applyYear(y, triggerReload = true) {
+            currentYear = y;
+            document.getElementById('year-label').textContent = y + ' 年';
+            syncShortcutHighlights();
+            if (triggerReload) reloadAll();
+        }
+
+        // 1) 日选择器（自定义日历）
+        let calYear = parseInt(currentDate.split('-')[0], 10);
+        let calMonth = parseInt(currentDate.split('-')[1], 10);
+
+        function renderDayCalendar() {
+            const grid = document.getElementById('day-cal-grid');
+            const header = document.getElementById('day-cal-header');
+            if (!grid || !header) return;
+
+            header.textContent = calYear + '年' + calMonth + '月';
+            const firstDow = (new Date(Date.UTC(calYear, calMonth - 1, 1)).getUTCDay() + 6) % 7;
+            const daysInMonth = new Date(Date.UTC(calYear, calMonth, 0)).getUTCDate();
+            const totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7;
+
+            let html = '';
+            for (let i = 0; i < totalCells; i++) {
+                const dt = new Date(Date.UTC(calYear, calMonth - 1, 1 - firstDow + i));
+                const ymd = fmtYmd(dt);
+                const inMonth = dt.getUTCFullYear() === calYear && (dt.getUTCMonth() + 1) === calMonth;
+                let cls = 'btn btn-sm px-0 w-100 ';
+                if (ymd === currentDate) {
+                    cls += 'btn-primary';
+                } else if (ymd === TODAY_DATE) {
+                    cls += 'btn-outline-primary';
+                } else if (!inMonth) {
+                    cls += 'btn-ghost-secondary text-muted opacity-50';
+                } else {
+                    cls += 'btn-ghost-secondary';
+                }
+                html += `<button type="button" class="${cls} day-cal-cell" data-ymd="${ymd}">${dt.getUTCDate()}</button>`;
+            }
+            grid.innerHTML = html;
+            grid.querySelectorAll('.day-cal-cell').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    hideDropdown('day-picker-btn', 'day-picker-panel');
+                    applyDate(btn.dataset.ymd);
+                });
+            });
+        }
+
+        document.getElementById('day-cal-prev-month')?.addEventListener('click', () => {
+            calMonth--;
+            if (calMonth < 1) { calMonth = 12; calYear--; }
+            renderDayCalendar();
+        });
+        document.getElementById('day-cal-next-month')?.addEventListener('click', () => {
+            calMonth++;
+            if (calMonth > 12) { calMonth = 1; calYear++; }
+            renderDayCalendar();
+        });
+        document.getElementById('day-picker-btn')?.addEventListener('show.bs.dropdown', () => {
+            const [y, m] = currentDate.split('-').map(n => parseInt(n, 10));
+            calYear = y;
+            calMonth = m;
+            renderDayCalendar();
+        });
+        document.getElementById('day-picker-today')?.addEventListener('click', () => {
+            hideDropdown('day-picker-btn', 'day-picker-panel');
+            applyDate(TODAY_DATE);
+        });
+        document.getElementById('day-picker-close')?.addEventListener('click', () => hideDropdown('day-picker-btn', 'day-picker-panel'));
+        document.getElementById('day-btn-today')?.addEventListener('click', () => applyDate(TODAY_DATE));
+        document.getElementById('day-btn-yesterday')?.addEventListener('click', () => applyDate(YESTERDAY_DATE));
+        document.getElementById('day-prev')?.addEventListener('click', () => {
+            const dt = parseYmdUtc(currentDate);
+            dt.setUTCDate(dt.getUTCDate() - 1);
+            applyDate(fmtYmd(dt));
+        });
+        document.getElementById('day-next')?.addEventListener('click', () => {
+            const dt = parseYmdUtc(currentDate);
+            dt.setUTCDate(dt.getUTCDate() + 1);
+            applyDate(fmtYmd(dt));
+        });
+
+        // 2) 月选择器
+        let pickerYear = parseInt(currentMonth.split('-')[0], 10);
+        let pickerView = 'month';
+        let pickerDecadeStart = Math.floor(pickerYear / 12) * 12;
+
         function renderMonthView() {
             pickerView = 'month';
             const grid = document.getElementById('picker-month-grid');
@@ -550,15 +767,13 @@
             grid.querySelectorAll('.picker-mon-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const m = String(btn.dataset.mon).padStart(2, '0');
-                    currentMonth = pickerYear + '-' + m;
-                    document.getElementById('month-picker-label').textContent = pickerFmtLabel(currentMonth);
-                    hideMonthPicker();
-                    reloadAll();
+                    hideDropdown('month-picker-btn', 'month-picker-panel');
+                    applyMonth(pickerYear + '-' + m);
                 });
             });
         }
 
-        function renderYearView() {
+        function renderYearViewInMonthPicker() {
             pickerView = 'year';
             const grid = document.getElementById('picker-month-grid');
             if (!grid) return;
@@ -570,8 +785,8 @@
             }).join('');
             document.getElementById('picker-year-label').textContent = pickerDecadeStart + '–' + (pickerDecadeStart + 11);
             document.getElementById('picker-year-label').style.cursor = 'pointer';
-            document.getElementById('picker-prev-year').onclick = () => { pickerDecadeStart -= 12; renderYearView(); };
-            document.getElementById('picker-next-year').onclick = () => { pickerDecadeStart += 12; renderYearView(); };
+            document.getElementById('picker-prev-year').onclick = () => { pickerDecadeStart -= 12; renderYearViewInMonthPicker(); };
+            document.getElementById('picker-next-year').onclick = () => { pickerDecadeStart += 12; renderYearViewInMonthPicker(); };
             grid.querySelectorAll('.picker-yr-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     pickerYear = parseInt(btn.dataset.year, 10);
@@ -584,38 +799,73 @@
         document.getElementById('picker-year-label')?.addEventListener('click', () => {
             if (pickerView === 'month') {
                 pickerDecadeStart = Math.floor(pickerYear / 12) * 12;
-                renderYearView();
+                renderYearViewInMonthPicker();
             } else {
                 renderMonthView();
             }
         });
         document.getElementById('picker-this-month')?.addEventListener('click', () => {
-            const now = new Date();
-            pickerYear = now.getFullYear();
-            pickerDecadeStart = Math.floor(pickerYear / 12) * 12;
-            currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-            document.getElementById('month-picker-label').textContent = pickerFmtLabel(currentMonth);
-            renderMonthView();
-            hideMonthPicker();
-            reloadAll();
+            hideDropdown('month-picker-btn', 'month-picker-panel');
+            applyMonth(THIS_MONTH);
         });
-        document.getElementById('picker-clear')?.addEventListener('click', () => hideMonthPicker());
+        document.getElementById('picker-clear')?.addEventListener('click', () => hideDropdown('month-picker-btn', 'month-picker-panel'));
         document.getElementById('month-picker-btn')?.addEventListener('show.bs.dropdown', () => {
             pickerYear = parseInt(currentMonth.split('-')[0], 10);
             pickerDecadeStart = Math.floor(pickerYear / 12) * 12;
             renderMonthView();
         });
+        document.getElementById('month-btn-current')?.addEventListener('click', () => applyMonth(THIS_MONTH));
+        document.getElementById('month-btn-last')?.addEventListener('click', () => applyMonth(LAST_MONTH));
+        document.getElementById('month-prev')?.addEventListener('click', () => {
+            const [y, m] = currentMonth.split('-').map(n => parseInt(n, 10));
+            const dt = new Date(Date.UTC(y, m - 2, 1));
+            applyMonth(dt.getUTCFullYear() + '-' + String(dt.getUTCMonth() + 1).padStart(2, '0'));
+        });
+        document.getElementById('month-next')?.addEventListener('click', () => {
+            const [y, m] = currentMonth.split('-').map(n => parseInt(n, 10));
+            const dt = new Date(Date.UTC(y, m, 1));
+            applyMonth(dt.getUTCFullYear() + '-' + String(dt.getUTCMonth() + 1).padStart(2, '0'));
+        });
 
-        document.getElementById('month-picker-label').textContent = pickerFmtLabel(currentMonth);
-        renderMonthView();
+        // 3) 年选择器
+        let yrPickerStart = Math.floor(currentYear / 12) * 12;
 
-        function updateYearLabel() {
-            const el = document.getElementById('year-label');
-            if (el) el.textContent = currentYear + ' 年';
+        function renderYearGrid() {
+            const grid = document.getElementById('yr-picker-grid');
+            if (!grid) return;
+            const years = Array.from({ length: 12 }, (_, i) => yrPickerStart + i);
+            grid.innerHTML = years.map(y => {
+                const btnCls = y === currentYear ? 'btn btn-primary btn-sm w-100' : 'btn btn-ghost-secondary btn-sm w-100';
+                return `<div class="col-3 p-0"><button type="button" class="${btnCls} yr-grid-btn" data-year="${y}">${y}</button></div>`;
+            }).join('');
+            document.getElementById('yr-picker-range').textContent = yrPickerStart + '–' + (yrPickerStart + 11);
+            grid.querySelectorAll('.yr-grid-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    hideDropdown('year-picker-btn', 'year-picker-panel');
+                    applyYear(parseInt(btn.dataset.year, 10));
+                });
+            });
         }
-        updateYearLabel();
-        document.getElementById('year-prev')?.addEventListener('click', () => { currentYear--; updateYearLabel(); reloadAll(); });
-        document.getElementById('year-next')?.addEventListener('click', () => { currentYear++; updateYearLabel(); reloadAll(); });
+
+        document.getElementById('yr-picker-prev')?.addEventListener('click', () => { yrPickerStart -= 12; renderYearGrid(); });
+        document.getElementById('yr-picker-next')?.addEventListener('click', () => { yrPickerStart += 12; renderYearGrid(); });
+        document.getElementById('yr-picker-close')?.addEventListener('click', () => hideDropdown('year-picker-btn', 'year-picker-panel'));
+        document.getElementById('yr-picker-this-year')?.addEventListener('click', () => {
+            hideDropdown('year-picker-btn', 'year-picker-panel');
+            applyYear(THIS_YEAR);
+        });
+        document.getElementById('year-picker-btn')?.addEventListener('show.bs.dropdown', () => {
+            yrPickerStart = Math.floor(currentYear / 12) * 12;
+            renderYearGrid();
+        });
+        document.getElementById('year-btn-current')?.addEventListener('click', () => applyYear(THIS_YEAR));
+        document.getElementById('year-btn-last')?.addEventListener('click', () => applyYear(LAST_YEAR));
+        document.getElementById('year-prev')?.addEventListener('click', () => applyYear(currentYear - 1));
+        document.getElementById('year-next')?.addEventListener('click', () => applyYear(currentYear + 1));
+
+        applyDate(currentDate, false);
+        applyMonth(currentMonth, false);
+        applyYear(currentYear, false);
 
         function destroyAndRender(id, options) {
             const el = document.getElementById(id);
@@ -629,12 +879,21 @@
         function updateTopKpi(data) {
             const sum = arr => (arr || []).reduce((a, b) => a + Number(b || 0), 0);
             const last = arr => (arr && arr.length > 0) ? Number(arr[arr.length - 1] || 0) : 0;
+            const s = data.summary || null;
 
-            document.getElementById('kpi-income').textContent  = '¥' + sum(data.income).toFixed(2);
-            document.getElementById('kpi-users').textContent   = sum(data.newUsers) + ' 人';
-            document.getElementById('kpi-traffic').textContent = sum(data.trafficGb).toFixed(2) + ' GB';
-            document.getElementById('kpi-active').textContent  = last(data.activeUsers) + ' 人';
-            document.getElementById('kpi-checkin').textContent = sum(data.checkinUsers) + ' 人次';
+            const incomeVal  = s ? Number(s.income || 0) : sum(data.income);
+            const usersVal   = s ? Number(s.newUsers || 0) : sum(data.newUsers);
+            const trafficVal = s ? Number(s.trafficGb || 0) : sum(data.trafficGb);
+            const activeVal  = s ? Number(s.activeUsers || 0) : last(data.activeUsers);
+            const checkinVal = s ? Number(s.checkinUsers || 0) : sum(data.checkinUsers);
+
+            document.getElementById('kpi-income').textContent  = '¥' + incomeVal.toFixed(2);
+            document.getElementById('kpi-users').textContent   = Math.round(usersVal) + ' 人';
+            document.getElementById('kpi-traffic').textContent = trafficVal.toFixed(2) + ' GB';
+            document.getElementById('kpi-active').textContent  = Math.round(activeVal) + ' 人';
+            document.getElementById('kpi-checkin').textContent = Math.round(checkinVal) + ' 人次';
+            document.getElementById('kpi-active-label').textContent =
+                (currentMode === 'day' && data.isLive) ? '当前活跃' : (currentMode === 'day' ? '当日活跃' : '活跃用户');
 
             const diffEl = document.getElementById('kpi-income-diff');
             const diff = data.incomeComparison?.diffPercent;
@@ -642,22 +901,50 @@
                 diffEl.classList.add('d-none');
             } else {
                 const isUp = diff >= 0;
-                diffEl.textContent = (isUp ? '+' : '') + diff + '% 较上期';
+                const compLabel = currentMode === 'day' ? '较前日' : (currentMode === 'year' ? '较上年' : '较上月');
+                diffEl.textContent = (isUp ? '+' : '') + diff + '% ' + compLabel;
                 diffEl.className = 'ms-1 badge ' + (isUp ? 'bg-green-lt text-green' : 'bg-red-lt text-red');
             }
         }
 
         // ── Tab 1: 总览趋势 ──────────────────────────────────────────────
+        function setCardNote(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text;
+        }
+
         function renderOverviewTab(siteData, productItems) {
-            const xLabels = currentMode === 'day' ? (siteData.dates || []) : (siteData.months || []);
-            renderLineChart('chart-income', '收入 (¥)', xLabels, siteData.income || []);
-            renderLineChart('chart-users', '新增用户', xLabels, siteData.newUsers || [], '#2fb344', v => Math.round(v) + ' 人');
-            renderClassLineChart('chart-class', xLabels, siteData.classSeries || {});
-            renderDualLineChart('chart-activity', xLabels, [
-                { name: '活跃用户', data: siteData.activeUsers || [] },
-                { name: '签到人数', data: siteData.checkinUsers || [] },
-            ], ['#206bc4', '#17a589']);
-            renderAreaChart('chart-traffic', '流量 (GB)', xLabels, siteData.trafficGb || []);
+            if (currentMode === 'day') {
+                const hourLabels = siteData.hours || [];
+                setCardNote('income-card-note', '24 小时分时');
+                setCardNote('users-card-note', '24 小时分时');
+                setCardNote('traffic-card-note', '24 小时分时');
+                setCardNote('class-card-note', siteData.isLive ? '当前实时分布' : '当日快照');
+                setCardNote('activity-card-note', siteData.isLive ? '当前实时状态' : '当日快照汇总');
+
+                renderLineChart('chart-income', '分时收入 (¥)', hourLabels, siteData.income || [], '#206bc4', v => '¥' + Number(v || 0).toFixed(2), true);
+                renderLineChart('chart-users', '分时新增用户', hourLabels, siteData.newUsers || [], '#2fb344', v => Math.round(v) + ' 人', true);
+                renderClassSnapshotBar('chart-class', siteData.classSnapshot || {});
+                renderActivitySnapshotBar('chart-activity', siteData.activeUsers?.[0] || 0, siteData.checkinUsers?.[0] || 0);
+                renderAreaChart('chart-traffic', '分时流量 (GB)', hourLabels, siteData.trafficGb || [], true);
+            } else {
+                const xLabels = currentMode === 'month' ? (siteData.dates || []) : (siteData.months || []);
+                const scopeNote = currentMode === 'month' ? '按日统计' : '按月汇总';
+                setCardNote('income-card-note', scopeNote);
+                setCardNote('users-card-note', scopeNote);
+                setCardNote('traffic-card-note', scopeNote);
+                setCardNote('class-card-note', scopeNote);
+                setCardNote('activity-card-note', '每日凌晨快照汇总（含今日实时）');
+
+                renderLineChart('chart-income', '收入 (¥)', xLabels, siteData.income || []);
+                renderLineChart('chart-users', '新增用户', xLabels, siteData.newUsers || [], '#2fb344', v => Math.round(v) + ' 人');
+                renderClassLineChart('chart-class', xLabels, siteData.classSeries || {});
+                renderDualLineChart('chart-activity', xLabels, [
+                    { name: '活跃用户', data: siteData.activeUsers || [] },
+                    { name: '签到人数', data: siteData.checkinUsers || [] },
+                ], ['#206bc4', '#17a589']);
+                renderAreaChart('chart-traffic', '流量 (GB)', xLabels, siteData.trafficGb || []);
+            }
 
             const items = (productItems || []).slice(0, 10).reverse();
             const categories = items.map(p => p.product_name || ('商品 #' + p.product_id));
@@ -778,6 +1065,9 @@
             const peakBadge = document.getElementById('peak-hour-badge');
             if (days === 0) {
                 peakBadge.textContent = '暂无峰值数据';
+            } else if (currentMode === 'day') {
+                const hStr = String(res.peakTotalHour ?? 0).padStart(2, '0') + ':00';
+                peakBadge.textContent = `当日高峰 ${hStr} (${Number(res.peakGb || 0).toFixed(2)} GB) · 当日总计 ${Number(res.totalGb || 0).toFixed(2)} GB`;
             } else if (isAvg) {
                 const hStr = String(res.peakHour ?? 0).padStart(2, '0') + ':00';
                 peakBadge.textContent = `日均高峰 ${hStr} (${Number(res.peakAvgGb || 0).toFixed(2)} GB/时) · 统计 ${days} 天（日均 ${Number(res.avgDailyTotalGb || 0).toFixed(2)} GB/天）`;
@@ -801,7 +1091,7 @@
                 series: [{ name: isAvg ? '日均流量 (GB/时)' : `累计流量 (${days}天 GB)`, data: seriesData }],
                 colors: ['#f76707'],
                 grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
-                xaxis: { categories: hourLabels, labels: { style: { fontSize: '11px' }, rotate: -45, rotateAlways: true, hideOverlappingLabels: false }, tooltip: { enabled: false } },
+                xaxis: buildTimeXAxis(hourLabels, true),
                 yaxis: { labels: { formatter: v => Number(v || 0).toFixed(1) + ' GB' } },
                 tooltip: {
                     theme: 'dark',
@@ -954,23 +1244,16 @@
             document.getElementById('btn-year').classList.toggle('active', isYear);
             document.getElementById('btn-year').classList.toggle('btn-primary', isYear);
             document.getElementById('btn-year').classList.toggle('btn-outline-primary', !isYear);
-            document.getElementById('day-shortcuts').classList.toggle('d-none', !isDay);
-            document.getElementById('month-shortcuts').classList.toggle('d-none', !isMonth);
-            document.getElementById('year-shortcuts').classList.toggle('d-none', !isYear);
+            document.getElementById('day-controls').classList.toggle('d-none', !isDay);
+            document.getElementById('month-controls').classList.toggle('d-none', !isMonth);
+            document.getElementById('year-controls').classList.toggle('d-none', !isYear);
+            syncShortcutHighlights();
             reloadAll();
         }
 
         document.getElementById('btn-day').addEventListener('click', () => switchMode('day'));
         document.getElementById('btn-month').addEventListener('click', () => switchMode('month'));
         document.getElementById('btn-year').addEventListener('click', () => switchMode('year'));
-
-        document.querySelectorAll('.day-shortcut').forEach(btn => {
-            btn.addEventListener('click', () => {
-                currentMonth = btn.dataset.month;
-                document.getElementById('month-picker-label').textContent = pickerFmtLabel(currentMonth);
-                reloadAll();
-            });
-        });
 
         document.querySelectorAll('#analytics-tabs [data-bs-toggle="tab"]').forEach(tabEl => {
             tabEl.addEventListener('shown.bs.tab', e => {
@@ -980,14 +1263,21 @@
         });
 
         // ── 图表渲染函数 ─────────────────────────────────────────────────
-        function renderLineChart(id, name, labels, data, color = '#206bc4', formatter = v => '¥' + Number(v || 0).toFixed(2)) {
+        function buildTimeXAxis(labels, forceAll = false) {
+            const labelCfg = forceAll
+                ? { style: { fontSize: '11px' }, rotate: -45, rotateAlways: true, hideOverlappingLabels: false }
+                : { style: { fontSize: '12px' }, rotate: -45 };
+            return { categories: labels, labels: labelCfg, tooltip: { enabled: false } };
+        }
+
+        function renderLineChart(id, name, labels, data, color = '#206bc4', formatter = v => '¥' + Number(v || 0).toFixed(2), forceAllXLabels = false) {
             destroyAndRender(id, {
                 chart: { type: 'line', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
                 stroke: { curve: 'smooth', width: 2 },
                 grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
                 series: [{ name, data }],
                 colors: [color],
-                xaxis: { categories: labels, labels: { style: { fontSize: '12px' }, rotate: -45 }, tooltip: { enabled: false } },
+                xaxis: buildTimeXAxis(labels, forceAllXLabels),
                 yaxis: { labels: { formatter } },
                 tooltip: { theme: 'dark', y: { formatter } },
                 noData: { text: '暂无数据' }
@@ -1001,7 +1291,7 @@
                 grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
                 series,
                 colors,
-                xaxis: { categories: labels, labels: { style: { fontSize: '12px' }, rotate: -45 }, tooltip: { enabled: false } },
+                xaxis: buildTimeXAxis(labels, false),
                 yaxis: { labels: { formatter: v => Math.round(v) } },
                 tooltip: { theme: 'dark', y: { formatter: v => Math.round(v) + ' 人' } },
                 legend: { position: 'top', horizontalAlign: 'right' },
@@ -1009,7 +1299,7 @@
             });
         }
 
-        function renderAreaChart(id, name, labels, data) {
+        function renderAreaChart(id, name, labels, data, forceAllXLabels = false) {
             destroyAndRender(id, {
                 chart: { type: 'area', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
                 stroke: { curve: 'smooth', width: 2 },
@@ -1017,7 +1307,7 @@
                 grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
                 series: [{ name, data }],
                 colors: ['#f76707'],
-                xaxis: { categories: labels, labels: { style: { fontSize: '12px' }, rotate: -45 }, tooltip: { enabled: false } },
+                xaxis: buildTimeXAxis(labels, forceAllXLabels),
                 yaxis: { labels: { formatter: v => Number(v || 0).toFixed(2) + ' GB' } },
                 tooltip: { theme: 'dark', y: { formatter: v => Number(v || 0).toFixed(2) + ' GB' } },
                 noData: { text: '暂无数据' }
@@ -1033,11 +1323,46 @@
                 series: sorted.map(cls => ({ name: '等级 ' + cls, data: classSeries[cls] || [] })),
                 colors: sorted.map(cls => classColor(cls)),
                 grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
-                xaxis: { categories: labels, labels: { style: { fontSize: '12px' }, rotate: -45 }, tooltip: { enabled: false } },
+                xaxis: buildTimeXAxis(labels, false),
                 yaxis: { labels: { formatter: v => Math.round(v) } },
                 tooltip: { theme: 'dark', y: { formatter: v => v + ' 人' } },
                 legend: { position: 'top', horizontalAlign: 'right' },
                 noData: { text: '暂无数据' }
+            });
+        }
+
+        function renderClassSnapshotBar(id, snapshot) {
+            const sorted = Object.keys(snapshot || {}).sort((a, b) => Number(a) - Number(b));
+            const labels = sorted.map(cls => '等级 ' + cls);
+            const values = sorted.map(cls => Number(snapshot[cls] || 0));
+            destroyAndRender(id, {
+                chart: { type: 'bar', fontFamily: 'inherit', height: 350, parentHeightOffset: 0, toolbar: { show: false } },
+                plotOptions: { bar: { columnWidth: '45%', borderRadius: 4, distributed: true } },
+                dataLabels: { enabled: true, formatter: v => Math.round(v) + ' 人' },
+                series: [{ name: '用户数', data: values }],
+                colors: sorted.map(cls => classColor(cls)),
+                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
+                xaxis: { categories: labels, labels: { style: { fontSize: '12px' } }, tooltip: { enabled: false } },
+                yaxis: { labels: { formatter: v => Math.round(v) } },
+                legend: { show: false },
+                tooltip: { theme: 'dark', y: { formatter: v => Math.round(v) + ' 人' } },
+                noData: { text: '暂无等级分布快照' }
+            });
+        }
+
+        function renderActivitySnapshotBar(id, activeCount, checkinCount) {
+            destroyAndRender(id, {
+                chart: { type: 'bar', fontFamily: 'inherit', height: 300, parentHeightOffset: 0, toolbar: { show: false } },
+                plotOptions: { bar: { columnWidth: '35%', borderRadius: 4, distributed: true } },
+                dataLabels: { enabled: true, formatter: v => Math.round(v) + ' 人' },
+                series: [{ name: '人数', data: [Number(activeCount || 0), Number(checkinCount || 0)] }],
+                colors: ['#206bc4', '#17a589'],
+                grid: { strokeDashArray: 4, padding: { top: -20, right: 0, left: 10, bottom: 0 } },
+                xaxis: { categories: ['活跃用户', '当日签到'], labels: { style: { fontSize: '12px' } }, tooltip: { enabled: false } },
+                yaxis: { labels: { formatter: v => Math.round(v) } },
+                legend: { show: false },
+                tooltip: { theme: 'dark', y: { formatter: v => Math.round(v) + ' 人' } },
+                noData: { text: '暂无活跃签到数据' }
             });
         }
 

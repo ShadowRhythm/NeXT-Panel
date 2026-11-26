@@ -19,6 +19,7 @@ use App\Services\Cron;
 use Illuminate\Database\Capsule\Manager;
 use PHPUnit\Framework\TestCase;
 use function array_fill;
+use function array_sum;
 use function date;
 use function json_decode;
 use function json_encode;
@@ -302,7 +303,7 @@ final class AnalyticsTest extends TestCase
             'pay_time' => $ts,
         ]);
 
-        $res = Analytics::getRevenueAnalysis('day', $month, date('Y'));
+        $res = Analytics::getRevenueAnalysis('month', $month, date('Y'));
         $this->assertSame(1, $res['purchaseMix']['newCount']);
         $this->assertSame(20.0, $res['purchaseMix']['newRevenue']);
         $this->assertSame(2, $res['purchaseMix']['renewalCount']);
@@ -338,7 +339,7 @@ final class AnalyticsTest extends TestCase
         $tHours[0] = 1024 ** 3;
         HourlyUsage::query()->create(['user_id' => 1, 'date' => $today, 'usage' => json_encode($tHours)]);
 
-        $res = Analytics::getTrafficAndClientStats('day', $month, date('Y'));
+        $res = Analytics::getTrafficAndClientStats('month', $month, date('Y'));
         if (substr($yesterday, 0, 7) === $month) {
             $this->assertSame(0, $res['peakHour']);
             $this->assertSame(2, $res['daysCount']);
@@ -387,7 +388,7 @@ final class AnalyticsTest extends TestCase
             'datetime'   => $now,
         ]);
 
-        $res = Analytics::getNodeAndRetentionStats('day', $month, date('Y'));
+        $res = Analytics::getNodeAndRetentionStats('month', $month, date('Y'));
         $this->assertSame(1, $res['nodeStats']['summary']['nearLimitCount']);
         $this->assertSame(85.0, $res['nodeStats']['nodes'][0]['usage_percent']);
         $this->assertSame(1, $res['retention']['expiring7DaysCount']);
@@ -397,11 +398,116 @@ final class AnalyticsTest extends TestCase
         $this->assertSame('kol', $res['referrals']['topReferrers'][0]['user_name']);
     }
 
+    public function testDayModeReturnsHourlyBreakdownAndLiveTodayStats(): void
+    {
+        $today = date('Y-m-d');
+        $yesterday = date('Y-m-d', strtotime('-1 day'));
+        $now = time();
+        $curHour = (int) date('H', $now);
+        $yNoon = strtotime($yesterday . ' 12:00:00');
+
+        $yHours = array_fill(0, 24, 0);
+        $yHours[10] = 2 * (1024 ** 3);
+        SiteDailyStat::query()->create([
+            'date'            => $yesterday,
+            'income'          => 50.00,
+            'new_users'       => 3,
+            'active_users'    => 10,
+            'traffic'         => 2 * (1024 ** 3),
+            'class_snapshot'  => json_encode(['1' => 10]),
+            'hourly_traffic'  => json_encode($yHours),
+            'client_snapshot' => json_encode(['Shadowrocket' => 2]),
+            'checkin_users'   => 4,
+        ]);
+
+        User::query()->create([
+            'user_name'          => 'todayUser',
+            'email'              => 'today@example.com',
+            'class'              => 2,
+            'reg_date'           => $today . ' ' . date('H:i:s', $now),
+            'last_check_in_time' => $now,
+            'is_inactive'        => 0,
+        ]);
+
+        Paylist::query()->create([
+            'userid'   => 1,
+            'total'    => 88.50,
+            'status'   => 1,
+            'gateway'  => 'alipay',
+            'tradeno'  => 'TODAY1',
+            'datetime' => $now,
+        ]);
+
+        Order::query()->create([
+            'user_id'      => 1,
+            'product_id'   => 1,
+            'product_type' => 'tabp',
+            'product_name' => 'Today Plan',
+            'price'        => 88.50,
+            'status'       => 'activated',
+            'create_time'  => $now,
+        ]);
+        Order::query()->create([
+            'user_id'      => 2,
+            'product_id'   => 2,
+            'product_type' => 'tabp',
+            'product_name' => 'Yesterday Plan',
+            'price'        => 50.00,
+            'status'       => 'activated',
+            'create_time'  => $yNoon,
+        ]);
+
+        $tHours = array_fill(0, 24, 0);
+        $tHours[$curHour] = 3 * (1024 ** 3);
+        HourlyUsage::query()->create([
+            'user_id' => 1,
+            'date'    => $today,
+            'usage'   => json_encode($tHours),
+        ]);
+
+        $todayStats = Analytics::getSiteDailyStats($today);
+        $this->assertCount(24, $todayStats['hours']);
+        $this->assertTrue($todayStats['isLive']);
+        $this->assertSame(88.5, $todayStats['income'][$curHour]);
+        $this->assertSame(1, $todayStats['newUsers'][$curHour]);
+        $this->assertSame(3.0, $todayStats['trafficGb'][$curHour]);
+        $this->assertSame(88.5, $todayStats['summary']['income']);
+        $this->assertSame(1, $todayStats['summary']['newUsers']);
+        $this->assertSame(1, $todayStats['summary']['activeUsers']);
+        $this->assertSame(1, $todayStats['summary']['checkinUsers']);
+
+        $yesterdayStats = Analytics::getSiteDailyStats($yesterday);
+        $this->assertFalse($yesterdayStats['isLive']);
+        $this->assertSame(2.0, $yesterdayStats['trafficGb'][10]);
+        $this->assertSame(50.0, $yesterdayStats['summary']['income']);
+        $this->assertSame(10, $yesterdayStats['summary']['activeUsers']);
+        $this->assertSame(4, $yesterdayStats['summary']['checkinUsers']);
+
+        $todaySales = Analytics::getProductSalesRankingByDate($today);
+        $this->assertCount(1, $todaySales);
+        $this->assertSame('Today Plan', $todaySales[0]['product_name']);
+
+        $todayRev = Analytics::getRevenueAnalysis('day', date('Y-m'), date('Y'), $today);
+        $this->assertSame(88.5, $todayRev['summary']['totalRevenue']);
+
+        $monthly = Analytics::getSiteDailyByMonth(date('Y-m'));
+        $this->assertContains($today, $monthly['dates']);
+        $expectedMonthlyIncome = substr($yesterday, 0, 7) === date('Y-m') ? 138.5 : 88.5;
+        $this->assertSame($expectedMonthlyIncome, array_sum($monthly['income']));
+    }
+
     public function testInvalidMonthAndYearFallBackSafely(): void
     {
+        $day = Analytics::getSiteDailyStats('2026-99-99');
+        $this->assertSame(date('Y-m-d'), $day['date']);
+        $this->assertCount(24, $day['hours']);
+
         $daily = Analytics::getSiteDailyByMonth('2026-99');
         $this->assertArrayHasKey('dates', $daily);
         $this->assertArrayHasKey('incomeComparison', $daily);
+
+        $salesByDate = Analytics::getProductSalesRankingByDate('not-a-date');
+        $this->assertIsArray($salesByDate);
 
         $sales = Analytics::getProductSalesRanking('2026-99');
         $this->assertIsArray($sales);
