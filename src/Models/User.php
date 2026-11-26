@@ -74,7 +74,7 @@ final class User extends Model
      *
      * @var bool
      */
-    public bool $isLogin;
+    public bool $isLogin = false;
 
     protected $connection = 'default';
     protected $table = 'user';
@@ -122,30 +122,30 @@ final class User extends Model
     /**
      * 最后使用时间
      */
-    public function lastUseTime(): string
+    public function lastUseTime(?string $locale = null): string
     {
         return $this->last_use_time === 0
-            ? I18n::trans('user.never_used', I18n::getCurrentLocale($this))
+            ? I18n::trans('user.never_used', $locale ?? I18n::getCurrentLocale($this))
             : Tools::toDateTime($this->last_use_time);
     }
 
     /**
      * 最后签到时间
      */
-    public function lastCheckInTime(): string
+    public function lastCheckInTime(?string $locale = null): string
     {
         return $this->last_check_in_time === 0
-            ? I18n::trans('user.never_checked_in', I18n::getCurrentLocale($this))
+            ? I18n::trans('user.never_checked_in', $locale ?? I18n::getCurrentLocale($this))
             : Tools::toDateTime($this->last_check_in_time);
     }
 
     /**
      * 最后登录时间
      */
-    public function lastLoginTime(): string
+    public function lastLoginTime(?string $locale = null): string
     {
         return $this->last_login_time === 0
-            ? I18n::trans('user.never_logged_in', I18n::getCurrentLocale($this))
+            ? I18n::trans('user.never_logged_in', $locale ?? I18n::getCurrentLocale($this))
             : Tools::toDateTime($this->last_login_time);
     }
 

@@ -104,7 +104,9 @@ final class I18n
 
     public static function getCurrentLocale(?User $user = null): string
     {
-        if ($user === null && class_exists(Auth::class)) {
+        $explicitUser = $user !== null;
+
+        if (! $explicitUser && class_exists(Auth::class)) {
             try {
                 $authUser = Auth::getUser();
                 if ($authUser->isLogin) {
@@ -115,8 +117,8 @@ final class I18n
             }
         }
 
-        // 1. Logged-in user preference
-        if ($user !== null && $user->isLogin && ! empty($user->locale) && self::isValidLocale($user->locale)) {
+        // 1. Explicit target user or logged-in session user preference
+        if ($user !== null && ($explicitUser || $user->isLogin) && ! empty($user->locale) && self::isValidLocale($user->locale)) {
             return $user->locale;
         }
 

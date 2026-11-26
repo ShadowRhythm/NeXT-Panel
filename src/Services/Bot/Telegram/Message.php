@@ -210,7 +210,7 @@ final class Message
         $text = [
             I18n::trans('bot.info_balance', $locale, ['balance' => $user->money]),
             I18n::trans('bot.info_speed_limit', $locale, ['limit' => $speedLimit]),
-            I18n::trans('bot.info_last_used', $locale, ['time' => $user->lastUseTime()]),
+            I18n::trans('bot.info_last_used', $locale, ['time' => $user->lastUseTime($locale)]),
             I18n::trans('bot.info_expire_time', $locale, ['time' => $user->class_expire]),
         ];
 

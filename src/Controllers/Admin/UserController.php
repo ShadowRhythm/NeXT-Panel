@@ -332,9 +332,9 @@ final class UserController extends BaseController
             $user->transfer_enable = $user->enableTraffic();
             $user->transfer_used = $user->usedTraffic();
             $user->transfer_today = round(Tools::bToGB($user->transfer_today), 2);
-            $user->last_use_time = $user->lastUseTime();
-            $user->last_check_in_time = $user->lastCheckInTime();
-            $user->last_login_time = $user->lastLoginTime();
+            $user->last_use_time = $user->lastUseTime('zh_CN');
+            $user->last_check_in_time = $user->lastCheckInTime('zh_CN');
+            $user->last_login_time = $user->lastLoginTime('zh_CN');
             $user->is_admin = $user->is_admin === 1 ? '是' : '否';
             $user->is_banned = $user->is_banned === 1 ? '是' : '否';
             $user->is_inactive = $user->is_inactive === 1 ? '是' : '否';
