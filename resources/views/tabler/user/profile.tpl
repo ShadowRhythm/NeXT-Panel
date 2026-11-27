@@ -139,7 +139,7 @@
                                                         <span class="text-secondary">{trans key='user.unnamed_device'}</span>
                                                     {/if}
                                                     <button type="button"
-                                                            class="btn btn-secondary btn-icon btn-sm"
+                                                            class="btn btn-primary btn-icon btn-sm"
                                                             title="{trans key='user.edit_device_alias'}"
                                                             onclick="openAliasModal('{$ip->ip|escape:'javascript'}', '{$ip->alias|escape:'javascript'}')">
                                                         <i class="ti ti-pencil icon"></i>
@@ -260,7 +260,7 @@
                             </h3>
                             {if count($subs) > 0}
                                 <button type="button"
-                                        class="btn btn-sm btn-secondary"
+                                        class="btn btn-sm btn-primary"
                                         id="toggle-raw-sub-logs-btn"
                                         aria-expanded="false"
                                         aria-controls="raw-sub-logs"
@@ -381,7 +381,7 @@
                            placeholder="{trans key='user.device_alias_placeholder'}">
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-azure" data-bs-dismiss="modal">
                         {trans key='common.cancel'}
                     </button>
                     <button type="button" class="btn btn-primary ms-auto"

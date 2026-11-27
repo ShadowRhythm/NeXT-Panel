@@ -95,7 +95,7 @@
                                                         <div class="btn-group flex-wrap justify-content-center mb-3" role="group">
                                                             {foreach $group->skus as $idx => $sku}
                                                                 <button type="button"
-                                                                        class="btn btn-sm {if $idx === $group->default_index}btn-primary{else}btn-secondary{/if}"
+                                                                        class="btn btn-sm {if $idx === $group->default_index}btn-primary{else}btn-azure{/if}"
                                                                         data-cycle-btn
                                                                         data-sku-index="{$idx}">
                                                                     {$sku.pill_label|escape}
@@ -331,7 +331,7 @@
 
             function renderActions(container, sku) {
                 if (sku.stock === 0) {
-                    container.innerHTML = '<button type="button" class="btn btn-secondary w-100" disabled>' + I18N.outOfStock + '</button>';
+                    container.innerHTML = '<button type="button" class="btn btn-primary w-100" disabled>' + I18N.outOfStock + '</button>';
                     return;
                 }
 
@@ -384,11 +384,11 @@
                 card.querySelectorAll('[data-cycle-btn]').forEach(function (btn) {
                     const idx = Number(btn.getAttribute('data-sku-index'));
                     if (idx === skuIndex) {
-                        btn.classList.remove('btn-secondary');
+                        btn.classList.remove('btn-azure');
                         btn.classList.add('btn-primary');
                     } else {
                         btn.classList.remove('btn-primary');
-                        btn.classList.add('btn-secondary');
+                        btn.classList.add('btn-azure');
                     }
                 });
 
