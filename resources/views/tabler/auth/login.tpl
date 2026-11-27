@@ -13,6 +13,11 @@
         <div class="card card-md">
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">{trans key='auth.login_title'}</h2>
+                {if ! empty($oauth_error)}
+                    <div class="alert alert-danger" role="alert">
+                        {$oauth_error|escape}
+                    </div>
+                {/if}
                 <div class="mb-3">
                     <label class="form-label">{trans key='auth.email'}</label>
                     <input id="email" type="email" class="form-control">
@@ -58,6 +63,27 @@
                         {trans key='auth.btn_webauthn_login'}
                     </button>
                 </div>
+                {if ! empty($public_setting['enable_google_oauth']) || ! empty($public_setting['enable_github_oauth'])}
+                    <div class="hr-text">{trans key='auth.or_continue_with'}</div>
+                    <div class="row g-2">
+                        {if ! empty($public_setting['enable_google_oauth'])}
+                            <div class="col">
+                                <a href="/oauth/google" class="btn w-100">
+                                    <i class="ti ti-brand-google icon me-1"></i>
+                                    Google
+                                </a>
+                            </div>
+                        {/if}
+                        {if ! empty($public_setting['enable_github_oauth'])}
+                            <div class="col">
+                                <a href="/oauth/github" class="btn w-100">
+                                    <i class="ti ti-brand-github icon me-1"></i>
+                                    GitHub
+                                </a>
+                            </div>
+                        {/if}
+                    </div>
+                {/if}
             </div>
         </div>
         <div class="text-center text-secondary mt-3">

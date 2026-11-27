@@ -6,6 +6,7 @@ namespace App\Controllers\ServerAPI;
 
 use App\Controllers\BaseController;
 use App\Models\Node;
+use App\Services\GlobalIpLimit;
 use App\Utils\ResponseHelper;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
@@ -87,10 +88,13 @@ final class NodeController extends BaseController
             Node::forgetTokenCache((string) $node->password);
         }
 
+        $kickIps = GlobalIpLimit::drainKickIps((int) $node->id);
+
         return $response->withJson(array_filter([
-            'data'    => 'ok',
-            'upgrade' => $shouldUpgrade ?: null,
-            'restart' => $shouldRestart ?: null,
-        ], static fn($v) => $v !== null));
+            'data'     => 'ok',
+            'upgrade'  => $shouldUpgrade ?: null,
+            'restart'  => $shouldRestart ?: null,
+            'kick_ips' => $kickIps !== [] ? $kickIps : null,
+        ], static fn ($v) => $v !== null));
     }
 }

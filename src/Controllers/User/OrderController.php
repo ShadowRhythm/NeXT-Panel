@@ -22,6 +22,7 @@ use Exception;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
+use function ceil;
 use function explode;
 use function in_array;
 use function is_numeric;
@@ -117,7 +118,27 @@ final class OrderController extends BaseController
             'paid_price' => $paidPrice,
             'time_ratio' => $timeRatio,
             'traffic_ratio' => $trafficRatio,
+            'expire_time' => $expireTime,
+            'remaining_days' => (int) ceil($timeRemaining / 86400),
+            'remaining_traffic_gb' => round($trafficRemaining / 1073741824, 2),
+            'tier_level' => Product::getTierFromContent($activeTabpOrder->product_content),
         ];
+    }
+
+    public static function canUpgradeProduct(Product $product, Order $activeOrder): bool
+    {
+        if ($product->type !== 'tabp' || (int) $product->id === (int) $activeOrder->product_id) {
+            return false;
+        }
+
+        $targetTier = $product->getTierLevel();
+        $activeTier = Product::getTierFromContent($activeOrder->product_content);
+
+        if ($targetTier > $activeTier) {
+            return true;
+        }
+
+        return $targetTier === $activeTier && (float) $product->price > (float) $activeOrder->price;
     }
 
     /**
@@ -146,13 +167,15 @@ final class OrderController extends BaseController
         $product->content = json_decode($product->content);
 
         $is_upgrade = (int) ($request->getQueryParams()['upgrade'] ?? 0) === 1;
+        $requested_mode = (string) ($request->getQueryParams()['mode'] ?? '');
         $upgrade_credit = 0.0;
         $upgrade_payable = (float) $product->price;
+        $enableTabpUpgrade = (bool) Config::obtain('enable_tabp_upgrade');
+        $activeTabpInfo = $product->type === 'tabp' ? self::getActiveTabpUpgradeInfo($this->user) : null;
+        $order_mode = 'new';
 
         if ($is_upgrade) {
-            $enableTabpUpgrade = (bool) Config::obtain('enable_tabp_upgrade');
-            $activeTabpInfo = $enableTabpUpgrade ? self::getActiveTabpUpgradeInfo($this->user) : null;
-            if (! $enableTabpUpgrade || $product->type !== 'tabp' || $activeTabpInfo === null || (float) $product->price <= (float) $activeTabpInfo['order']->price || $product->id === $activeTabpInfo['order']->product_id) {
+            if (! $enableTabpUpgrade || $product->type !== 'tabp' || $activeTabpInfo === null || ! self::canUpgradeProduct($product, $activeTabpInfo['order'])) {
                 return $response->withRedirect('/user/product');
             }
 
@@ -168,6 +191,16 @@ final class OrderController extends BaseController
             $credit = min($activeTabpInfo['credit_amount'], (float) $product->price);
             $upgrade_credit = $credit;
             $upgrade_payable = max(0.0, round((float) $product->price - $credit, 2));
+            $order_mode = 'upgrade';
+        } elseif ($activeTabpInfo !== null) {
+            $activeOrder = $activeTabpInfo['order'];
+            if ((int) $product->id === (int) $activeOrder->product_id || $requested_mode === 'renew') {
+                $order_mode = 'renew';
+            } elseif ($product->getTierLevel() < (int) $activeTabpInfo['tier_level'] || $requested_mode === 'downgrade') {
+                $order_mode = 'downgrade';
+            } else {
+                $order_mode = 'queued';
+            }
         }
 
         return $response->write(
@@ -176,6 +209,7 @@ final class OrderController extends BaseController
                 ->assign('is_upgrade', $is_upgrade)
                 ->assign('upgrade_credit', $upgrade_credit)
                 ->assign('upgrade_payable', $upgrade_payable)
+                ->assign('order_mode', $order_mode)
                 ->fetch('user/order/create.tpl')
         );
     }
@@ -373,8 +407,8 @@ final class OrderController extends BaseController
                     }
 
                     $activeTabpOrder = $activeTabpInfo['order'];
-                    if ((float) $product->price <= (float) $activeTabpOrder->price || $product->id === $activeTabpOrder->product_id) {
-                        throw new Exception(I18n::trans('user.new_package_price_must_be_higher', $locale));
+                    if (! self::canUpgradeProduct($product, $activeTabpOrder)) {
+                        throw new Exception(I18n::trans('user.cannot_upgrade_to_target_package', $locale));
                     }
 
                     $hasPendingUpgrade = Order::where('user_id', $user->id)

@@ -298,6 +298,86 @@
                                         <div class="col-sm-12 col-md-12">
                                             <div class="card">
                                                 <div class="card-body">
+                                                    <h3 class="card-title">{trans key='auth.oauth_accounts_title'}</h3>
+                                                    <p class="card-subtitle">{trans key='auth.oauth_accounts_desc'}</p>
+                                                    {if ! empty($oauth_error)}
+                                                        <div class="alert alert-danger mb-3" role="alert">{$oauth_error|escape}</div>
+                                                    {/if}
+                                                    {if ! empty($oauth_msg)}
+                                                        <div class="alert alert-success mb-3" role="alert">{$oauth_msg|escape}</div>
+                                                    {/if}
+                                                    <div class="row g-3">
+                                                        {if ! empty($public_setting['enable_google_oauth']) || ! empty($user->google_id)}
+                                                            <div class="col-sm-12 col-md-6">
+                                                                <div class="border rounded p-3 d-flex align-items-center justify-content-between">
+                                                                    <div>
+                                                                        <div class="fw-bold">
+                                                                            <i class="ti ti-brand-google icon me-1"></i> Google
+                                                                        </div>
+                                                                        <div class="text-secondary small">
+                                                                            {if ! empty($user->google_id)}
+                                                                                <span class="badge bg-green-lt">{trans key='auth.oauth_bound'}</span>
+                                                                            {else}
+                                                                                <span class="badge bg-secondary-lt">{trans key='auth.oauth_not_bound'}</span>
+                                                                            {/if}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        {if ! empty($user->google_id)}
+                                                                            <button class="btn btn-outline-danger btn-sm"
+                                                                                    hx-post="/user/edit/unbind_oauth"
+                                                                                    hx-swap="none"
+                                                                                    hx-vals='js:{ provider: "google" }'>
+                                                                                {trans key='user.unbind'}
+                                                                            </button>
+                                                                        {elseif ! empty($public_setting['enable_google_oauth'])}
+                                                                            <a href="/oauth/google" class="btn btn-primary btn-sm">
+                                                                                {trans key='auth.oauth_bind'}
+                                                                            </a>
+                                                                        {/if}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        {/if}
+                                                        {if ! empty($public_setting['enable_github_oauth']) || ! empty($user->github_id)}
+                                                            <div class="col-sm-12 col-md-6">
+                                                                <div class="border rounded p-3 d-flex align-items-center justify-content-between">
+                                                                    <div>
+                                                                        <div class="fw-bold">
+                                                                            <i class="ti ti-brand-github icon me-1"></i> GitHub
+                                                                        </div>
+                                                                        <div class="text-secondary small">
+                                                                            {if ! empty($user->github_id)}
+                                                                                <span class="badge bg-green-lt">{trans key='auth.oauth_bound'}</span>
+                                                                            {else}
+                                                                                <span class="badge bg-secondary-lt">{trans key='auth.oauth_not_bound'}</span>
+                                                                            {/if}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        {if ! empty($user->github_id)}
+                                                                            <button class="btn btn-outline-danger btn-sm"
+                                                                                    hx-post="/user/edit/unbind_oauth"
+                                                                                    hx-swap="none"
+                                                                                    hx-vals='js:{ provider: "github" }'>
+                                                                                {trans key='user.unbind'}
+                                                                            </button>
+                                                                        {elseif ! empty($public_setting['enable_github_oauth'])}
+                                                                            <a href="/oauth/github" class="btn btn-primary btn-sm">
+                                                                                {trans key='auth.oauth_bind'}
+                                                                            </a>
+                                                                        {/if}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        {/if}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-12 col-md-12">
+                                            <div class="card">
+                                                <div class="card-body">
                                                     <h3 class="card-title">FIDO
                                                         {if $fidoDevices}
                                                             <span class="badge bg-green text-green-fg">{trans key='common.enabled'}</span>
@@ -1001,4 +1081,12 @@
             }
         }
         {/if}
+        if (window.location.hash === '#login_security') {
+            const tabTrigger = document.querySelector('a[href="#login_security"]');
+            if (tabTrigger && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+                new bootstrap.Tab(tabTrigger).show();
+            } else if (tabTrigger) {
+                tabTrigger.click();
+            }
+        }
     </script>

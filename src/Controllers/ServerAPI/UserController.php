@@ -9,9 +9,9 @@ use App\Models\Config;
 use App\Models\DetectLog;
 use App\Models\HourlyUsage;
 use App\Models\Node;
-use App\Models\OnlineLog;
 use App\Models\User;
 use App\Services\DynamicRate;
+use App\Services\GlobalIpLimit;
 use App\Utils\ResponseHelper;
 use App\Utils\Tools;
 use Psr\Http\Message\ResponseInterface;
@@ -79,8 +79,6 @@ final class UserController extends BaseController
         ]);
 
         $users = [];
-        $hasIpLimit = $users_raw->contains(static fn (User $u): bool => (int) $u->node_iplimit !== 0);
-        $onlineIpCounts = $hasIpLimit ? OnlineLog::getActiveIpCounts() : [];
 
         foreach ($users_raw as $user_raw) {
             if ($user_raw->transfer_enable <= $user_raw->u + $user_raw->d) {
@@ -90,12 +88,6 @@ final class UserController extends BaseController
                 } else {
                     continue;
                 }
-            }
-
-            if ((int) $user_raw->node_iplimit !== 0 &&
-                (int) $user_raw->node_iplimit < ($onlineIpCounts[$user_raw->id] ?? 0)
-            ) {
-                continue;
             }
 
             // sort=1: SS2022 — passwd only (derived key), sort=4: Hysteria2, sort=5: AnyTLS — passwd only
@@ -114,7 +106,11 @@ final class UserController extends BaseController
                 $user_raw->passwd = $user_pk;
             }
 
-            $user_entry = ['id' => $user_raw->id, 'node_speedlimit' => $user_raw->node_speedlimit];
+            $user_entry = [
+                'id' => $user_raw->id,
+                'node_speedlimit' => $user_raw->node_speedlimit,
+                'node_iplimit' => (int) $user_raw->node_iplimit,
+            ];
 
             $user_entry = match ($node->sort) {
                 1, 4, 5 => $user_entry + ['passwd' => $user_raw->passwd],
@@ -265,7 +261,7 @@ final class UserController extends BaseController
             ]);
         }
 
-        OnlineLog::recordBatch((int) $node->id, $body->online);
+        GlobalIpLimit::recordAndEnforce((int) $node->id, $body->online);
 
         return $response->withJson([
             'data' => 'ok',

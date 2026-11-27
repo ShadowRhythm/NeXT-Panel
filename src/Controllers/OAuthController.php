@@ -7,7 +7,9 @@ namespace App\Controllers;
 use App\Models\Config;
 use App\Models\User;
 use App\Services\Cache;
+use App\Services\Filter;
 use App\Services\I18n;
+use App\Utils\Cookie;
 use App\Utils\ResponseHelper;
 use App\Utils\Tools;
 use Exception;
@@ -20,15 +22,24 @@ use RedisException;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
 use Smarty\Exception as SmartyException;
+use Throwable;
 use function hash;
 use function hash_hmac;
+use function http_build_query;
 use function implode;
+use function in_array;
 use function is_array;
 use function json_decode;
+use function json_encode;
 use function ltrim;
+use function rtrim;
 use function sort;
+use function str_starts_with;
 use function strcmp;
+use function strtolower;
 use function time;
+use function trim;
+use function urlencode;
 
 final class OAuthController extends BaseController
 {
@@ -43,6 +54,8 @@ final class OAuthController extends BaseController
             'slack' => $this->slack($request, $response, $args),
             'discord' => $this->discord($request, $response, $args),
             'telegram' => $this->telegram($request, $response, $args),
+            'google' => $this->handleAccountOAuth($request, $response, 'google'),
+            'github' => $this->handleAccountOAuth($request, $response, 'github'),
             default => $response->withStatus(404)->write($this->view()->fetch('404.tpl')),
         };
     }
@@ -314,5 +327,390 @@ final class OAuthController extends BaseController
         $user->save();
 
         return ResponseHelper::success($response, I18n::trans('auth.bind_success', $locale));
+    }
+
+    /**
+     * Unified Google / GitHub OAuth flow supporting login, auto-registration,
+     * verified-email auto-merge, invite-only enforcement, MFA, and account binding.
+     *
+     * @throws RedisException
+     */
+    private function handleAccountOAuth(ServerRequest $request, Response $response, string $provider): ResponseInterface
+    {
+        $locale = I18n::getCurrentLocale($this->user);
+        $config = $this->getAccountProviderConfig($provider);
+        $isLoggedIn = $this->user->isLogin;
+
+        if (! $config['enabled'] || $config['client_id'] === '' || $config['client_secret'] === '') {
+            return $this->respondOAuthError(
+                $request,
+                $response,
+                $isLoggedIn,
+                'oauth_disabled',
+                I18n::trans('auth.oauth_disabled', $locale)
+            );
+        }
+
+        $redirectUri = rtrim((string) $_ENV['baseUrl'], '/') . '/oauth/' . $provider;
+        $redis = (new Cache())->initRedis();
+
+        if ($request->getParam('error') !== null) {
+            return $this->respondOAuthError(
+                $request,
+                $response,
+                $isLoggedIn,
+                'request_failed',
+                I18n::trans('auth.oauth_request_failed', $locale)
+            );
+        }
+
+        $code = $request->getParam('code');
+        if ($code === null || $code === '') {
+            $state = (string) Tools::genRandomChar(32);
+            $inviteCode = trim((string) $this->antiXss->xss_clean(
+                (string) ($request->getParam('invite_code') ?? Cookie::get('invite_code') ?? '')
+            ));
+            if ($inviteCode !== '') {
+                Cookie::set(['invite_code' => $inviteCode], time() + 86400);
+            }
+
+            $statePayload = [
+                'mode' => $isLoggedIn ? 'bind' : 'login',
+                'user_id' => $isLoggedIn ? (int) $this->user->id : 0,
+                'invite_code' => $inviteCode,
+                'remember_me' => $request->getParam('remember_me') === '0' ? 0 : 1,
+            ];
+            $redis->setex('oauth_' . $provider . '_state:' . $state, 300, json_encode($statePayload));
+
+            $authParams = [
+                'client_id' => $config['client_id'],
+                'redirect_uri' => $redirectUri,
+                'response_type' => 'code',
+                'scope' => $config['scope'],
+                'state' => $state,
+            ];
+            if ($provider === 'google') {
+                $authParams['prompt'] = 'select_account';
+            }
+
+            $authUrl = $config['auth_url'] . '?' . http_build_query($authParams);
+
+            if ($request->getMethod() === 'POST') {
+                return $response->withJson([
+                    'ret' => 1,
+                    'redir' => $authUrl,
+                ]);
+            }
+
+            return $response->withStatus(302)->withHeader('Location', $authUrl);
+        }
+
+        $state = trim((string) $request->getParam('state'));
+        $stateKey = 'oauth_' . $provider . '_state:' . $state;
+        $rawState = $state !== '' ? $redis->get($stateKey) : false;
+        if ($rawState === false) {
+            return $this->respondOAuthError(
+                $request,
+                $response,
+                $isLoggedIn,
+                'request_failed',
+                I18n::trans('auth.oauth_request_failed', $locale)
+            );
+        }
+        $redis->del($stateKey);
+
+        $stateData = json_decode((string) $rawState, true);
+        if (! is_array($stateData)) {
+            return $this->respondOAuthError(
+                $request,
+                $response,
+                $isLoggedIn,
+                'request_failed',
+                I18n::trans('auth.oauth_request_failed', $locale)
+            );
+        }
+
+        $mode = (string) ($stateData['mode'] ?? 'login');
+
+        try {
+            $profile = $this->exchangeAccountOAuthProfile($provider, (string) $code, $redirectUri, $config);
+        } catch (Throwable $e) {
+            error_log('OAuth profile exchange error (' . $provider . '): ' . $e->getMessage());
+            return $this->respondOAuthError(
+                $request,
+                $response,
+                $mode === 'bind',
+                'request_failed',
+                I18n::trans('auth.oauth_request_failed', $locale)
+            );
+        }
+
+        $providerUserId = $profile['id'];
+        $column = $config['column'];
+
+        if ($mode === 'bind') {
+            if (! $this->user->isLogin || (int) $this->user->id !== (int) ($stateData['user_id'] ?? 0)) {
+                return $response->withStatus(302)->withHeader('Location', '/auth/login?oauth_error=please_login');
+            }
+
+            $occupied = (new User())->where($column, $providerUserId)->first();
+            if ($occupied !== null && (int) $occupied->id !== (int) $this->user->id) {
+                return $response->withStatus(302)->withHeader(
+                    'Location',
+                    '/user/edit?oauth_error=already_bound#login_security'
+                );
+            }
+
+            $this->user->$column = $providerUserId;
+            $this->user->save();
+
+            return $response->withStatus(302)->withHeader(
+                'Location',
+                '/user/edit?oauth_msg=bind_success#login_security'
+            );
+        }
+
+        // Login / auto-merge / auto-register flow
+        $user = (new User())->where($column, $providerUserId)->first();
+
+        if ($user === null && $profile['email'] !== '' && $profile['email_verified']) {
+            $emailUser = (new User())->where('email', $profile['email'])->first();
+            if ($emailUser !== null) {
+                $emailUser->$column = $providerUserId;
+                $emailUser->save();
+                $user = $emailUser;
+            }
+        }
+
+        if ($user === null) {
+            if ($profile['email'] === '' || ! $profile['email_verified']) {
+                return $response->withStatus(302)->withHeader('Location', '/auth/login?oauth_error=email_unverified');
+            }
+
+            if (! Filter::checkEmailFilter($profile['email'])) {
+                return $response->withStatus(302)->withHeader('Location', '/auth/login?oauth_error=invalid_email');
+            }
+
+            $regMode = (string) Config::obtain('reg_mode');
+            if ($regMode === 'close') {
+                return $response->withStatus(302)->withHeader('Location', '/auth/login?oauth_error=reg_closed');
+            }
+
+            $inviteCode = trim((string) ($stateData['invite_code'] ?? Cookie::get('invite_code') ?? ''));
+
+            if ($regMode === 'invite' && AuthController::resolveValidInviteUserId($inviteCode) === null) {
+                $pendingToken = (string) Tools::genRandomChar(32);
+                $redis->setex('oauth_pending:' . $pendingToken, 600, json_encode([
+                    'provider' => $provider,
+                    'provider_user_id' => $providerUserId,
+                    'email' => $profile['email'],
+                    'name' => $profile['name'],
+                ]));
+
+                return $response->withStatus(302)->withHeader(
+                    'Location',
+                    '/auth/oauth/invite?token=' . urlencode($pendingToken)
+                );
+            }
+
+            try {
+                $user = AuthController::createUserAccount(
+                    $profile['name'],
+                    $profile['email'],
+                    (string) Tools::genRandomChar(32),
+                    $inviteCode,
+                    0,
+                    '',
+                    0.0,
+                    true,
+                    [$column => $providerUserId]
+                );
+            } catch (Throwable $e) {
+                error_log('OAuth auto register error (' . $provider . '): ' . $e->getMessage());
+                return $response->withStatus(302)->withHeader('Location', '/auth/login?oauth_error=request_failed');
+            }
+        }
+
+        Cookie::set(['invite_code' => ''], time() - 3600);
+
+        $redirCookie = Cookie::get('redir');
+        $redir = ($redirCookie !== null && $redirCookie !== '') ? $this->antiXss->xss_clean($redirCookie) : '/user';
+        if ($redirCookie !== null && $redirCookie !== '') {
+            Cookie::set(['redir' => ''], time() - 3600);
+        }
+        if (! str_starts_with($redir, '/') || str_starts_with($redir, '//')) {
+            $redir = '/user';
+        }
+
+        $rememberMe = (int) ($stateData['remember_me'] ?? 1);
+        $loginResult = AuthController::completeLogin($user, $rememberMe, $redir);
+
+        return $response->withStatus(302)->withHeader('Location', $loginResult['redir']);
+    }
+
+    /**
+     * @return array{enabled: bool, client_id: string, client_secret: string, column: string, auth_url: string, scope: string}
+     */
+    private function getAccountProviderConfig(string $provider): array
+    {
+        return match ($provider) {
+            'google' => [
+                'enabled' => (bool) Config::obtain('enable_google_oauth'),
+                'client_id' => trim((string) Config::obtain('google_client_id')),
+                'client_secret' => trim((string) Config::obtain('google_client_secret')),
+                'column' => 'google_id',
+                'auth_url' => 'https://accounts.google.com/o/oauth2/v2/auth',
+                'scope' => 'openid email profile',
+            ],
+            'github' => [
+                'enabled' => (bool) Config::obtain('enable_github_oauth'),
+                'client_id' => trim((string) Config::obtain('github_client_id')),
+                'client_secret' => trim((string) Config::obtain('github_client_secret')),
+                'column' => 'github_id',
+                'auth_url' => 'https://github.com/login/oauth/authorize',
+                'scope' => 'read:user user:email',
+            ],
+            default => throw new Exception('Unsupported OAuth provider'),
+        };
+    }
+
+    /**
+     * @param array{client_id: string, client_secret: string} $config
+     *
+     * @return array{id: string, email: string, email_verified: bool, name: string}
+     *
+     * @throws GuzzleException
+     */
+    private function exchangeAccountOAuthProfile(
+        string $provider,
+        string $code,
+        string $redirectUri,
+        array $config
+    ): array {
+        $client = new Client(['timeout' => 10]);
+
+        if ($provider === 'google') {
+            $tokenResp = $client->post('https://oauth2.googleapis.com/token', [
+                'form_params' => [
+                    'code' => $code,
+                    'client_id' => $config['client_id'],
+                    'client_secret' => $config['client_secret'],
+                    'redirect_uri' => $redirectUri,
+                    'grant_type' => 'authorization_code',
+                ],
+            ]);
+            $tokenData = json_decode($tokenResp->getBody()->getContents(), true);
+            $accessToken = (string) ($tokenData['access_token'] ?? '');
+            if ($accessToken === '') {
+                throw new Exception('Missing Google access token');
+            }
+
+            $userResp = $client->get('https://openidconnect.googleapis.com/v1/userinfo', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $accessToken,
+                ],
+            ]);
+            $userData = json_decode($userResp->getBody()->getContents(), true);
+            $sub = trim((string) ($userData['sub'] ?? ''));
+            if ($sub === '') {
+                throw new Exception('Missing Google subject ID');
+            }
+
+            return [
+                'id' => $sub,
+                'email' => strtolower(trim((string) ($userData['email'] ?? ''))),
+                'email_verified' => (bool) ($userData['email_verified'] ?? false),
+                'name' => trim((string) ($userData['name'] ?? '')),
+            ];
+        }
+
+        $tokenResp = $client->post('https://github.com/login/oauth/access_token', [
+            'headers' => [
+                'Accept' => 'application/json',
+            ],
+            'form_params' => [
+                'client_id' => $config['client_id'],
+                'client_secret' => $config['client_secret'],
+                'code' => $code,
+                'redirect_uri' => $redirectUri,
+            ],
+        ]);
+        $tokenData = json_decode($tokenResp->getBody()->getContents(), true);
+        $accessToken = (string) ($tokenData['access_token'] ?? '');
+        if ($accessToken === '') {
+            throw new Exception('Missing GitHub access token');
+        }
+
+        $apiHeaders = [
+            'Authorization' => 'Bearer ' . $accessToken,
+            'Accept' => 'application/vnd.github+json',
+            'User-Agent' => 'SSPanel-UIM',
+        ];
+
+        $userResp = $client->get('https://api.github.com/user', [
+            'headers' => $apiHeaders,
+        ]);
+        $userData = json_decode($userResp->getBody()->getContents(), true);
+        $githubId = trim((string) ($userData['id'] ?? ''));
+        if ($githubId === '') {
+            throw new Exception('Missing GitHub user ID');
+        }
+
+        $emailsResp = $client->get('https://api.github.com/user/emails', [
+            'headers' => $apiHeaders,
+        ]);
+        $emails = json_decode($emailsResp->getBody()->getContents(), true);
+
+        $chosenEmail = '';
+        $emailVerified = false;
+        if (is_array($emails)) {
+            foreach ($emails as $entry) {
+                if (! empty($entry['primary']) && ! empty($entry['verified']) && ! empty($entry['email'])) {
+                    $chosenEmail = strtolower(trim((string) $entry['email']));
+                    $emailVerified = true;
+                    break;
+                }
+            }
+            if ($chosenEmail === '') {
+                foreach ($emails as $entry) {
+                    if (! empty($entry['verified']) && ! empty($entry['email'])) {
+                        $chosenEmail = strtolower(trim((string) $entry['email']));
+                        $emailVerified = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return [
+            'id' => $githubId,
+            'email' => $chosenEmail,
+            'email_verified' => $emailVerified,
+            'name' => trim((string) ($userData['name'] ?? $userData['login'] ?? '')),
+        ];
+    }
+
+    private function respondOAuthError(
+        ServerRequest $request,
+        Response $response,
+        bool $isBindFlow,
+        string $errorCode,
+        string $message
+    ): ResponseInterface {
+        if ($request->getMethod() === 'POST') {
+            return ResponseHelper::error($response, $message);
+        }
+
+        if ($isBindFlow) {
+            return $response->withStatus(302)->withHeader(
+                'Location',
+                '/user/edit?oauth_error=' . urlencode($errorCode) . '#login_security'
+            );
+        }
+
+        return $response->withStatus(302)->withHeader(
+            'Location',
+            '/auth/login?oauth_error=' . urlencode($errorCode)
+        );
     }
 }

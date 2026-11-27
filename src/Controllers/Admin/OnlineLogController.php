@@ -58,14 +58,18 @@ final class OnlineLogController extends BaseController
         $page = $request->getParam('start') / $length + 1;
         $draw = $request->getParam('draw');
 
-        $online_log = OnlineLog::query()->where('last_time', '>', time() - 90);
+        $online_log = OnlineLog::query()
+            ->where('last_time', '>', time() - 90)
+            ->where('kicked_at', 0);
 
         $search = $request->getParam('search')['value'];
 
         if ($search !== '') {
-            $online_log->where('user_id', '=', $search)
-                ->orWhere('ip', 'LIKE', "%{$search}%")
-                ->orWhere('node_id', '=', $search);
+            $online_log->where(static function ($query) use ($search): void {
+                $query->where('user_id', '=', $search)
+                    ->orWhere('ip', 'LIKE', "%{$search}%")
+                    ->orWhere('node_id', '=', $search);
+            });
         }
 
         $whitelist = ['id', 'user_id', 'ip', 'node_id', 'first_time', 'last_time'];

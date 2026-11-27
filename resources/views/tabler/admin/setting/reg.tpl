@@ -36,6 +36,9 @@
                                 <li class="nav-item">
                                     <a href="#default_value" class="nav-link" data-bs-toggle="tab">默认值</a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="#oauth" class="nav-link" data-bs-toggle="tab">第三方登录 (OAuth)</a>
+                                </li>
                             </ul>
                         </div>
                         <div class="card-body">
@@ -171,6 +174,64 @@
                                             <div class="col">
                                                 <input id="reg_speed_limit" type="text" class="form-control"
                                                        value="{$settings['reg_speed_limit']}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane" id="oauth">
+                                    <div class="card-body">
+                                        <div class="hr-text">
+                                            <span>Google 登录</span>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">启用 Google OAuth</label>
+                                            <div class="col">
+                                                <select id="enable_google_oauth" class="col form-select">
+                                                    <option value="0" {if ! $settings['enable_google_oauth']}selected{/if}>关闭</option>
+                                                    <option value="1" {if $settings['enable_google_oauth']}selected{/if}>开启</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">Google Client ID</label>
+                                            <div class="col">
+                                                <input id="google_client_id" type="text" class="form-control"
+                                                       value="{$settings['google_client_id']|escape}">
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">Google Client Secret</label>
+                                            <div class="col">
+                                                <input id="google_client_secret" type="text" class="form-control"
+                                                       value="{$settings['google_client_secret']|escape}">
+                                                <small class="form-hint">回调 URL：<code>{$config['baseUrl']}/oauth/google</code></small>
+                                            </div>
+                                        </div>
+                                        <div class="hr-text">
+                                            <span>GitHub 登录</span>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">启用 GitHub OAuth</label>
+                                            <div class="col">
+                                                <select id="enable_github_oauth" class="col form-select">
+                                                    <option value="0" {if ! $settings['enable_github_oauth']}selected{/if}>关闭</option>
+                                                    <option value="1" {if $settings['enable_github_oauth']}selected{/if}>开启</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">GitHub Client ID</label>
+                                            <div class="col">
+                                                <input id="github_client_id" type="text" class="form-control"
+                                                       value="{$settings['github_client_id']|escape}">
+                                            </div>
+                                        </div>
+                                        <div class="form-group mb-3 row">
+                                            <label class="form-label col-3 col-form-label">GitHub Client Secret</label>
+                                            <div class="col">
+                                                <input id="github_client_secret" type="text" class="form-control"
+                                                       value="{$settings['github_client_secret']|escape}">
+                                                <small class="form-hint">回调 URL：<code>{$config['baseUrl']}/oauth/github</code></small>
                                             </div>
                                         </div>
                                     </div>

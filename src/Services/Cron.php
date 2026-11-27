@@ -23,6 +23,7 @@ use App\Models\SubscribeLog;
 use App\Models\User;
 use App\Models\UserCoupon;
 use App\Models\UserMoneyLog;
+use App\Models\UserSession;
 use App\Models\UserTrafficStat;
 use App\Services\DB;
 use App\Utils\Tools;
@@ -94,6 +95,14 @@ final class Cron
             } while ($deleted > 0);
         } catch (Throwable $e) {
             echo 'Clean EmailQueue failed: ' . $e->getMessage() . PHP_EOL;
+        }
+
+        try {
+            do {
+                $deleted = UserSession::where('expires_at', '<', time())->limit(2000)->delete();
+            } while ($deleted > 0);
+        } catch (Throwable $e) {
+            echo 'Clean UserSession failed: ' . $e->getMessage() . PHP_EOL;
         }
 
         try {

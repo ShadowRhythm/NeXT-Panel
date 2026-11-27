@@ -84,6 +84,27 @@
                             {trans key='auth.verify_code_tip'}
                         </div>
                     </div>
+                    {if ! empty($public_setting['enable_google_oauth']) || ! empty($public_setting['enable_github_oauth'])}
+                        <div class="hr-text">{trans key='auth.or_continue_with'}</div>
+                        <div class="row g-2">
+                            {if ! empty($public_setting['enable_google_oauth'])}
+                                <div class="col">
+                                    <a href="/oauth/google" data-oauth-register="google" class="btn w-100">
+                                        <i class="ti ti-brand-google icon me-1"></i>
+                                        Google
+                                    </a>
+                                </div>
+                            {/if}
+                            {if ! empty($public_setting['enable_github_oauth'])}
+                                <div class="col">
+                                    <a href="/oauth/github" data-oauth-register="github" class="btn w-100">
+                                        <i class="ti ti-brand-github icon me-1"></i>
+                                        GitHub
+                                    </a>
+                                </div>
+                            {/if}
+                        </div>
+                    {/if}
                 </div>
             {else}
                 <div class="card-body">
@@ -100,5 +121,20 @@
 {if $public_setting['enable_reg_captcha']}
     {include file='captcha/js.tpl'}
 {/if}
+
+<script>
+    document.querySelectorAll('[data-oauth-register]').forEach(function (link) {
+        link.addEventListener('click', function () {
+            const inviteInput = document.getElementById('invite_code');
+            const inviteVal = inviteInput ? inviteInput.value.trim() : '';
+            const provider = link.getAttribute('data-oauth-register');
+            if (inviteVal !== '') {
+                link.setAttribute('href', '/oauth/' + provider + '?invite_code=' + encodeURIComponent(inviteVal));
+            } else {
+                link.setAttribute('href', '/oauth/' + provider);
+            }
+        });
+    });
+</script>
 
 {include file='footer.tpl'}

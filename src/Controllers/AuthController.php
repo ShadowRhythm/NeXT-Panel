@@ -34,12 +34,22 @@ use Throwable;
 use function array_rand;
 use function date;
 use function explode;
+use function headers_sent;
+use function in_array;
+use function is_array;
+use function json_decode;
+use function json_encode;
 use function mb_strlen;
+use function mb_substr;
+use function session_id;
+use function session_start;
+use function session_status;
 use function str_starts_with;
 use function strlen;
 use function strtolower;
 use function time;
 use function trim;
+use const PHP_SESSION_NONE;
 
 final class AuthController extends BaseController
 {
@@ -54,9 +64,23 @@ final class AuthController extends BaseController
             $captcha = Captcha::generate();
         }
 
+        $locale = I18n::getCurrentLocale();
+        $oauthErrorCode = (string) ($request->getQueryParams()['oauth_error'] ?? '');
+        $oauthError = match ($oauthErrorCode) {
+            'oauth_disabled' => I18n::trans('auth.oauth_disabled', $locale),
+            'email_unverified' => I18n::trans('auth.oauth_email_unverified', $locale),
+            'invalid_email' => I18n::trans('user.invalid_email', $locale),
+            'reg_closed' => I18n::trans('user.reg_closed', $locale),
+            'session_expired' => I18n::trans('user.login_session_expired', $locale),
+            'please_login' => I18n::trans('auth.please_login_first', $locale),
+            'request_failed' => I18n::trans('auth.oauth_request_failed', $locale),
+            default => '',
+        };
+
         return $response->write($this->view()
             ->assign('base_url', $_ENV['baseUrl'])
             ->assign('captcha', $captcha)
+            ->assign('oauth_error', $oauthError)
             ->fetch('auth/login.tpl'));
     }
 
@@ -112,6 +136,7 @@ final class AuthController extends BaseController
 
         $mfaStatus = $user->checkMfaStatus();
         if ($mfaStatus['require']) {
+            self::startSessionIfNeeded();
             $redis = (new Cache())->initRedis();
             $redis->setex('mfa_login_' . session_id(), 300, json_encode([
                 'userid' => $user->id,
@@ -128,23 +153,67 @@ final class AuthController extends BaseController
                 ]);
         }
 
-        $time = $rememberMe ? 86400 * (int) (Config::obtain('rememberMeDuration') ?? 7) : 3600; // Cookie 过期时间
+        self::performLogin($user, $rememberMe);
+
+        return $response->withHeader('HX-Redirect', $redir);
+    }
+
+    public static function startSessionIfNeeded(): void
+    {
+        if (session_status() === PHP_SESSION_NONE && ! headers_sent()) {
+            session_start();
+        }
+    }
+
+    public static function performLogin(User $user, int $rememberMe = 0): void
+    {
+        $time = $rememberMe ? 86400 * (int) (Config::obtain('rememberMeDuration') ?? 7) : 3600;
 
         Auth::login($user->id, $time);
         if (! empty($user->locale) && I18n::isValidLocale($user->locale)) {
             Cookie::set(['locale' => $user->locale], time() + 86400 * 365);
         }
-        // 记录登录成功
-        $loginIp->collectLoginIP($_SERVER['REMOTE_ADDR'], 0, $user->id);
+        (new LoginIp())->collectLoginIP($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1', 0, $user->id);
         $user->last_login_time = time();
         $user->is_inactive = 0;
         $user->save();
+    }
 
-        return $response->withHeader('HX-Redirect', $redir);
+    /**
+     * Complete login or trigger site MFA if enabled for the user.
+     *
+     * @return array{mfa: bool, redir: string}
+     */
+    public static function completeLogin(User $user, int $rememberMe = 0, string $redir = '/user'): array
+    {
+        $mfaStatus = $user->checkMfaStatus();
+        if ($mfaStatus['require']) {
+            self::startSessionIfNeeded();
+            $redis = (new Cache())->initRedis();
+            $redis->setex('mfa_login_' . session_id(), 300, json_encode([
+                'userid' => $user->id,
+                'method' => $mfaStatus,
+                'redir' => $redir,
+                'remember_me' => $rememberMe,
+            ]));
+
+            return [
+                'mfa' => true,
+                'redir' => '/auth/mfa',
+            ];
+        }
+
+        self::performLogin($user, $rememberMe);
+
+        return [
+            'mfa' => false,
+            'redir' => $redir,
+        ];
     }
 
     public function mfaPage(ServerRequest $request, Response $response, $next): ResponseInterface
     {
+        self::startSessionIfNeeded();
         $redis = (new Cache())->initRedis();
         $mfa_session = $redis->get('mfa_login_' . session_id());
         if ($mfa_session === false) {
@@ -170,7 +239,15 @@ final class AuthController extends BaseController
             $captcha = Captcha::generate();
         }
 
-        $invite_code = $this->antiXss->xss_clean($request->getParam('code'));
+        $invite_code = trim((string) $this->antiXss->xss_clean($request->getParam('code')));
+        if ($invite_code !== '') {
+            Cookie::set(['invite_code' => $invite_code], time() + 86400);
+        } else {
+            $cookieInvite = trim((string) $this->antiXss->xss_clean((string) (Cookie::get('invite_code') ?? '')));
+            if ($cookieInvite !== '') {
+                $invite_code = $cookieInvite;
+            }
+        }
 
         return $response->write(
             $this->view()
@@ -253,6 +330,107 @@ final class AuthController extends BaseController
     }
 
     /**
+     * Validate an invite code against existing inviter records.
+     */
+    public static function resolveValidInviteUserId(string $inviteCode): ?int
+    {
+        $inviteCode = trim($inviteCode);
+        if ($inviteCode === '') {
+            return null;
+        }
+
+        $invite = (new InviteCode())->where('code', $inviteCode)->first();
+        if ($invite === null) {
+            return null;
+        }
+
+        $refUser = (new User())->where('id', $invite->user_id)->first();
+        if ($refUser === null) {
+            return null;
+        }
+
+        return (int) $invite->user_id;
+    }
+
+    /**
+     * Create and persist a new User record with site registration defaults.
+     *
+     * @param array<string, mixed> $extraAttributes
+     */
+    public static function createUserAccount(
+        string $name,
+        string $email,
+        string $password,
+        string $invite_code = '',
+        int $imtype = 0,
+        string $imvalue = '',
+        float $money = 0.0,
+        bool $issueReward = true,
+        array $extraAttributes = []
+    ): User {
+        $configs = Config::getClass('reg');
+        $user = new User();
+
+        $cleanName = trim($name);
+        if ($cleanName === '') {
+            $cleanName = explode('@', $email)[0];
+        }
+        $user->user_name = mb_substr($cleanName, 0, 32);
+        $user->email = $email;
+        $user->remark = '';
+        $user->pass = Hash::passwordHash($password);
+        $user->passwd = Tools::genPasswd(16);
+        $user->uuid = (string) Uuid::uuid4();
+        $user->api_token = Tools::genRandomChar(32);
+        $user->port = Tools::getSsPort();
+        $user->u = 0;
+        $user->d = 0;
+        $user->method = (string) ($configs['reg_method'] ?? 'aes-128-gcm');
+        $user->im_type = $imtype;
+        $user->im_value = $imvalue;
+        $user->transfer_enable = Tools::gbToB((int) ($configs['reg_traffic'] ?? 0));
+        $user->auto_reset_day = (int) (Config::obtain('free_user_reset_day') ?? 0);
+        $user->auto_reset_bandwidth = (float) (Config::obtain('free_user_reset_bandwidth') ?? 0);
+        $user->daily_mail_enable = (int) ($configs['reg_daily_report'] ?? 0);
+        $user->money = $money > 0 ? $money : 0.0;
+        $user->ref_by = self::resolveValidInviteUserId($invite_code) ?? 0;
+        $user->class = (int) ($configs['reg_class'] ?? 0);
+        $user->class_expire = date('Y-m-d H:i:s', time() + (int) ($configs['reg_class_time'] ?? 0) * 86400);
+        $user->node_iplimit = (int) ($configs['reg_ip_limit'] ?? 0);
+        $user->node_speedlimit = (int) ($configs['reg_speed_limit'] ?? 0);
+        $user->reg_date = date('Y-m-d H:i:s');
+        $user->reg_ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $user->theme = (string) ($_ENV['theme'] ?? 'tabler');
+        $user->locale = (string) I18n::getCurrentLocale();
+
+        $random_group = Config::obtain('random_group');
+        if ($random_group === '' || $random_group === null) {
+            $user->node_group = 0;
+        } else {
+            $groups = explode(',', (string) $random_group);
+            $user->node_group = (int) trim($groups[array_rand($groups)]);
+        }
+
+        $user->last_login_time = time();
+
+        foreach ($extraAttributes as $attr => $val) {
+            $user->$attr = $val;
+        }
+
+        $user->save();
+
+        if ($issueReward && $user->ref_by !== 0) {
+            try {
+                Reward::issueRegReward($user->id, $user->ref_by);
+            } catch (Throwable $e) {
+                error_log('Issue reg reward error: ' . $e->getMessage());
+            }
+        }
+
+        return $user;
+    }
+
+    /**
      * @throws Exception
      */
     public function registerHelper(
@@ -273,65 +451,18 @@ final class AuthController extends BaseController
         if (! str_starts_with($redir, '/') || str_starts_with($redir, '//')) {
             $redir = '/user';
         }
-        $configs = Config::getClass('reg');
-        // do reg user
-        $user = new User();
-
-        $user->user_name = $name;
-        $user->email = $email;
-        $user->remark = '';
-        $user->pass = Hash::passwordHash($password);
-        $user->passwd = Tools::genPasswd(16);
-        $user->uuid = (string) Uuid::uuid4();
-        $user->api_token = Tools::genRandomChar(32);
-        $user->port = Tools::getSsPort();
-        $user->u = 0;
-        $user->d = 0;
-        $user->method = (string) ($configs['reg_method'] ?? 'aes-128-gcm');
-        $user->im_type = (int) $imtype;
-        $user->im_value = (string) $imvalue;
-        $user->transfer_enable = Tools::gbToB((int) ($configs['reg_traffic'] ?? 0));
-        $user->auto_reset_day = (int) (Config::obtain('free_user_reset_day') ?? 0);
-        $user->auto_reset_bandwidth = (float) (Config::obtain('free_user_reset_bandwidth') ?? 0);
-        $user->daily_mail_enable = (int) ($configs['reg_daily_report'] ?? 0);
-
-        if ($money > 0) {
-            $user->money = (float) $money;
-        } else {
-            $user->money = 0.0;
-        }
-
-        $user->ref_by = 0;
-
-        if ($invite_code !== '') {
-            $invite = (new InviteCode())->where('code', $invite_code)->first();
-
-            if ($invite !== null) {
-                $user->ref_by = (int) $invite->user_id;
-            }
-        }
-
-        $user->class = (int) ($configs['reg_class'] ?? 0);
-        $user->class_expire = date('Y-m-d H:i:s', time() + (int) ($configs['reg_class_time'] ?? 0) * 86400);
-        $user->node_iplimit = (int) ($configs['reg_ip_limit'] ?? 0);
-        $user->node_speedlimit = (int) ($configs['reg_speed_limit'] ?? 0);
-        $user->reg_date = date('Y-m-d H:i:s');
-        $user->reg_ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
-        $user->theme = (string) ($_ENV['theme'] ?? 'tabler');
-        $user->locale = (string) I18n::getCurrentLocale();
-        $random_group = Config::obtain('random_group');
-
-        if ($random_group === '' || $random_group === null) {
-            $user->node_group = 0;
-        } else {
-            $groups = explode(',', (string) $random_group);
-            $user->node_group = (int) trim($groups[array_rand($groups)]);
-        }
-
-        $user->last_login_time = time();
 
         try {
-            $saved = $user->save();
+            $user = self::createUserAccount(
+                (string) $name,
+                (string) $email,
+                (string) $password,
+                (string) $invite_code,
+                (int) $imtype,
+                (string) $imvalue,
+                (float) $money,
+                ! $is_admin_reg
+            );
         } catch (Throwable $e) {
             error_log('User registration database save error: ' . $e->getMessage());
             $errorMsg = I18n::trans('user.unknown_error', $locale);
@@ -341,36 +472,23 @@ final class AuthController extends BaseController
             return ResponseHelper::error($response, $errorMsg);
         }
 
-        if ($saved) {
-            if ($is_admin_reg) {
-                return ResponseHelper::success($response, 'ok');
-            }
-
-            if ($user->ref_by !== 0) {
-                try {
-                    Reward::issueRegReward($user->id, $user->ref_by);
-                } catch (Throwable $e) {
-                    error_log('Issue reg reward error: ' . $e->getMessage());
-                }
-            }
-
-            try {
-                Auth::login($user->id, 3600);
-                Cookie::set(['locale' => $user->locale], time() + 86400 * 365);
-                (new LoginIp())->collectLoginIP($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1', 0, $user->id);
-            } catch (Throwable $e) {
-                error_log('Post-reg login/cookie error: ' . $e->getMessage());
-            }
-
-            return $response->withHeader('HX-Redirect', $redir)->withJson([
-                'ret' => 1,
-                'msg' => 'ok',
-            ]);
+        if ($is_admin_reg) {
+            return ResponseHelper::success($response, 'ok');
         }
 
-        $locale = I18n::getCurrentLocale();
+        try {
+            Auth::login($user->id, 3600);
+            Cookie::set(['locale' => $user->locale], time() + 86400 * 365);
+            Cookie::set(['invite_code' => ''], time() - 3600);
+            (new LoginIp())->collectLoginIP($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1', 0, $user->id);
+        } catch (Throwable $e) {
+            error_log('Post-reg login/cookie error: ' . $e->getMessage());
+        }
 
-        return ResponseHelper::error($response, I18n::trans('user.unknown_error', $locale));
+        return $response->withHeader('HX-Redirect', $redir)->withJson([
+            'ret' => 1,
+            'msg' => 'ok',
+        ]);
     }
 
     /**
@@ -525,6 +643,7 @@ final class AuthController extends BaseController
 
     public function totpHandle(ServerRequest $request, Response $response, $next): ResponseInterface
     {
+        self::startSessionIfNeeded();
         $locale = I18n::getCurrentLocale();
         $redis = (new Cache())->initRedis();
         $login_session = $redis->get('mfa_login_' . session_id());
@@ -557,6 +676,7 @@ final class AuthController extends BaseController
 
     public function fidoRequest(ServerRequest $request, Response $response, $next): ResponseInterface
     {
+        self::startSessionIfNeeded();
         $locale = I18n::getCurrentLocale();
         $redis = (new Cache())->initRedis();
         $login_session = $redis->get('mfa_login_' . session_id());
@@ -573,6 +693,7 @@ final class AuthController extends BaseController
 
     public function fidoHandle(ServerRequest $request, Response $response, $next): ResponseInterface
     {
+        self::startSessionIfNeeded();
         $locale = I18n::getCurrentLocale();
         $redis = (new Cache())->initRedis();
         $login_session = $redis->get('mfa_login_' . session_id());
@@ -599,5 +720,135 @@ final class AuthController extends BaseController
             return $response->withJson(['ret' => 1, 'msg' => I18n::trans('user.login_success', $locale), 'redir' => $login_session['redir']]);
         }
         return $response->withJson($result);
+    }
+
+    /**
+     * Render invite-code completion form after OAuth authorization when reg_mode is invite.
+     *
+     * @throws Exception
+     */
+    public function oauthInvitePage(ServerRequest $request, Response $response, $next): ResponseInterface
+    {
+        $token = trim((string) $this->antiXss->xss_clean((string) ($request->getParam('token') ?? '')));
+        if ($token === '' || Config::obtain('reg_mode') !== 'invite') {
+            return $response->withStatus(302)->withHeader('Location', '/auth/login');
+        }
+
+        $redis = (new Cache())->initRedis();
+        $raw = $redis->get('oauth_pending:' . $token);
+        if ($raw === false) {
+            return $response->withStatus(302)->withHeader('Location', '/auth/login?oauth_error=session_expired');
+        }
+
+        $pending = json_decode((string) $raw, true);
+        if (! is_array($pending) || empty($pending['email'])) {
+            return $response->withStatus(302)->withHeader('Location', '/auth/login?oauth_error=request_failed');
+        }
+
+        $inviteCode = trim((string) $this->antiXss->xss_clean((string) (Cookie::get('invite_code') ?? '')));
+
+        return $response->write(
+            $this->view()
+                ->assign('token', $token)
+                ->assign('provider', (string) ($pending['provider'] ?? ''))
+                ->assign('oauth_email', (string) ($pending['email'] ?? ''))
+                ->assign('oauth_name', (string) ($pending['name'] ?? ''))
+                ->assign('invite_code', $inviteCode)
+                ->fetch('auth/oauth_invite.tpl')
+        );
+    }
+
+    /**
+     * Complete OAuth user creation after verifying an invite code.
+     *
+     * @throws RedisException
+     */
+    public function oauthInviteHandle(ServerRequest $request, Response $response, $next): ResponseInterface
+    {
+        $locale = I18n::getCurrentLocale();
+
+        if (Config::obtain('reg_mode') === 'close') {
+            return ResponseHelper::error($response, I18n::trans('user.reg_closed', $locale));
+        }
+
+        $token = trim((string) $this->antiXss->xss_clean((string) $request->getParam('token')));
+        $inviteCode = trim((string) $this->antiXss->xss_clean((string) $request->getParam('invite_code')));
+        $tos = $request->getParam('tos') === 'true' || $request->getParam('tos') === '1';
+
+        if (! $tos) {
+            return ResponseHelper::error($response, I18n::trans('user.tos_not_agreed', $locale));
+        }
+
+        if ($inviteCode === '') {
+            return ResponseHelper::error($response, I18n::trans('user.invite_code_empty', $locale));
+        }
+
+        if (self::resolveValidInviteUserId($inviteCode) === null) {
+            return ResponseHelper::error($response, I18n::trans('user.invalid_invite_code', $locale));
+        }
+
+        $redis = (new Cache())->initRedis();
+        $raw = $token !== '' ? $redis->get('oauth_pending:' . $token) : false;
+        if ($raw === false) {
+            return ResponseHelper::error($response, I18n::trans('user.login_session_expired', $locale));
+        }
+
+        $pending = json_decode((string) $raw, true);
+        if (! is_array($pending) || empty($pending['provider']) || empty($pending['provider_user_id']) || empty($pending['email'])) {
+            return ResponseHelper::error($response, I18n::trans('auth.oauth_request_failed', $locale));
+        }
+
+        $provider = (string) $pending['provider'];
+        $providerUserId = (string) $pending['provider_user_id'];
+        $email = strtolower(trim((string) $pending['email']));
+        $name = (string) ($pending['name'] ?? '');
+        $column = $provider . '_id';
+
+        if (! in_array($provider, ['google', 'github'], true)) {
+            return ResponseHelper::error($response, I18n::trans('auth.oauth_request_failed', $locale));
+        }
+
+        $existing = (new User())->where($column, $providerUserId)->orWhere('email', $email)->first();
+        if ($existing !== null) {
+            $redis->del('oauth_pending:' . $token);
+            if (empty($existing->$column)) {
+                $existing->$column = $providerUserId;
+                $existing->save();
+            }
+            $loginResult = self::completeLogin($existing, 1, '/user');
+            Cookie::set(['invite_code' => ''], time() - 3600);
+
+            return $response->withHeader('HX-Redirect', $loginResult['redir'])->withJson([
+                'ret' => 1,
+                'msg' => I18n::trans('user.login_success', $locale),
+            ]);
+        }
+
+        try {
+            $user = self::createUserAccount(
+                $name,
+                $email,
+                Tools::genRandomChar(32),
+                $inviteCode,
+                0,
+                '',
+                0.0,
+                true,
+                [$column => $providerUserId]
+            );
+        } catch (Throwable $e) {
+            error_log('OAuth invite registration error: ' . $e->getMessage());
+            return ResponseHelper::error($response, I18n::trans('user.unknown_error', $locale));
+        }
+
+        $redis->del('oauth_pending:' . $token);
+        Cookie::set(['invite_code' => ''], time() - 3600);
+
+        $loginResult = self::completeLogin($user, 1, '/user');
+
+        return $response->withHeader('HX-Redirect', $loginResult['redir'])->withJson([
+            'ret' => 1,
+            'msg' => I18n::trans('user.login_success', $locale),
+        ]);
     }
 }

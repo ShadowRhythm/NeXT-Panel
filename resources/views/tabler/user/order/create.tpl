@@ -24,6 +24,15 @@
                             <h3 class="card-title">{trans key='user.order_content'}</h3>
                         </div>
                         <div class="card-body">
+                            {if isset($order_mode) && $order_mode === 'upgrade'}
+                                <div class="alert alert-warning mb-3" role="alert">
+                                    {trans key='user.upgrade_immediate_hint'}
+                                </div>
+                            {elseif isset($order_mode) && ($order_mode === 'renew' || $order_mode === 'downgrade' || $order_mode === 'queued')}
+                                <div class="alert alert-info mb-3" role="alert">
+                                    {trans key='user.queued_activation_hint'}
+                                </div>
+                            {/if}
                             <table class="table table-transparent table-responsive">
                                 <tr hidden>
                                     <td>{trans key='user.product_id'}</td>

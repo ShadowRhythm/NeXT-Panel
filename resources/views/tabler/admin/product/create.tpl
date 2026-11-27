@@ -122,6 +122,45 @@
                                            value="">
                                 </div>
                             </div>
+                            <div id="group_options">
+                                <div class="hr-text">
+                                    <span>多周期聚合与档位</span>
+                                </div>
+                                <div class="form-group mb-3 row">
+                                    <label class="form-label col-3 col-form-label">套餐系列名</label>
+                                    <div class="col">
+                                        <input id="plan_group" type="text" class="form-control" value=""
+                                               placeholder="如 Starter / Basic / Standard / Pro / Ultra（留空按等级自动归组）">
+                                    </div>
+                                </div>
+                                <div class="form-group mb-3 row">
+                                    <label class="form-label col-3 col-form-label">档位权重</label>
+                                    <div class="col">
+                                        <input id="tier_level" type="number" min="0" class="form-control" value="0"
+                                               placeholder="用于判断升降级，0 则自动取等级">
+                                    </div>
+                                </div>
+                                <div class="form-group mb-3 row">
+                                    <label class="form-label col-3 col-form-label">周期标识</label>
+                                    <div class="col">
+                                        <select id="cycle_label" class="col form-select">
+                                            <option value="auto" selected>自动按天数识别</option>
+                                            <option value="monthly">月付 (monthly)</option>
+                                            <option value="quarterly">季付 (quarterly)</option>
+                                            <option value="half_yearly">半年付 (half_yearly)</option>
+                                            <option value="yearly">年付 (yearly)</option>
+                                            <option value="custom">自定义 (custom)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group mb-3 row">
+                                    <label class="form-label col-3 col-form-label">同周期规格标签</label>
+                                    <div class="col">
+                                        <input id="variant_label" type="text" class="form-control" value=""
+                                               placeholder="可选，如 160GB / 200GB，同系列同周期多规格时显示">
+                                    </div>
+                                </div>
+                            </div>
                             <div class="hr-text">
                                 <span>购买限制</span>
                             </div>
@@ -171,6 +210,7 @@
             $("#node_group_option").hide();
             $("#speed_limit_option").hide();
             $("#ip_limit_option").hide();
+            $("#group_options").hide();
             $("#time").prop("required", false);
             $("#class").prop("required", false);
             $("#class_time").prop("required", false);
@@ -186,6 +226,7 @@
             $("#node_group_option").show();
             $("#speed_limit_option").show();
             $("#ip_limit_option").show();
+            $("#group_options").show();
             $("#time").prop("required", true);
             $("#class").prop("required", true);
             $("#class_time").prop("required", true);
@@ -201,6 +242,7 @@
             $("#node_group_option").show();
             $("#speed_limit_option").show();
             $("#ip_limit_option").show();
+            $("#group_options").show();
             $("#time").prop("required", true);
             $("#class").prop("required", true);
             $("#class_time").prop("required", true);

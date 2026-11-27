@@ -9,6 +9,7 @@ use App\Models\Config;
 use App\Models\MFADevice;
 use App\Models\User;
 use App\Services\Auth;
+use App\Services\Auth\Cookie as AuthCookie;
 use App\Services\Cache;
 use App\Services\Filter;
 use App\Services\I18n;
@@ -24,6 +25,7 @@ use Slim\Http\ServerRequest;
 use function in_array;
 use function strlen;
 use function strtolower;
+use function trim;
 use const BASE_PATH;
 
 final class InfoController extends BaseController
@@ -39,6 +41,22 @@ final class InfoController extends BaseController
         $totpDevices = array_map(static fn ($item) => (object) $item, (new MFADevice())->where('userid', $this->user->id)->where('type', 'totp')->get()->toArray());
         $fidoDevices = array_map(static fn ($item) => (object) $item, (new MFADevice())->where('userid', $this->user->id)->where('type', 'fido')->get()->toArray());
 
+        $locale = I18n::getCurrentLocale($this->user);
+        $queryParams = $request->getQueryParams();
+        $oauthErrorCode = (string) ($queryParams['oauth_error'] ?? '');
+        $oauthMsgCode = (string) ($queryParams['oauth_msg'] ?? '');
+
+        $oauthError = match ($oauthErrorCode) {
+            'oauth_disabled' => I18n::trans('auth.oauth_disabled', $locale),
+            'already_bound' => I18n::trans('auth.oauth_already_bound', $locale),
+            'request_failed' => I18n::trans('auth.oauth_request_failed', $locale),
+            default => '',
+        };
+        $oauthMsg = match ($oauthMsgCode) {
+            'bind_success' => I18n::trans('auth.bind_success', $locale),
+            default => '',
+        };
+
         return $response->write(
             $this->view()
                 ->assign('user', $this->user)
@@ -47,6 +65,8 @@ final class InfoController extends BaseController
                 ->assign('webauthnDevices', $webauthnDevices)
                 ->assign('totpDevices', $totpDevices)
                 ->assign('fidoDevices', $fidoDevices)
+                ->assign('oauth_error', $oauthError)
+                ->assign('oauth_msg', $oauthMsg)
                 ->fetch('user/edit.tpl')
         );
     }
@@ -144,6 +164,25 @@ final class InfoController extends BaseController
         return $response->withHeader('HX-Refresh', 'true');
     }
 
+    public function unbindOAuth(ServerRequest $request, Response $response, array $args): ResponseInterface
+    {
+        $locale = I18n::getCurrentLocale($this->user);
+        $provider = strtolower(trim((string) $request->getParam('provider')));
+
+        if (! in_array($provider, ['google', 'github'], true)) {
+            return ResponseHelper::error($response, I18n::trans('user.invalid_parameter', $locale));
+        }
+
+        $column = $provider . '_id';
+        $this->user->$column = null;
+
+        if (! $this->user->save()) {
+            return ResponseHelper::error($response, I18n::trans('user.unbind_failed', $locale));
+        }
+
+        return $response->withHeader('HX-Refresh', 'true');
+    }
+
     public function updatePassword(ServerRequest $request, Response $response, array $args): ResponseInterface
     {
         $locale = I18n::getCurrentLocale($this->user);
@@ -176,6 +215,12 @@ final class InfoController extends BaseController
 
         if (Config::obtain('enable_forced_replacement')) {
             $user->removeLink();
+        }
+
+        try {
+            AuthCookie::revokeOtherSessions((int) $user->id);
+        } catch (\Throwable) {
+            // ignore if user_session table is not migrated yet
         }
 
         return ResponseHelper::success($response, I18n::trans('user.update_success', $locale));

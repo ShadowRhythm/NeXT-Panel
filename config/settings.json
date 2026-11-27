@@ -1161,6 +1161,60 @@
         "mark": "邮箱验证"
     },
     {
+        "item": "enable_google_oauth",
+        "value": "0",
+        "class": "reg",
+        "is_public": 1,
+        "type": "bool",
+        "default": "0",
+        "mark": "启用 Google OAuth 登录"
+    },
+    {
+        "item": "google_client_id",
+        "value": "",
+        "class": "reg",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "Google OAuth Client ID"
+    },
+    {
+        "item": "google_client_secret",
+        "value": "",
+        "class": "reg",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "Google OAuth Client Secret"
+    },
+    {
+        "item": "enable_github_oauth",
+        "value": "0",
+        "class": "reg",
+        "is_public": 1,
+        "type": "bool",
+        "default": "0",
+        "mark": "启用 GitHub OAuth 登录"
+    },
+    {
+        "item": "github_client_id",
+        "value": "",
+        "class": "reg",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "GitHub OAuth Client ID"
+    },
+    {
+        "item": "github_client_secret",
+        "value": "",
+        "class": "reg",
+        "is_public": 0,
+        "type": "string",
+        "default": "",
+        "mark": "GitHub OAuth Client Secret"
+    },
+    {
         "item": "random_group",
         "value": "0",
         "class": "reg",

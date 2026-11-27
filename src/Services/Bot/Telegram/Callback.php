@@ -380,7 +380,10 @@ final class Callback
             case 'usage_log':
                 // 使用记录
                 $logs = (new OnlineLog())->where('user_id', $this->user->id)
-                    ->where('last_time', '>', time() - 90)->orderByDesc('last_time')->get('ip');
+                    ->where('last_time', '>', time() - 90)
+                    ->where('kicked_at', 0)
+                    ->orderByDesc('last_time')
+                    ->get('ip');
                 $text = '<strong>' . I18n::trans('bot.online_ip_title', $locale) . '</strong>' . PHP_EOL . PHP_EOL;
 
                 foreach ($logs as $log) {

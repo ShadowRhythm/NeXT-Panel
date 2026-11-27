@@ -45,6 +45,10 @@ final class ProductController extends BaseController
         'node_group',
         'speed_limit',
         'ip_limit',
+        'plan_group',
+        'tier_level',
+        'cycle_label',
+        'variant_label',
         'class_required',
         'node_group_required',
     ];
@@ -97,6 +101,10 @@ final class ProductController extends BaseController
         $content->node_group = $content->node_group ?? 0;
         $content->speed_limit = $content->speed_limit ?? 0;
         $content->ip_limit = $content->ip_limit ?? 0;
+        $content->plan_group = $content->plan_group ?? '';
+        $content->tier_level = $content->tier_level ?? 0;
+        $content->cycle_label = $content->cycle_label ?? 'auto';
+        $content->variant_label = $content->variant_label ?? '';
 
         return $response->write(
             $this->view()
@@ -124,6 +132,10 @@ final class ProductController extends BaseController
         $node_group = $request->getParam('node_group') ?? 0;
         $speed_limit = $request->getParam('speed_limit') ?? 0;
         $ip_limit = $request->getParam('ip_limit') ?? 0;
+        $plan_group = trim((string) ($request->getParam('plan_group') ?? ''));
+        $tier_level = (int) ($request->getParam('tier_level') ?? 0);
+        $cycle_label = trim((string) ($request->getParam('cycle_label') ?? 'auto'));
+        $variant_label = trim((string) ($request->getParam('variant_label') ?? ''));
         // limit
         $class_required = $request->getParam('class_required') ?? '';
         $node_group_required = $request->getParam('node_group_required') ?? '';
@@ -154,6 +166,10 @@ final class ProductController extends BaseController
                 'node_group' => $node_group,
                 'speed_limit' => $speed_limit,
                 'ip_limit' => $ip_limit,
+                'plan_group' => $plan_group,
+                'tier_level' => $tier_level,
+                'cycle_label' => $cycle_label,
+                'variant_label' => $variant_label,
             ];
         } elseif ($type === 'time') {
             if ($time <= 0 || $class_time === '' || $class_time <= 0) {
@@ -170,6 +186,10 @@ final class ProductController extends BaseController
                 'node_group' => $node_group,
                 'speed_limit' => $speed_limit,
                 'ip_limit' => $ip_limit,
+                'plan_group' => $plan_group,
+                'tier_level' => $tier_level,
+                'cycle_label' => $cycle_label,
+                'variant_label' => $variant_label,
             ];
         } elseif ($type === 'bandwidth') {
             if ($bandwidth <= 0) {
@@ -230,6 +250,10 @@ final class ProductController extends BaseController
         $node_group = $request->getParam('node_group') ?? 0;
         $speed_limit = $request->getParam('speed_limit') ?? 0;
         $ip_limit = $request->getParam('ip_limit') ?? 0;
+        $plan_group = trim((string) ($request->getParam('plan_group') ?? ''));
+        $tier_level = (int) ($request->getParam('tier_level') ?? 0);
+        $cycle_label = trim((string) ($request->getParam('cycle_label') ?? 'auto'));
+        $variant_label = trim((string) ($request->getParam('variant_label') ?? ''));
         // limit
         $class_required = $request->getParam('class_required') ?? '';
         $node_group_required = $request->getParam('node_group_required') ?? '';
@@ -267,6 +291,10 @@ final class ProductController extends BaseController
                 'node_group' => $node_group,
                 'speed_limit' => $speed_limit,
                 'ip_limit' => $ip_limit,
+                'plan_group' => $plan_group,
+                'tier_level' => $tier_level,
+                'cycle_label' => $cycle_label,
+                'variant_label' => $variant_label,
             ];
         } elseif ($type === 'time') {
             if ($time <= 0 || $class_time <= 0) {
@@ -283,6 +311,10 @@ final class ProductController extends BaseController
                 'node_group' => $node_group,
                 'speed_limit' => $speed_limit,
                 'ip_limit' => $ip_limit,
+                'plan_group' => $plan_group,
+                'tier_level' => $tier_level,
+                'cycle_label' => $cycle_label,
+                'variant_label' => $variant_label,
             ];
         } elseif ($type === 'bandwidth') {
             if ($bandwidth <= 0) {

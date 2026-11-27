@@ -38,8 +38,13 @@ return static function (Slim\App $app): void {
         // 文档
         $group->get('/docs', App\Controllers\User\DocsController::class . ':index');
         $group->get('/docs/{id:[0-9]+}/view', App\Controllers\User\DocsController::class . ':detail');
-        // 个人资料
+        // 个人资料与设备管理
         $group->get('/profile', App\Controllers\User\ProfileController::class . ':index');
+        $group->post('/profile/device/alias', App\Controllers\User\ProfileController::class . ':saveDeviceAlias');
+        $group->delete('/profile/device/online/{id:[0-9]+}', App\Controllers\User\ProfileController::class . ':removeOnlineDevice');
+        $group->post('/profile/device/kick_all_proxy', App\Controllers\User\ProfileController::class . ':kickAllProxyDevices');
+        $group->delete('/profile/session/{id:[0-9]+}', App\Controllers\User\ProfileController::class . ':revokeSession');
+        $group->post('/profile/session/kick_others', App\Controllers\User\ProfileController::class . ':kickOtherSessions');
         // Invite
         $group->get('/invite', App\Controllers\User\InviteController::class . ':index');
         $group->post('/invite/reset', App\Controllers\User\InviteController::class . ':reset');
@@ -67,6 +72,7 @@ return static function (Slim\App $app): void {
         $group->post('/edit/email', App\Controllers\User\InfoController::class . ':updateEmail');
         $group->post('/edit/username', App\Controllers\User\InfoController::class . ':updateUsername');
         $group->post('/edit/unbind_im', App\Controllers\User\InfoController::class . ':unbindIm');
+        $group->post('/edit/unbind_oauth', App\Controllers\User\InfoController::class . ':unbindOAuth');
         $group->post('/edit/password', App\Controllers\User\InfoController::class . ':updatePassword');
         $group->post('/edit/passwd_reset', App\Controllers\User\InfoController::class . ':resetPasswd');
         $group->post('/edit/apitoken_reset', App\Controllers\User\InfoController::class . ':resetApiToken');
@@ -139,6 +145,8 @@ return static function (Slim\App $app): void {
         $group->post('/totp', App\Controllers\AuthController::class . ':totpHandle');
         $group->get('/fido', App\Controllers\AuthController::class . ':fidoRequest');
         $group->post('/fido', App\Controllers\AuthController::class . ':fidoHandle');
+        $group->get('/oauth/invite', App\Controllers\AuthController::class . ':oauthInvitePage');
+        $group->post('/oauth/invite', App\Controllers\AuthController::class . ':oauthInviteHandle');
     })->add(new Guest());
     // Password
     $app->group('/password', static function (RouteCollectorProxy $group): void {
