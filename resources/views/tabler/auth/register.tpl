@@ -89,7 +89,7 @@
                         <div class="row g-2">
                             {if ! empty($public_setting['enable_google_oauth'])}
                                 <div class="col">
-                                    <a href="/oauth/google" data-oauth-register="google" class="btn w-100">
+                                    <a href="/oauth/google" data-oauth-register="google" class="btn btn-red w-100">
                                         <i class="ti ti-brand-google icon me-1"></i>
                                         Google
                                     </a>
@@ -97,7 +97,7 @@
                             {/if}
                             {if ! empty($public_setting['enable_github_oauth'])}
                                 <div class="col">
-                                    <a href="/oauth/github" data-oauth-register="github" class="btn w-100">
+                                    <a href="/oauth/github" data-oauth-register="github" class="btn btn-dark w-100">
                                         <i class="ti ti-brand-github icon me-1"></i>
                                         GitHub
                                     </a>

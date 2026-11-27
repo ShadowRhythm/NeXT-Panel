@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Services\I18n;
 use Illuminate\Database\Query\Builder;
+use function is_array;
 use function is_object;
 use function json_decode;
 use function preg_match;
@@ -64,6 +65,13 @@ final class Product extends Model
 
     public function getContentObject(): object
     {
+        if (is_object($this->content)) {
+            return $this->content;
+        }
+        if (is_array($this->content)) {
+            return (object) $this->content;
+        }
+
         $decoded = json_decode((string) $this->content);
 
         return is_object($decoded) ? $decoded : (object) [];
@@ -127,9 +135,13 @@ final class Product extends Model
         return 'Lv. ' . (int) ($content->class ?? 0);
     }
 
-    public static function getTierFromContent(?string $jsonContent): int
+    public static function getTierFromContent(string|object|array|null $jsonContent): int
     {
-        $content = json_decode((string) $jsonContent);
+        $content = match (true) {
+            is_object($jsonContent) => $jsonContent,
+            is_array($jsonContent) => (object) $jsonContent,
+            default => json_decode((string) $jsonContent),
+        };
         if (! is_object($content)) {
             return 0;
         }

@@ -324,7 +324,7 @@
                                                                     </div>
                                                                     <div>
                                                                         {if ! empty($user->google_id)}
-                                                                            <button class="btn btn-outline-danger btn-sm"
+                                                                            <button class="btn btn-danger btn-sm"
                                                                                     hx-post="/user/edit/unbind_oauth"
                                                                                     hx-swap="none"
                                                                                     hx-vals='js:{ provider: "google" }'>
@@ -356,7 +356,7 @@
                                                                     </div>
                                                                     <div>
                                                                         {if ! empty($user->github_id)}
-                                                                            <button class="btn btn-outline-danger btn-sm"
+                                                                            <button class="btn btn-danger btn-sm"
                                                                                     hx-post="/user/edit/unbind_oauth"
                                                                                     hx-swap="none"
                                                                                     hx-vals='js:{ provider: "github" }'>

@@ -91,7 +91,7 @@
                                 </div>
                                 <div>
                                     <button type="button"
-                                            class="btn btn-outline-danger"
+                                            class="btn btn-danger"
                                             hx-post="/user/profile/device/kick_all_proxy"
                                             hx-swap="none"
                                             hx-confirm="{trans key='user.kick_all_proxy_confirm'}">
@@ -139,7 +139,7 @@
                                                         <span class="text-secondary">{trans key='user.unnamed_device'}</span>
                                                     {/if}
                                                     <button type="button"
-                                                            class="btn btn-ghost-secondary btn-icon btn-sm"
+                                                            class="btn btn-secondary btn-icon btn-sm"
                                                             title="{trans key='user.edit_device_alias'}"
                                                             onclick="openAliasModal('{$ip->ip|escape:'javascript'}', '{$ip->alias|escape:'javascript'}')">
                                                         <i class="ti ti-pencil icon"></i>
@@ -159,7 +159,7 @@
                                             <td>{$ip->last_time|escape}</td>
                                             <td>
                                                 <button type="button"
-                                                        class="btn btn-sm btn-outline-danger"
+                                                        class="btn btn-sm btn-danger"
                                                         hx-delete="/user/profile/device/online/{$ip->id}"
                                                         hx-swap="none"
                                                         hx-confirm="{trans key='user.confirm_remove_online_ip'}">
@@ -190,7 +190,7 @@
                                 {trans key='user.web_sessions_title'}
                             </h3>
                             <button type="button"
-                                    class="btn btn-sm btn-outline-danger"
+                                    class="btn btn-sm btn-danger"
                                     hx-post="/user/profile/session/kick_others"
                                     hx-swap="none"
                                     hx-confirm="{trans key='user.kick_other_sessions_confirm'}">
@@ -227,7 +227,7 @@
                                             <td>{$session->expires_at|escape}</td>
                                             <td>
                                                 <button type="button"
-                                                        class="btn btn-sm btn-outline-danger"
+                                                        class="btn btn-sm btn-danger"
                                                         hx-delete="/user/profile/session/{$session->id}"
                                                         hx-swap="none"
                                                         hx-confirm="{trans key='user.confirm_revoke_session'}">
@@ -259,8 +259,12 @@
                                 {trans key='user.recognized_sub_clients'}
                             </h3>
                             {if count($subs) > 0}
-                                <button type="button" class="btn btn-sm btn-outline-secondary"
-                                        data-bs-toggle="collapse" data-bs-target="#raw-sub-logs">
+                                <button type="button"
+                                        class="btn btn-sm btn-secondary"
+                                        id="toggle-raw-sub-logs-btn"
+                                        aria-expanded="false"
+                                        aria-controls="raw-sub-logs"
+                                        onclick="toggleRawSubLogs(this)">
                                     {trans key='user.toggle_raw_sub_logs'}
                                 </button>
                             {/if}
@@ -296,7 +300,7 @@
                             {/if}
                         </div>
                         {if count($subs) > 0}
-                            <div class="collapse" id="raw-sub-logs">
+                            <div class="d-none" id="raw-sub-logs">
                                 <div class="table-responsive border-top">
                                     <table class="table table-vcenter text-nowrap card-table">
                                         <thead>
@@ -377,7 +381,7 @@
                            placeholder="{trans key='user.device_alias_placeholder'}">
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         {trans key='common.cancel'}
                     </button>
                     <button type="button" class="btn btn-primary ms-auto"
@@ -395,6 +399,17 @@
     </div>
 
     <script>
+        function toggleRawSubLogs(btn) {
+            const logsEl = document.getElementById('raw-sub-logs');
+            if (!logsEl) {
+                return;
+            }
+            const isHidden = logsEl.classList.toggle('d-none');
+            if (btn) {
+                btn.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
+            }
+        }
+
         function openAliasModal(ip, currentAlias) {
             const modalEl = document.getElementById('device-alias-modal');
             document.getElementById('alias-modal-ip').textContent = ip;

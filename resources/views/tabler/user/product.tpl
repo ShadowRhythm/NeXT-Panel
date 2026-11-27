@@ -95,7 +95,7 @@
                                                         <div class="btn-group flex-wrap justify-content-center mb-3" role="group">
                                                             {foreach $group->skus as $idx => $sku}
                                                                 <button type="button"
-                                                                        class="btn btn-sm {if $idx === $group->default_index}btn-primary{else}btn-outline-secondary{/if}"
+                                                                        class="btn btn-sm {if $idx === $group->default_index}btn-primary{else}btn-secondary{/if}"
                                                                         data-cycle-btn
                                                                         data-sku-index="{$idx}">
                                                                     {$sku.pill_label|escape}
@@ -340,7 +340,7 @@
                     html += '<a href="/user/order/create?product_id=' + sku.id + '&upgrade=1" class="btn btn-warning w-100 mb-2">' +
                         I18N.upgradePackage + ' (' + I18N.upgradeCreditPrefix + '¥' + sku.upgrade_credit + ')' +
                         '</a>';
-                    html += '<a href="/user/order/create?product_id=' + sku.id + '" class="btn btn-outline-primary btn-sm w-100">' +
+                    html += '<a href="/user/order/create?product_id=' + sku.id + '" class="btn btn-azure btn-sm w-100">' +
                         I18N.buyQueuedAfterExpire +
                         '</a>';
                     html += '<div class="text-secondary small mt-2">' + I18N.upgradeImmediateHint + '</div>';
@@ -354,7 +354,7 @@
                         html += '<a href="/user/order/create?product_id=' + sku.id + '&upgrade=1" class="btn btn-warning w-100 mb-2">' +
                             I18N.upgradePackage + ' (' + I18N.upgradeCreditPrefix + '¥' + sku.upgrade_credit + ')' +
                             '</a>';
-                        html += '<a href="/user/order/create?product_id=' + sku.id + '&mode=cycle_switch" class="btn btn-outline-primary btn-sm w-100">' +
+                        html += '<a href="/user/order/create?product_id=' + sku.id + '&mode=cycle_switch" class="btn btn-azure btn-sm w-100">' +
                             I18N.switchCycleQueued +
                             '</a>';
                     } else {
@@ -364,7 +364,7 @@
                         html += '<div class="text-secondary small mt-2">' + I18N.queuedHint + '</div>';
                     }
                 } else if (sku.action_mode === 'downgrade') {
-                    html += '<a href="/user/order/create?product_id=' + sku.id + '&mode=downgrade" class="btn btn-outline-primary w-100">' +
+                    html += '<a href="/user/order/create?product_id=' + sku.id + '&mode=downgrade" class="btn btn-azure w-100">' +
                         I18N.downgradeQueued +
                         '</a>';
                     html += '<div class="text-secondary small mt-2">' + I18N.queuedHint + '</div>';
@@ -384,11 +384,11 @@
                 card.querySelectorAll('[data-cycle-btn]').forEach(function (btn) {
                     const idx = Number(btn.getAttribute('data-sku-index'));
                     if (idx === skuIndex) {
-                        btn.classList.remove('btn-outline-secondary');
+                        btn.classList.remove('btn-secondary');
                         btn.classList.add('btn-primary');
                     } else {
                         btn.classList.remove('btn-primary');
-                        btn.classList.add('btn-outline-secondary');
+                        btn.classList.add('btn-secondary');
                     }
                 });
 
