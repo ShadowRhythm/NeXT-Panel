@@ -314,9 +314,12 @@
                                                                         <div class="fw-bold">
                                                                             <i class="ti ti-brand-google icon me-1"></i> Google
                                                                         </div>
-                                                                        <div class="text-secondary small">
+                                                                        <div class="d-flex align-items-center gap-2 flex-wrap mt-1 text-secondary small">
                                                                             {if ! empty($user->google_id)}
                                                                                 <span class="badge bg-green-lt">{trans key='auth.oauth_bound'}</span>
+                                                                                {if ! empty($user->google_label)}
+                                                                                    <span>{$user->google_label|escape}</span>
+                                                                                {/if}
                                                                             {else}
                                                                                 <span class="badge bg-secondary-lt">{trans key='auth.oauth_not_bound'}</span>
                                                                             {/if}
@@ -346,9 +349,12 @@
                                                                         <div class="fw-bold">
                                                                             <i class="ti ti-brand-github icon me-1"></i> GitHub
                                                                         </div>
-                                                                        <div class="text-secondary small">
+                                                                        <div class="d-flex align-items-center gap-2 flex-wrap mt-1 text-secondary small">
                                                                             {if ! empty($user->github_id)}
                                                                                 <span class="badge bg-green-lt">{trans key='auth.oauth_bound'}</span>
+                                                                                {if ! empty($user->github_label)}
+                                                                                    <span>{$user->github_label|escape}</span>
+                                                                                {/if}
                                                                             {else}
                                                                                 <span class="badge bg-secondary-lt">{trans key='auth.oauth_not_bound'}</span>
                                                                             {/if}

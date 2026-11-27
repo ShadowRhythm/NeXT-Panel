@@ -174,7 +174,9 @@ final class InfoController extends BaseController
         }
 
         $column = $provider . '_id';
+        $labelColumn = $provider . '_label';
         $this->user->$column = null;
+        $this->user->$labelColumn = null;
 
         if (! $this->user->save()) {
             return ResponseHelper::error($response, I18n::trans('user.unbind_failed', $locale));

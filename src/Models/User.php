@@ -65,7 +65,9 @@ use const PHP_EOL;
  * @property int    $is_inactive 是否处于闲置状态
  * @property string $locale 显示语言
  * @property ?string $google_id Google OAuth ID
+ * @property ?string $google_label Google OAuth 展示名/邮箱
  * @property ?string $github_id GitHub OAuth ID
+ * @property ?string $github_label GitHub OAuth 展示名/邮箱
  *
  * @mixin Builder
  */

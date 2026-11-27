@@ -802,7 +802,9 @@ final class AuthController extends BaseController
         $providerUserId = (string) $pending['provider_user_id'];
         $email = strtolower(trim((string) $pending['email']));
         $name = (string) ($pending['name'] ?? '');
+        $label = mb_substr(trim((string) ($pending['label'] ?? '')), 0, 191);
         $column = $provider . '_id';
+        $labelColumn = $provider . '_label';
 
         if (! in_array($provider, ['google', 'github'], true)) {
             return ResponseHelper::error($response, I18n::trans('auth.oauth_request_failed', $locale));
@@ -811,8 +813,16 @@ final class AuthController extends BaseController
         $existing = (new User())->where($column, $providerUserId)->orWhere('email', $email)->first();
         if ($existing !== null) {
             $redis->del('oauth_pending:' . $token);
+            $dirty = false;
             if (empty($existing->$column)) {
                 $existing->$column = $providerUserId;
+                $dirty = true;
+            }
+            if ($label !== '' && $existing->$labelColumn !== $label) {
+                $existing->$labelColumn = $label;
+                $dirty = true;
+            }
+            if ($dirty) {
                 $existing->save();
             }
             $loginResult = self::completeLogin($existing, 1, '/user');
@@ -834,7 +844,10 @@ final class AuthController extends BaseController
                 '',
                 0.0,
                 true,
-                [$column => $providerUserId]
+                [
+                    $column => $providerUserId,
+                    $labelColumn => ($label !== '' ? $label : null),
+                ]
             );
         } catch (Throwable $e) {
             error_log('OAuth invite registration error: ' . $e->getMessage());

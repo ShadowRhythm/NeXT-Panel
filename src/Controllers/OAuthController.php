@@ -32,6 +32,7 @@ use function is_array;
 use function json_decode;
 use function json_encode;
 use function ltrim;
+use function mb_substr;
 use function rtrim;
 use function sort;
 use function str_starts_with;
@@ -447,6 +448,8 @@ final class OAuthController extends BaseController
 
         $providerUserId = $profile['id'];
         $column = $config['column'];
+        $labelColumn = $provider . '_label';
+        $label = $profile['label'] !== '' ? mb_substr($profile['label'], 0, 191) : null;
 
         if ($mode === 'bind') {
             if (! $this->user->isLogin || (int) $this->user->id !== (int) ($stateData['user_id'] ?? 0)) {
@@ -462,6 +465,7 @@ final class OAuthController extends BaseController
             }
 
             $this->user->$column = $providerUserId;
+            $this->user->$labelColumn = $label;
             $this->user->save();
 
             return $response->withStatus(302)->withHeader(
@@ -473,10 +477,16 @@ final class OAuthController extends BaseController
         // Login / auto-merge / auto-register flow
         $user = (new User())->where($column, $providerUserId)->first();
 
-        if ($user === null && $profile['email'] !== '' && $profile['email_verified']) {
+        if ($user !== null) {
+            if ($label !== null && $user->$labelColumn !== $label) {
+                $user->$labelColumn = $label;
+                $user->save();
+            }
+        } elseif ($profile['email'] !== '' && $profile['email_verified']) {
             $emailUser = (new User())->where('email', $profile['email'])->first();
             if ($emailUser !== null) {
                 $emailUser->$column = $providerUserId;
+                $emailUser->$labelColumn = $label;
                 $emailUser->save();
                 $user = $emailUser;
             }
@@ -505,6 +515,7 @@ final class OAuthController extends BaseController
                     'provider_user_id' => $providerUserId,
                     'email' => $profile['email'],
                     'name' => $profile['name'],
+                    'label' => $label ?? '',
                 ]));
 
                 return $response->withStatus(302)->withHeader(
@@ -523,7 +534,10 @@ final class OAuthController extends BaseController
                     '',
                     0.0,
                     true,
-                    [$column => $providerUserId]
+                    [
+                        $column => $providerUserId,
+                        $labelColumn => $label,
+                    ]
                 );
             } catch (Throwable $e) {
                 error_log('OAuth auto register error (' . $provider . '): ' . $e->getMessage());
@@ -577,7 +591,7 @@ final class OAuthController extends BaseController
     /**
      * @param array{client_id: string, client_secret: string} $config
      *
-     * @return array{id: string, email: string, email_verified: bool, name: string}
+     * @return array{id: string, email: string, email_verified: bool, name: string, label: string}
      *
      * @throws GuzzleException
      */
@@ -616,11 +630,15 @@ final class OAuthController extends BaseController
                 throw new Exception('Missing Google subject ID');
             }
 
+            $email = strtolower(trim((string) ($userData['email'] ?? '')));
+            $name = trim((string) ($userData['name'] ?? ''));
+
             return [
                 'id' => $sub,
-                'email' => strtolower(trim((string) ($userData['email'] ?? ''))),
+                'email' => $email,
                 'email_verified' => (bool) ($userData['email_verified'] ?? false),
-                'name' => trim((string) ($userData['name'] ?? '')),
+                'name' => $name,
+                'label' => $email !== '' ? $email : $name,
             ];
         }
 
@@ -682,11 +700,22 @@ final class OAuthController extends BaseController
             }
         }
 
+        $login = trim((string) ($userData['login'] ?? ''));
+        $name = trim((string) ($userData['name'] ?? $login));
+        if ($login !== '') {
+            $label = '@' . $login . ($chosenEmail !== '' ? ' · ' . $chosenEmail : '');
+        } elseif ($name !== '') {
+            $label = $name . ($chosenEmail !== '' ? ' · ' . $chosenEmail : '');
+        } else {
+            $label = $chosenEmail;
+        }
+
         return [
             'id' => $githubId,
             'email' => $chosenEmail,
             'email_verified' => $emailVerified,
-            'name' => trim((string) ($userData['name'] ?? $userData['login'] ?? '')),
+            'name' => $name,
+            'label' => $label,
         ];
     }
 
