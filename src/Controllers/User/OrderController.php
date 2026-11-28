@@ -26,6 +26,7 @@ use function ceil;
 use function explode;
 use function in_array;
 use function is_numeric;
+use function is_object;
 use function json_decode;
 use function json_encode;
 use function max;
@@ -134,11 +135,25 @@ final class OrderController extends BaseController
         $targetTier = $product->getTierLevel();
         $activeTier = Product::getTierFromContent($activeOrder->product_content);
 
-        if ($targetTier > $activeTier) {
-            return true;
+        if ($targetTier < $activeTier) {
+            return false;
         }
 
-        return $targetTier === $activeTier && (float) $product->price > (float) $activeOrder->price;
+        if ($targetTier === $activeTier && (float) $product->price <= (float) $activeOrder->price) {
+            return false;
+        }
+
+        $activeContent = json_decode((string) $activeOrder->product_content);
+        if (is_object($activeContent)) {
+            $activeDurationSeconds = max(1, (int) ($activeContent->time ?? $activeContent->class_time ?? 30)) * 86400;
+            $expireTime = (int) $activeOrder->update_time + $activeDurationSeconds;
+            $remainingDays = (int) ceil(max(0, $expireTime - time()) / 86400);
+            if ($product->getCycleDays() < $remainingDays) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

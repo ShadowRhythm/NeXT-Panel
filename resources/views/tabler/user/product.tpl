@@ -363,6 +363,11 @@
                             '</a>';
                         html += '<div class="text-secondary small mt-2">' + I18N.queuedHint + '</div>';
                     }
+                } else if (sku.action_mode === 'queued') {
+                    html += '<a href="/user/order/create?product_id=' + sku.id + '" class="btn btn-azure w-100">' +
+                        I18N.buyQueuedAfterExpire +
+                        '</a>';
+                    html += '<div class="text-secondary small mt-2">' + I18N.queuedHint + '</div>';
                 } else if (sku.action_mode === 'downgrade') {
                     html += '<a href="/user/order/create?product_id=' + sku.id + '&mode=downgrade" class="btn btn-azure w-100">' +
                         I18N.downgradeQueued +
