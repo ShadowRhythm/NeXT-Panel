@@ -23,7 +23,10 @@ use Stripe\StripeClient;
 use Stripe\Webhook;
 use UnexpectedValueException;
 use voku\helper\AntiXSS;
+use function hash;
 use function in_array;
+use function round;
+use function substr;
 
 final class Stripe extends Base
 {
@@ -151,7 +154,11 @@ final class Stripe extends Base
                 'success_url' => $_ENV['baseUrl'] . '/user/invoice/' . $invoice_id . '/view?session_id={CHECKOUT_SESSION_ID}&paid=1',
                 'cancel_url' => $_ENV['baseUrl'] . '/user/invoice/' . $invoice_id . '/view?canceled=1',
             ], [
-                'idempotency_key' => 'checkout_' . $pl->tradeno . '_' . $stripe_currency . '_' . $unitAmount,
+                'idempotency_key' => 'checkout_' . $pl->tradeno . '_' . substr(
+                    hash('sha256', $user->email . '|' . $stripe_currency . '|' . $unitAmount . '|' . $_ENV['baseUrl']),
+                    0,
+                    16
+                ),
             ]);
         } catch (ApiErrorException) {
             return $response->withJson([

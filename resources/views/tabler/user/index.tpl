@@ -409,6 +409,16 @@
                                     </div>
                                 </div>
                                 <div class="card-body">
+                                    <div class="d-flex flex-wrap align-items-center gap-3 mb-2 small text-secondary" id="traffic-chart-legend">
+                                        <span class="d-inline-flex align-items-center gap-1">
+                                            <span class="rounded-1 d-inline-block" id="legend-swatch-billed" style="width:12px;height:12px;background:#066fd1;"></span>
+                                            <span>{trans key='user.billed_traffic_label'}</span>
+                                        </span>
+                                        <span class="d-inline-flex align-items-center gap-1">
+                                            <span class="rounded-1 d-inline-block" id="legend-swatch-raw" style="width:12px;height:12px;background:#7db8fb;"></span>
+                                            <span>{trans key='user.raw_traffic_label'}</span>
+                                        </span>
+                                    </div>
                                     <div id="traffic-log" dir="ltr"></div>
                                 </div>
                             </div>
@@ -535,6 +545,11 @@
 
         let currentTrafficRange = '24h';
 
+        function isDarkTheme() {
+            return document.documentElement.getAttribute('data-bs-theme') === 'dark' ||
+                document.body.getAttribute('data-bs-theme') === 'dark';
+        }
+
         function getThemeColor() {
             if (window.tabler) {
                 if (typeof window.tabler.getColor === 'function') {
@@ -547,8 +562,16 @@
             return '#206bc4';
         }
 
-        function getRawOverlayColor() {
-            return 'rgba(110, 168, 254, 0.58)';
+        function getChartPalette() {
+            const dark = isDarkTheme();
+            return {
+                dark: dark,
+                primary: getThemeColor(),
+                raw: dark ? '#7db8fb' : '#93c5fd',
+                fore: dark ? '#cbd5e1' : '#64748b',
+                grid: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+                ticks: dark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.16)'
+            };
         }
 
         function roundTrafficValue(val) {
@@ -575,43 +598,79 @@
             return num.toFixed(2) + ' ' + unit;
         }
 
-        function buildLayeredBarSeries(conf) {
-            const primaryColor = getThemeColor();
-            const lightColor = getRawOverlayColor();
-            const categories = Array.isArray(conf.categories) ? conf.categories : [];
+        function syncTrafficLegendColors(palette) {
+            const billedSwatch = document.getElementById('legend-swatch-billed');
+            const rawSwatch = document.getElementById('legend-swatch-raw');
+            if (billedSwatch) billedSwatch.style.background = palette.primary;
+            if (rawSwatch) rawSwatch.style.background = palette.raw;
+        }
+
+        function getBilledSeriesData(conf) {
+            const billedArr = Array.isArray(conf.billed) ? conf.billed : [];
+            return billedArr.map(v => Math.max(0, roundTrafficValue(v)));
+        }
+
+        function renderRawTrafficOverlays(chartContext) {
+            if (!chartContext || !chartContext.el) return;
+            const svg = chartContext.el.querySelector('svg');
+            if (!svg) return;
+
+            svg.querySelectorAll('.raw-traffic-overlay-layer').forEach(node => node.remove());
+
+            const barSeries = svg.querySelector('.apexcharts-bar-series');
+            if (!barSeries) return;
+
+            const bars = barSeries.querySelectorAll('path.apexcharts-bar-area');
+            if (!bars || bars.length === 0) return;
+
+            const conf = trafficRanges[currentTrafficRange] || trafficRanges['24h'];
             const billedArr = Array.isArray(conf.billed) ? conf.billed : [];
             const rawArr = Array.isArray(conf.raw) ? conf.raw : [];
+            const palette = getChartPalette();
 
-            const baseData = [];
-            const topData = [];
+            const overlayGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            overlayGroup.setAttribute('class', 'raw-traffic-overlay-layer');
+            overlayGroup.setAttribute('pointer-events', 'none');
 
-            for (let i = 0; i < categories.length; i++) {
-                const label = categories[i];
-                const billed = Math.max(0, roundTrafficValue(billedArr[i]));
-                const raw = Math.max(0, roundTrafficValue(rawArr[i]));
-                // Cap the visual overlay at billed height so low-multiplier (e.g. 0.1x) raw traffic
-                // never stretches the Y-axis; tooltip still displays full unclipped raw bytes.
-                const rawOverlay = Math.min(raw, billed);
-                const billedExtra = Math.max(0, roundTrafficValue(billed - rawOverlay));
+            bars.forEach((barEl, idx) => {
+                const billed = Math.max(0, roundTrafficValue(billedArr[idx]));
+                const raw = Math.max(0, roundTrafficValue(rawArr[idx]));
+                if (billed <= 0 || raw <= 0) return;
 
-                baseData.push({ x: label, y: rawOverlay, fillColor: lightColor });
-                topData.push({ x: label, y: billedExtra, fillColor: primaryColor });
-            }
+                const bbox = barEl.getBBox();
+                if (!bbox || bbox.width <= 0 || bbox.height <= 0) return;
 
-            return [
-                { name: trafficLabels.raw, data: baseData },
-                { name: trafficLabels.billed, data: topData }
-            ];
+                const ratio = Math.min(1, raw / billed);
+                const overlayHeight = bbox.height * ratio;
+                if (overlayHeight <= 0) return;
+
+                const innerWidth = Math.max(2, bbox.width * 0.56);
+                const innerX = bbox.x + (bbox.width - innerWidth) / 2;
+                const innerY = bbox.y + (bbox.height - overlayHeight);
+
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', innerX.toFixed(2));
+                rect.setAttribute('y', innerY.toFixed(2));
+                rect.setAttribute('width', innerWidth.toFixed(2));
+                rect.setAttribute('height', overlayHeight.toFixed(2));
+                rect.setAttribute('rx', '2');
+                rect.setAttribute('ry', '2');
+                rect.setAttribute('fill', palette.raw);
+                overlayGroup.appendChild(rect);
+            });
+
+            barSeries.appendChild(overlayGroup);
         }
 
         function getTrafficChartConfig(rangeKey) {
             const conf = trafficRanges[rangeKey] || trafficRanges['24h'];
-            const primaryColor = getThemeColor();
-            const lightColor = getRawOverlayColor();
+            const palette = getChartPalette();
+            syncTrafficLegendColors(palette);
             return {
                 chart: {
                     type: "bar",
-                    stacked: true,
+                    background: "transparent",
+                    foreColor: palette.fore,
                     fontFamily: "inherit",
                     height: '100%',
                     parentHeightOffset: 0,
@@ -619,14 +678,23 @@
                         show: false
                     },
                     animations: {
-                        enabled: true
+                        enabled: false
+                    },
+                    events: {
+                        mounted: renderRawTrafficOverlays,
+                        updated: renderRawTrafficOverlays
                     }
+                },
+                theme: {
+                    mode: palette.dark ? 'dark' : 'light'
+                },
+                stroke: {
+                    width: 0
                 },
                 plotOptions: {
                     bar: {
                         columnWidth: "60%",
-                        borderRadius: 3,
-                        borderRadiusApplication: 'end'
+                        borderRadius: 3
                     }
                 },
                 dataLabels: {
@@ -635,42 +703,53 @@
                 fill: {
                     opacity: 1
                 },
-                series: buildLayeredBarSeries(conf),
+                series: [
+                    {
+                        name: trafficLabels.billed,
+                        data: getBilledSeriesData(conf)
+                    }
+                ],
                 tooltip: {
                     theme: "dark",
                     shared: true,
                     intersect: false,
                     custom: function ({ dataPointIndex }) {
+                        if (typeof dataPointIndex !== 'number' || dataPointIndex < 0) {
+                            return '';
+                        }
                         const activeConf = trafficRanges[currentTrafficRange] || trafficRanges['24h'];
+                        const activePalette = getChartPalette();
                         const categories = Array.isArray(activeConf.categories) ? activeConf.categories : [];
                         const category = categories[dataPointIndex] ?? '';
                         const billed = roundTrafficValue((activeConf.billed || [])[dataPointIndex]);
                         const raw = roundTrafficValue((activeConf.raw || [])[dataPointIndex]);
                         const unit = activeConf.unit || 'MB';
                         const rateRow = raw > 0
-                            ? '<div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">' +
-                              escapeTrafficHtml(trafficLabels.rate) + ': </span><span class="apexcharts-tooltip-text-y-value">' +
+                            ? '<div class="apexcharts-tooltip-y-group" style="color:#cbd5e1;"><span class="apexcharts-tooltip-text-y-label">' +
+                              escapeTrafficHtml(trafficLabels.rate) + ': </span><span class="apexcharts-tooltip-text-y-value" style="color:#f8fafc;">' +
                               (billed / raw).toFixed(2) + 'x</span></div>'
                             : '';
 
-                        return '<div class="apexcharts-tooltip-title" style="font-weight:600;">' +
+                        return '<div style="background:#1e293b;color:#f8fafc;border:1px solid rgba(255,255,255,0.12);border-radius:6px;overflow:hidden;">' +
+                            '<div class="apexcharts-tooltip-title" style="font-weight:600;background:rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.08);color:#f8fafc;">' +
                             escapeTrafficHtml(category) + ' ' + escapeTrafficHtml(activeConf.xTitle || '') +
                             '</div>' +
-                            '<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;align-items:center;padding:4px 10px;">' +
-                            '<span class="apexcharts-tooltip-marker" style="background:' + primaryColor + ';margin-right:8px;"></span>' +
-                            '<div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group">' +
+                            '<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;align-items:center;padding:6px 10px 3px;">' +
+                            '<span class="apexcharts-tooltip-marker" style="background:' + activePalette.primary + ';margin-right:8px;"></span>' +
+                            '<div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group" style="color:#cbd5e1;">' +
                             '<span class="apexcharts-tooltip-text-y-label">' + escapeTrafficHtml(trafficLabels.billed) + ': </span>' +
-                            '<span class="apexcharts-tooltip-text-y-value">' + escapeTrafficHtml(formatTooltipTraffic(billed, unit)) + '</span>' +
+                            '<span class="apexcharts-tooltip-text-y-value" style="color:#f8fafc;">' + escapeTrafficHtml(formatTooltipTraffic(billed, unit)) + '</span>' +
                             '</div></div></div>' +
-                            '<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;align-items:center;padding:4px 10px;">' +
-                            '<span class="apexcharts-tooltip-marker" style="background:' + lightColor + ';margin-right:8px;"></span>' +
-                            '<div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group">' +
+                            '<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;align-items:center;padding:3px 10px 6px;">' +
+                            '<span class="apexcharts-tooltip-marker" style="background:' + activePalette.raw + ';margin-right:8px;"></span>' +
+                            '<div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group" style="color:#cbd5e1;">' +
                             '<span class="apexcharts-tooltip-text-y-label">' + escapeTrafficHtml(trafficLabels.raw) + ': </span>' +
-                            '<span class="apexcharts-tooltip-text-y-value">' + escapeTrafficHtml(formatTooltipTraffic(raw, unit)) + '</span>' +
-                            '</div>' + rateRow + '</div></div>';
+                            '<span class="apexcharts-tooltip-text-y-value" style="color:#f8fafc;">' + escapeTrafficHtml(formatTooltipTraffic(raw, unit)) + '</span>' +
+                            '</div>' + rateRow + '</div></div></div>';
                     }
                 },
                 grid: {
+                    borderColor: palette.grid,
                     padding: {
                         top: -10,
                         right: 12,
@@ -681,10 +760,16 @@
                 },
                 xaxis: {
                     title: {
-                        text: conf.xTitle
+                        text: conf.xTitle,
+                        style: {
+                            color: palette.fore
+                        }
                     },
                     labels: {
-                        padding: 0
+                        padding: 0,
+                        style: {
+                            colors: palette.fore
+                        }
                     },
                     tooltip: {
                         enabled: false
@@ -692,27 +777,32 @@
                     axisBorder: {
                         show: false
                     },
+                    axisTicks: {
+                        show: true,
+                        color: palette.ticks
+                    },
                     categories: (conf.categories && conf.categories.length > 0) ? conf.categories : []
                 },
                 yaxis: {
                     title: {
                         text: conf.yTitle,
                         rotate: -90,
-                        offsetX: 4
+                        offsetX: 4,
+                        style: {
+                            color: palette.fore
+                        }
                     },
                     labels: {
                         padding: 12,
+                        style: {
+                            colors: palette.fore
+                        },
                         formatter: formatYAxisValue
                     }
                 },
-                colors: [lightColor, primaryColor],
+                colors: [palette.primary],
                 legend: {
-                    show: true,
-                    position: 'top',
-                    horizontalAlign: 'left',
-                    onItemClick: {
-                        toggleDataSeries: false
-                    }
+                    show: false
                 }
             };
         }
@@ -723,13 +813,43 @@
             if (!trafficChart || !trafficRanges[rangeKey]) return;
             currentTrafficRange = rangeKey;
             const conf = trafficRanges[rangeKey];
+            const palette = getChartPalette();
+            syncTrafficLegendColors(palette);
 
             trafficChart.updateOptions({
-                colors: [getRawOverlayColor(), getThemeColor()],
-                series: buildLayeredBarSeries(conf),
+                chart: {
+                    background: "transparent",
+                    foreColor: palette.fore
+                },
+                theme: {
+                    mode: palette.dark ? 'dark' : 'light'
+                },
+                colors: [palette.primary],
+                series: [
+                    {
+                        name: trafficLabels.billed,
+                        data: getBilledSeriesData(conf)
+                    }
+                ],
+                grid: {
+                    borderColor: palette.grid
+                },
                 xaxis: {
                     title: {
-                        text: conf.xTitle
+                        text: conf.xTitle,
+                        style: {
+                            color: palette.fore
+                        }
+                    },
+                    labels: {
+                        padding: 0,
+                        style: {
+                            colors: palette.fore
+                        }
+                    },
+                    axisTicks: {
+                        show: true,
+                        color: palette.ticks
                     },
                     categories: conf.categories
                 },
@@ -737,10 +857,16 @@
                     title: {
                         text: conf.yTitle,
                         rotate: -90,
-                        offsetX: 4
+                        offsetX: 4,
+                        style: {
+                            color: palette.fore
+                        }
                     },
                     labels: {
                         padding: 12,
+                        style: {
+                            colors: palette.fore
+                        },
                         formatter: formatYAxisValue
                     }
                 }
@@ -797,6 +923,16 @@
                     btn12m.addEventListener('click', function () {
                         switchTrafficRange('12m');
                     });
+                }
+
+                if (typeof MutationObserver === 'function') {
+                    const themeObserver = new MutationObserver(function () {
+                        switchTrafficRange(currentTrafficRange);
+                    });
+                    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-bs-theme'] });
+                    if (document.body) {
+                        themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-bs-theme'] });
+                    }
                 }
             } catch (error) {
                 console.error('Failed to initialize traffic chart:', error);

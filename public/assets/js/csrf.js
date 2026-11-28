@@ -79,4 +79,36 @@
             return origFetch(input, init);
         };
     }
+
+    if (typeof window.XMLHttpRequest !== 'undefined') {
+        const proto = window.XMLHttpRequest.prototype;
+        const origOpen = proto.open;
+        const origSetHeader = proto.setRequestHeader;
+        const origSend = proto.send;
+
+        proto.open = function (method, url) {
+            this._csrfMethod = method;
+            this._csrfUrl = url;
+            this._hasCsrfHeader = false;
+            return origOpen.apply(this, arguments);
+        };
+
+        proto.setRequestHeader = function (name, value) {
+            if (typeof name === 'string' && name.toLowerCase() === 'x-csrf-token') {
+                this._hasCsrfHeader = true;
+            }
+            return origSetHeader.apply(this, arguments);
+        };
+
+        proto.send = function () {
+            if (!this._hasCsrfHeader && !isSafeMethod(this._csrfMethod) && isSameOrigin(this._csrfUrl)) {
+                const token = getCsrfToken();
+                if (token) {
+                    origSetHeader.call(this, 'X-CSRF-Token', token);
+                    this._hasCsrfHeader = true;
+                }
+            }
+            return origSend.apply(this, arguments);
+        };
+    }
 })();
