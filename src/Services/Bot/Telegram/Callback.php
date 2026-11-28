@@ -21,14 +21,17 @@ use Telegram\Bot\Exceptions\TelegramSDKException;
 use Telegram\Bot\Objects\CallbackQuery;
 use Throwable;
 use function array_chunk;
+use function array_map;
 use function array_merge;
 use function end;
 use function explode;
+use function htmlspecialchars;
 use function implode;
 use function in_array;
 use function is_null;
 use function json_encode;
 use function time;
+use const ENT_QUOTES;
 use const PHP_EOL;
 
 final class Callback
@@ -957,14 +960,23 @@ final class Callback
 
         if ($OpEnd === 'get') {
             $this->allow_edit_message = false;
-            $code = (new InviteCode())->where('user_id', $this->user->id)->first();
+            $locale = Message::getLocale($this->user);
+            $eligibility = $this->user->getInviteEligibility($locale);
 
-            if ($code === null) {
-                $code = (new InviteCode())->add($this->user->id);
+            if (! $eligibility['allowed']) {
+                $denyText = I18n::trans('user.no_invite_permission', $locale) . PHP_EOL
+                    . implode(PHP_EOL, array_map(static fn (string $reason): string => '• ' . $reason, $eligibility['reasons']));
+                $text = htmlspecialchars($denyText, ENT_QUOTES, 'UTF-8');
+            } else {
+                $code = (new InviteCode())->where('user_id', $this->user->id)->first();
+
+                if ($code === null) {
+                    $code = (new InviteCode())->add($this->user->id);
+                }
+
+                $inviteUrl = $_ENV['baseUrl'] . '/auth/register?code=' . $code->code;
+                $text = '<a href="' . $inviteUrl . '">' . $inviteUrl . '</a>';
             }
-
-            $inviteUrl = $_ENV['baseUrl'] . '/auth/register?code=' . $code->code;
-            $text = '<a href="' . $inviteUrl . '">' . $inviteUrl . '</a>';
 
             $sendMessage = [
                 'text' => $text,

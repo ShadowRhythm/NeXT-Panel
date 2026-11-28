@@ -36,7 +36,7 @@
                             <div class="card">
                                 <div class="card-body">
                                     <h3 class="card-title">{trans key='user.invitation_link'}</h3>
-                                    {if $user->class >= 2}
+                                    {if $can_invite}
                                     <input class="form-control" id="invite-url" value="{$invite_url|escape}" disabled>
                                 </div>
                                 <div class="card-footer">
@@ -51,8 +51,10 @@
                                 </div>
                                 {else}
                                 <p>{trans key='user.no_invite_permission'}</p>
-                                <ul>
-                                    <li>{trans key='user.class_below_min' class=2}</li>
+                                <ul class="mb-0">
+                                    {foreach $invite_reasons as $reason}
+                                        <li>{$reason|escape}</li>
+                                    {/foreach}
                                 </ul>
                             </div>
                                 {/if}

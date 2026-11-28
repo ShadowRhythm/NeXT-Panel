@@ -345,7 +345,7 @@ final class AuthController extends BaseController
         }
 
         $refUser = (new User())->where('id', $invite->user_id)->first();
-        if ($refUser === null) {
+        if ($refUser === null || ! $refUser->getInviteEligibility()['allowed']) {
             return null;
         }
 
@@ -548,18 +548,8 @@ final class AuthController extends BaseController
             return ResponseHelper::error($response, I18n::trans('user.invite_code_empty', $locale));
         }
 
-        if ($invite_code !== '') {
-            $invite = (new InviteCode())->where('code', $invite_code)->first();
-
-            if ($invite === null) {
-                return ResponseHelper::error($response, I18n::trans('user.invalid_invite_code', $locale));
-            }
-
-            $ref_user = (new User())->where('id', $invite->user_id)->first();
-
-            if ($ref_user === null) {
-                return ResponseHelper::error($response, I18n::trans('user.invalid_invite_code', $locale));
-            }
+        if ($invite_code !== '' && self::resolveValidInviteUserId($invite_code) === null) {
+            return ResponseHelper::error($response, I18n::trans('user.invalid_invite_code', $locale));
         }
 
         $imtype = 0;

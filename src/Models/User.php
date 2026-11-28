@@ -11,9 +11,14 @@ use App\Utils\Tools;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Database\Query\Builder;
 use Telegram\Bot\Exceptions\TelegramSDKException;
+use function ceil;
 use function date;
+use function floor;
 use function hash;
+use function max;
 use function round;
+use function strtotime;
+use function time;
 use const PHP_EOL;
 
 /**
@@ -73,6 +78,9 @@ use const PHP_EOL;
  */
 final class User extends Model
 {
+    public const INVITE_MIN_CLASS = 2;
+    public const INVITE_MIN_REG_DAYS = 90;
+
     /**
      * 已登录
      *
@@ -374,5 +382,50 @@ final class User extends Model
             return ['require' => false];
         }
         return ['require' => true, 'fido' => $hasFido, 'totp' => $hasTotp];
+    }
+
+    /**
+     * Evaluate whether this user satisfies all requirements to invite others.
+     *
+     * @return array{allowed: bool, reasons: list<string>, min_class: int, min_reg_days: int, reg_days: int, remaining_reg_days: int}
+     */
+    public function getInviteEligibility(?string $locale = null): array
+    {
+        $locale ??= I18n::getCurrentLocale($this);
+        $reasons = [];
+
+        $userClass = (int) ($this->class ?? 0);
+        if ($userClass < self::INVITE_MIN_CLASS) {
+            $reasons[] = I18n::trans('user.invite_rule_class_limit', $locale);
+        }
+
+        $regTimestamp = ($this->reg_date !== null && $this->reg_date !== '')
+            ? strtotime((string) $this->reg_date)
+            : false;
+        $minRegSeconds = self::INVITE_MIN_REG_DAYS * 86400;
+
+        if ($regTimestamp === false) {
+            $regDays = 0;
+            $remainingRegDays = self::INVITE_MIN_REG_DAYS;
+            $reasons[] = I18n::trans('user.invite_rule_reg_time_limit', $locale);
+        } else {
+            $elapsedSeconds = max(0, time() - $regTimestamp);
+            $regDays = (int) floor($elapsedSeconds / 86400);
+            if ($elapsedSeconds < $minRegSeconds) {
+                $remainingRegDays = (int) ceil(($minRegSeconds - $elapsedSeconds) / 86400);
+                $reasons[] = I18n::trans('user.invite_rule_reg_time_limit', $locale);
+            } else {
+                $remainingRegDays = 0;
+            }
+        }
+
+        return [
+            'allowed' => $reasons === [],
+            'reasons' => $reasons,
+            'min_class' => self::INVITE_MIN_CLASS,
+            'min_reg_days' => self::INVITE_MIN_REG_DAYS,
+            'reg_days' => $regDays,
+            'remaining_reg_days' => $remainingRegDays,
+        ];
     }
 }
