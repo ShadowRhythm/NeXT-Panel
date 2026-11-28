@@ -14,6 +14,12 @@
                 </div>
                 <div class="col-auto">
                     <div class="btn-list">
+                        {if $edit_user->id !== $user->id && ! $edit_user->is_admin}
+                            <button id="impersonate_user" type="button" class="btn btn-yellow">
+                                <i class="icon ti ti-user-check"></i>
+                                切换该用户
+                            </button>
+                        {/if}
                         <a id="save_changes" href="#" class="btn btn-primary">
                             <i class="icon ti ti-device-floppy"></i>
                             保存
@@ -334,6 +340,42 @@
                     msg = jqXHR.responseJSON.msg;
                 } else if (jqXHR.status) {
                     msg += ' (HTTP ' + jqXHR.status + ' ' + (jqXHR.statusText || '') + ')';
+                }
+                $('#fail-message').text(msg);
+                if (typeof failDialog !== 'undefined' && failDialog) {
+                    failDialog.show();
+                } else {
+                    alert(msg);
+                }
+            }
+        });
+    });
+
+    $('#impersonate_user').click(function () {
+        const $btn = $(this);
+        $btn.prop('disabled', true);
+        $.ajax({
+            url: '/admin/user/{$edit_user->id}/impersonate',
+            type: 'POST',
+            dataType: 'json',
+            success: function (data) {
+                $btn.prop('disabled', false);
+                if (data.ret === 1) {
+                    location.href = data.redirect || '/user';
+                } else {
+                    $('#fail-message').text(data.msg);
+                    if (typeof failDialog !== 'undefined' && failDialog) {
+                        failDialog.show();
+                    } else {
+                        alert(data.msg);
+                    }
+                }
+            },
+            error: function (jqXHR) {
+                $btn.prop('disabled', false);
+                let msg = '切换用户失败，发生网络或服务器错误';
+                if (jqXHR.responseJSON && jqXHR.responseJSON.msg) {
+                    msg = jqXHR.responseJSON.msg;
                 }
                 $('#fail-message').text(msg);
                 if (typeof failDialog !== 'undefined' && failDialog) {

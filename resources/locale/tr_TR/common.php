@@ -110,4 +110,5 @@ return [
     'dt_sort_descending' => ': azalan sütun sıralamasını aktifleştir',
     'request_failed' => 'İstek başarısız oldu: %message%',
     'unknown' => 'Bilinmiyor',
+    'leave_impersonation' => 'Yöneticiye Dön',
 ];

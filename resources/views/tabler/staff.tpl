@@ -33,7 +33,7 @@
             <p class="empty-title">SSPanel-UIM is made possible by the following open source projects</p>
             <p><a href="https://github.com/slimphp/Slim">Slim Framework</a></p>
             <p><a href="https://github.com/tabler/tabler">Tabler</a></p>
-            <p><a href="https://github.com/twigphp/Twig">Twig</a></p>
+            <p><a href="https://github.com/smarty-php/smarty">Smarty</a></p>
             <br>
             <p>This product includes GeoLite2 data created by MaxMind, available from
                 <a href="https://www.maxmind.com">https://www.maxmind.com</a>.</p>

@@ -6,8 +6,8 @@ namespace App\Services\Subscribe;
 
 use App\Models\Config;
 use App\Services\Subscribe;
+use App\Utils\Tools;
 use function filter_var;
-use function json_decode;
 use function trim;
 use const FILTER_FLAG_IPV6;
 use const FILTER_VALIDATE_IP;
@@ -26,7 +26,7 @@ final class Trojan extends Base
         $nodes_raw = Subscribe::getUserNodes($user);
 
         foreach ($nodes_raw as $node_raw) {
-            $node_custom_config = json_decode((string) $node_raw->custom_config, true) ?? [];
+            $node_custom_config = Tools::decodeCustomConfig($node_raw->custom_config);
 
             if ((int) $node_raw->sort === 14) {
                 $trojan_port = $node_custom_config['offset_port_user'] ?? ($node_custom_config['offset_port_node'] ?? 443);

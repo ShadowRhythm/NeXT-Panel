@@ -110,4 +110,5 @@ return [
     'dt_sort_descending' => ': kích hoạt để sắp xếp cột giảm dần',
     'request_failed' => 'Yêu cầu thất bại: %message%',
     'unknown' => 'Không xác định',
+    'leave_impersonation' => 'Quay lại quản trị viên',
 ];

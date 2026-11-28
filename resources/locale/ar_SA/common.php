@@ -110,4 +110,5 @@ return [
     'dt_sort_descending' => ': تفعيل لفرز العمود تنازليًا',
     'request_failed' => 'فشل الطلب: %message%',
     'unknown' => 'غير معروف',
+    'leave_impersonation' => 'العودة إلى المشرف',
 ];

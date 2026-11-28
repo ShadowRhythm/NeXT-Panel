@@ -7,12 +7,11 @@ namespace App\Controllers\WebAPI;
 use App\Controllers\BaseController;
 use App\Models\Node;
 use App\Utils\ResponseHelper;
+use App\Utils\Tools;
 use App\Models\StreamMedia;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
-use function json_decode;
-use const JSON_UNESCAPED_SLASHES;
 use const VERSION;
 
 final class NodeController extends BaseController
@@ -56,7 +55,7 @@ final class NodeController extends BaseController
             'node_speedlimit' => $node->node_speedlimit,
             'sort' => $node->sort,
             'server' => $node->server,
-            'custom_config' => json_decode($node->custom_config, true, JSON_UNESCAPED_SLASHES),
+            'custom_config' => Tools::decodeCustomConfig($node->custom_config),
             'type' => $_ENV['appName'],
             'version' => $this->convertVersionFormat(VERSION),
         ];

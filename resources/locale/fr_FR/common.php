@@ -110,4 +110,5 @@ return [
     'dt_sort_descending' => ' : activer pour trier la colonne par ordre décroissant',
     'request_failed' => 'Échec de la requête: %message%',
     'unknown' => 'Inconnu',
+    'leave_impersonation' => 'Revenir en tant qu’admin',
 ];

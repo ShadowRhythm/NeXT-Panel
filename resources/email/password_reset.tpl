@@ -1,29 +1,7 @@
-{include file='header.tpl'}
-
-<body style="background-color:#EEEEEE;">
-    <div style="text-align: center">
-        <div border="0" cellpadding="0" cellspacing="0" width="100%" style="padding-top:30px;table-layout:fixed;background-color:#EEEEEE;">
-            <div align="center" valign="top" style="padding-right:10px;padding-left:10px;">
-                <div border="0" cellpadding="0" cellspacing="0"
-                     style="background-color:#FFFFFF;max-width:600px;text-align: center" width="100%">
-                    <div align="center" valign="top">
-                        <div border="0" cellpadding="0" cellspacing="0" width="100%">
-                            <div align="center" valign="middle" style="padding-top:60px;padding-bottom:60px;">
-                                <h2 class="bigTitle">
-                                    {trans key='email.password_reset_title'}
-                                </h2>
-                            </div>
-                        </div>
-                        <div border="0" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF" width="100%">
-                            <div align="center" valign="top" style="padding-bottom:60px;padding-left:20px;padding-right:20px;">
-                                <p class="midText">
-                                    {trans key='email.password_reset_desc' app_name=$config['appName']}
-                                    <br><br>
-                                    <a href="{$resetUrl}" style="color:#505050" target="_blank">{trans key='email.click_to_reset_password'}</a>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-{include file='footer.tpl'}
+{include file='components/header.tpl'}
+{include file='components/hero.tpl' hero_title=('email.password_reset_title'|trans)}
+{if isset($user)}<p style="margin:0 0 14px;font-size:17px;font-weight:700;color:#1f2937;">{$user->user_name}</p>{/if}
+<p style="margin:0;">{trans key='email.password_reset_desc' app_name=$config['appName']}</p>
+{include file='components/button.tpl' btn_text=('email.click_to_reset_password'|trans) btn_url=$resetUrl}
+<p style="margin:14px 0 0;font-size:12px;line-height:18px;color:#667085;word-break:break-all;text-align:center;">{$resetUrl}</p>
+{include file='components/footer.tpl'}

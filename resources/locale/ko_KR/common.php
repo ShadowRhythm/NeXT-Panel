@@ -110,4 +110,5 @@ return [
     'dt_sort_descending' => ': 내림차순 정렬',
     'request_failed' => '요청 실패: %message%',
     'unknown' => '알 수 없음',
+    'leave_impersonation' => '관리자로 돌아가기',
 ];

@@ -318,6 +318,9 @@ final class User extends Model
         $enable_traffic = $this->enableTraffic();
         $used_traffic = $this->usedTraffic();
         $unused_traffic = $this->unusedTraffic();
+        $used_pct = $this->transfer_enable > 0
+            ? (int) min(100, round(($this->u + $this->d) / $this->transfer_enable * 100))
+            : 0;
 
         $locale = I18n::getCurrentLocale($this);
 
@@ -336,6 +339,7 @@ final class User extends Model
                     'enable_traffic' => $enable_traffic,
                     'used_traffic' => $used_traffic,
                     'unused_traffic' => $unused_traffic,
+                    'used_pct' => $used_pct,
                 ]
             );
         } elseif ($this->daily_mail_enable === 2 && $this->im_value !== '') {

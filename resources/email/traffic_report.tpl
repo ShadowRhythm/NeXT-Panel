@@ -1,40 +1,31 @@
-{include file='header.tpl'}
-
-<body style="background-color:#EEEEEE;">
-    <div style="text-align: center">
-        <div border="0" cellpadding="0" cellspacing="0" width="100%" style="padding-top:30px;table-layout:fixed;background-color:#EEEEEE;">
-            <div align="center" valign="top" style="padding-right:10px;padding-left:10px;">
-                <div border="0" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;max-width:600px;text-align:center;" width="100%">
-                    <div align="center" valign="top">
-                        <div border="0" cellpadding="0" cellspacing="0" width="100%">
-                            <div align="center" valign="middle" style="padding-top:60px;padding-bottom:60px;">
-                                <h2 class="bigTitle">
-                                    {trans key='email.traffic_report_title'}
-                                </h2>
-                            </div>
-                        </div>
-                        <div border="0" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF" width="100%">
-                            <div align="center" valign="top" style="padding-bottom:60px;padding-left:20px;padding-right:20px;">
-                                <p class="midText">
-                                    {trans key='email.username_label' username=$user->user_name}
-                                    <br>
-                                    Email: {$user->email}
-                                    <br><br>
-                                    {trans key='email.total_traffic' traffic=$enable_traffic}
-                                    <br>
-                                    {trans key='email.used_traffic' traffic=$used_traffic}
-                                    <br>
-                                    {trans key='email.remaining_traffic' traffic=$unused_traffic}
-                                    <br>
-                                    {trans key='email.today_traffic' traffic=$lastday_traffic}
-                                    <br><br>
-                                </p>
-                                <p class="midText">
-                                    {$text}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-{include file='footer.tpl'}
+{include file='components/header.tpl'}
+{include file='components/hero.tpl' hero_title=('email.traffic_report_title'|trans)}
+{$rows = []}
+{if isset($user)}
+    {$rows[] = ['text' => ('email.username_label'|trans:null:['username' => $user->user_name])]}
+    {$rows[] = ['label' => 'Email', 'value' => $user->email]}
+{/if}
+{if isset($lastday_traffic)}{$rows[] = ['text' => ('email.today_traffic'|trans:null:['traffic' => $lastday_traffic])]}{/if}
+{if isset($used_traffic)}{$rows[] = ['text' => ('email.used_traffic'|trans:null:['traffic' => $used_traffic])]}{/if}
+{if isset($unused_traffic)}{$rows[] = ['text' => ('email.remaining_traffic'|trans:null:['traffic' => $unused_traffic])]}{/if}
+{if isset($enable_traffic)}{$rows[] = ['text' => ('email.total_traffic'|trans:null:['traffic' => $enable_traffic])]}{/if}
+{if $rows}{include file='components/card.tpl' card_rows=$rows}{/if}
+{if isset($used_pct)}
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:4px 0 16px;">
+    <tr>
+        <td style="background-color:#e9ecef;border-radius:6px;height:10px;line-height:10px;font-size:0;">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="{$used_pct}%" style="max-width:100%;">
+                <tr>
+                    <td bgcolor="{if $used_pct >= 80}#c62828{else}#206bc4{/if}" style="height:10px;line-height:10px;font-size:0;border-radius:6px;">&nbsp;</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+    <tr>
+        <td align="right" style="padding-top:4px;font-family:-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',Helvetica,Arial,sans-serif;font-size:12px;color:#667085;">{$used_pct}%</td>
+    </tr>
+</table>
+{/if}
+<p style="margin:8px 0 0;font-size:14px;line-height:22px;color:#475467;">{$text}</p>
+{include file='components/button.tpl' btn_text=$config['appName'] btn_url="{$config['baseUrl']}/user"}
+{include file='components/footer.tpl'}

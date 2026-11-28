@@ -55,6 +55,9 @@ $_ENV['theme'] = 'tabler';             // 默认主题
 $_ENV['locale'] = 'zh_CN';             // 默认语言，可选值：en_US、ja_JP、zh_CN、zh_TW
 $_ENV['locale_auto_detect'] = false;   // 是否自动检测浏览器语言，true时会根据Accept-Language自动选择语言
 $_ENV['jump_delay'] = 1000;            // 跳转延时，单位ms
+// 统计同时在线 IP 数时忽略的地址：自家中转的出口 IP（UDP / Hysteria 2 经中转不带 PROXY 头，节点只看得到中转机）
+// 非全球单播地址（如本机反代的 127.0.0.1、私网地址）总是忽略
+$_ENV['iplimit_ignore_ips'] = [];
 
 // 运维与监控--------------------------------------------------------------------------------------------------------------
 $_ENV['enable_telemetry'] = true;      // 是否开启系统遥测

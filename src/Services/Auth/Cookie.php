@@ -17,13 +17,20 @@ use Throwable;
 use function bin2hex;
 use function hash;
 use function hash_equals;
+use function headers_sent;
 use function is_array;
 use function mb_substr;
+use function min;
+use function preg_match;
 use function random_bytes;
 use function time;
 
 final class Cookie extends Base
 {
+    private const IMPERSONATE_COOKIE = 'impersonate';
+    private const IMPERSONATE_CACHE_PREFIX = 'admin_impersonate:';
+    private const IMPERSONATE_TTL = 3600;
+
     public function login($uid, $time): void
     {
         $user = (new User())->find($uid);
@@ -137,9 +144,9 @@ final class Cookie extends Base
             Cache::forget('user_session_valid:' . $tokenHash);
         }
 
-        unset($_COOKIE['sid']);
+        $this->forgetImpersonationCache();
 
-        CookieUtils::setWithDomain([
+        $this->writeAuthCookies([
             'uid' => '',
             'email' => '',
             'key' => '',
@@ -147,7 +154,8 @@ final class Cookie extends Base
             'device' => '',
             'expire_in' => '',
             'sid' => '',
-        ], 0, $_SERVER['HTTP_HOST'] ?? '');
+            self::IMPERSONATE_COOKIE => '',
+        ], 1);
     }
 
     public static function getCurrentTokenHash(): string
@@ -241,6 +249,11 @@ final class Cookie extends Base
 
     private function validateWebSession(int $userId): bool
     {
+        $impersonateToken = CookieUtils::get(self::IMPERSONATE_COOKIE);
+        if ($impersonateToken !== null && $impersonateToken !== '') {
+            return $this->resolveValidImpersonation($userId) !== null;
+        }
+
         $sid = CookieUtils::get('sid');
         if ($sid === null || $sid === '') {
             return Cache::get('user_legacy_revoked_' . $userId) === null;
@@ -298,5 +311,263 @@ final class Cookie extends Base
         ], 60);
 
         return true;
+    }
+
+    public function isImpersonatingUser(int $userId): bool
+    {
+        return $this->resolveValidImpersonation($userId) !== null;
+    }
+
+    /**
+     * @return array{ok: bool, msg: string}
+     */
+    public function impersonate(User $admin, User $targetUser): array
+    {
+        if (! $admin->isLogin || ! (bool) $admin->is_admin || (bool) $admin->is_banned) {
+            return ['ok' => false, 'msg' => '无权执行该操作'];
+        }
+
+        if ($this->isImpersonatingUser((int) $admin->id)) {
+            return ['ok' => false, 'msg' => '当前已在代登录状态，请先返回管理员身份'];
+        }
+
+        if ((int) $targetUser->id === (int) $admin->id) {
+            return ['ok' => false, 'msg' => '不能切换到当前管理员自身'];
+        }
+
+        if ((bool) $targetUser->is_admin) {
+            return ['ok' => false, 'msg' => '不能切换到其他管理员账号'];
+        }
+
+        $now = time();
+        $adminSid = (string) (CookieUtils::get('sid') ?? '');
+        $adminExpireIn = (int) (CookieUtils::get('expire_in') ?? 0);
+        $adminKey = (string) (CookieUtils::get('key') ?? '');
+        $adminIp = (string) (CookieUtils::get('ip') ?? '');
+        $adminDevice = (string) (CookieUtils::get('device') ?? '');
+
+        if ($adminExpireIn <= $now + 60 || $adminKey === '') {
+            return ['ok' => false, 'msg' => '当前管理员登录态即将过期，请重新登录后再试'];
+        }
+
+        if (! $this->isAdminSessionStillValid($admin, $adminSid, $adminKey, $adminExpireIn)) {
+            return ['ok' => false, 'msg' => '当前管理员会话已失效，请重新登录'];
+        }
+
+        $ttl = min(self::IMPERSONATE_TTL, $adminExpireIn - $now);
+        $targetExpireIn = $now + $ttl;
+        $token = bin2hex(random_bytes(32));
+        $tokenHash = hash('sha256', $token);
+
+        $payload = [
+            'admin_uid' => (int) $admin->id,
+            'admin_sid' => $adminSid,
+            'target_uid' => (int) $targetUser->id,
+            'issued_at' => $now,
+            'expires_at' => $targetExpireIn,
+            'restore_cookie' => [
+                'uid' => (string) $admin->id,
+                'email' => (string) $admin->email,
+                'key' => $adminKey,
+                'ip' => $adminIp,
+                'device' => $adminDevice,
+                'expire_in' => (string) $adminExpireIn,
+                'sid' => $adminSid,
+            ],
+        ];
+
+        if (! Cache::set(self::IMPERSONATE_CACHE_PREFIX . $tokenHash, $payload, $ttl)) {
+            return ['ok' => false, 'msg' => '缓存服务不可用，无法切换用户身份'];
+        }
+
+        $this->writeAuthCookies([
+            'uid' => (string) $targetUser->id,
+            'email' => (string) $targetUser->email,
+            'key' => Hash::cookieHash($targetUser->pass, $targetExpireIn),
+            'ip' => Hash::ipHash($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1', $targetUser->id, $targetExpireIn),
+            'device' => Hash::deviceHash($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown', $targetUser->id, $targetExpireIn),
+            'expire_in' => (string) $targetExpireIn,
+            'sid' => '',
+            self::IMPERSONATE_COOKIE => $token,
+        ], $targetExpireIn);
+
+        global $user;
+        $user = null;
+
+        return ['ok' => true, 'msg' => '已切换为用户 #' . $targetUser->id];
+    }
+
+    /**
+     * @return array{ok: bool, msg: string, target_uid?: int}
+     */
+    public function leaveImpersonation(int $currentUserId): array
+    {
+        $resolved = $this->resolveValidImpersonation($currentUserId);
+        if ($resolved === null) {
+            return ['ok' => false, 'msg' => '无效的代登录状态，无法返回管理员身份'];
+        }
+
+        $payload = $resolved['payload'];
+        $restore = $payload['restore_cookie'];
+        $targetUid = (int) $payload['target_uid'];
+        $adminExpireIn = (int) $restore['expire_in'];
+
+        Cache::forget(self::IMPERSONATE_CACHE_PREFIX . $resolved['tokenHash']);
+
+        $this->writeAuthCookies([
+            'uid' => (string) $restore['uid'],
+            'email' => (string) $restore['email'],
+            'key' => (string) $restore['key'],
+            'ip' => (string) $restore['ip'],
+            'device' => (string) $restore['device'],
+            'expire_in' => (string) $adminExpireIn,
+            'sid' => (string) $restore['sid'],
+        ], $adminExpireIn);
+
+        $this->writeAuthCookies([
+            self::IMPERSONATE_COOKIE => '',
+        ], 1);
+
+        global $user;
+        $user = null;
+
+        return [
+            'ok' => true,
+            'msg' => '已返回管理员身份',
+            'target_uid' => $targetUid,
+        ];
+    }
+
+    /**
+     * @return array{tokenHash: string, payload: array<string, mixed>, admin: User}|null
+     */
+    private function resolveValidImpersonation(int $expectedTargetUid): ?array
+    {
+        if ($expectedTargetUid <= 0) {
+            return null;
+        }
+
+        $token = CookieUtils::get(self::IMPERSONATE_COOKIE);
+        if ($token === null || preg_match('/^[a-f0-9]{64}$/', $token) !== 1) {
+            return null;
+        }
+
+        $tokenHash = hash('sha256', $token);
+        $payload = Cache::get(self::IMPERSONATE_CACHE_PREFIX . $tokenHash);
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        $now = time();
+        $adminUid = (int) ($payload['admin_uid'] ?? 0);
+        $targetUid = (int) ($payload['target_uid'] ?? 0);
+        $expiresAt = (int) ($payload['expires_at'] ?? 0);
+        $restore = $payload['restore_cookie'] ?? null;
+
+        if (
+            $adminUid <= 0 ||
+            $targetUid !== $expectedTargetUid ||
+            $adminUid === $targetUid ||
+            $expiresAt < $now ||
+            ! is_array($restore) ||
+            (string) ($restore['uid'] ?? '') !== (string) $adminUid
+        ) {
+            return null;
+        }
+
+        $admin = (new User())->find($adminUid);
+        if ($admin === null || ! (bool) $admin->is_admin || (bool) $admin->is_banned) {
+            return null;
+        }
+
+        $adminSid = (string) ($payload['admin_sid'] ?? '');
+        $adminKey = (string) ($restore['key'] ?? '');
+        $adminExpireIn = (int) ($restore['expire_in'] ?? 0);
+
+        if (! $this->isAdminSessionStillValid($admin, $adminSid, $adminKey, $adminExpireIn)) {
+            return null;
+        }
+
+        return [
+            'tokenHash' => $tokenHash,
+            'payload' => $payload,
+            'admin' => $admin,
+        ];
+    }
+
+    private function isAdminSessionStillValid(User $admin, string $adminSid, string $adminKey, int $adminExpireIn): bool
+    {
+        if ($adminExpireIn < time() || $adminKey === '') {
+            return false;
+        }
+
+        if (! hash_equals(Hash::cookieHash($admin->pass, $adminExpireIn), $adminKey)) {
+            return false;
+        }
+
+        return $this->isSessionTokenActive((int) $admin->id, $adminSid);
+    }
+
+    private function isSessionTokenActive(int $userId, string $sid): bool
+    {
+        if ($sid === '') {
+            return Cache::get('user_legacy_revoked_' . $userId) === null;
+        }
+
+        $tokenHash = hash('sha256', $sid);
+        $now = time();
+        $cacheKey = 'user_session_valid:' . $tokenHash;
+        $cached = Cache::get($cacheKey);
+
+        if (is_array($cached)) {
+            return (int) ($cached['user_id'] ?? 0) === $userId
+                && (int) ($cached['expires_at'] ?? 0) >= $now;
+        }
+
+        try {
+            $session = UserSession::where('token_hash', $tokenHash)
+                ->where('user_id', $userId)
+                ->first();
+        } catch (QueryException) {
+            return true;
+        }
+
+        if ($session === null || (int) $session->expires_at < $now) {
+            return false;
+        }
+
+        Cache::set($cacheKey, [
+            'user_id' => $userId,
+            'expires_at' => (int) $session->expires_at,
+            'last_active_at' => (int) $session->last_active_at,
+        ], 60);
+
+        return true;
+    }
+
+    private function forgetImpersonationCache(): void
+    {
+        $token = CookieUtils::get(self::IMPERSONATE_COOKIE);
+        if ($token !== null && preg_match('/^[a-f0-9]{64}$/', $token) === 1) {
+            Cache::forget(self::IMPERSONATE_CACHE_PREFIX . hash('sha256', $token));
+        }
+    }
+
+    /**
+     * @param array<string, string> $cookies
+     */
+    private function writeAuthCookies(array $cookies, int $expireIn): void
+    {
+        if (! headers_sent()) {
+            CookieUtils::setWithDomain($cookies, $expireIn, $_SERVER['HTTP_HOST'] ?? '');
+        }
+
+        foreach ($cookies as $cookieKey => $cookieValue) {
+            if ($expireIn <= time()) {
+                unset($_COOKIE[$cookieKey]);
+            } else {
+                $_COOKIE[$cookieKey] = $cookieValue;
+            }
+        }
     }
 }

@@ -110,7 +110,7 @@ final class OrderController extends BaseController
             $invoice->status = $invoice->status();
             $invoice->create_time = Tools::toDateTime($invoice->create_time);
             $invoice->update_time = Tools::toDateTime($invoice->update_time);
-            $invoice->pay_time = Tools::toDateTime($invoice->pay_time);
+            $invoice->pay_time = Tools::toOptionalDateTime((int) $invoice->pay_time);
             $invoice->content = json_decode($invoice->content);
         } else {
             $invoice = (object) [

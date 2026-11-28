@@ -209,6 +209,47 @@ final class GlobalIpLimitTest extends TestCase
         GlobalIpLimit::recordAndEnforce(3, [(object) ['user_id' => 40, 'ip' => '5.5.5.5']], $redis, $now + 5);
         self::assertSame(0, OnlineLog::where('user_id', 40)->where('kicked_at', 0)->count());
     }
+
+    public function testDropsNonGlobalAndIgnoredRelayIpsWithoutAggregatingSubnets(): void
+    {
+        $prevIgnored = $_ENV['iplimit_ignore_ips'] ?? null;
+        $_ENV['iplimit_ignore_ips'] = ['103.169.217.55'];
+
+        try {
+            User::query()->insert([
+                'id' => 50,
+                'node_iplimit' => 2,
+            ]);
+
+            $redis = new InMemoryRedisStub();
+            $now = time();
+
+            // 127.0.0.1 (reverse proxy) and 103.169.217.55 (relay exit) must not count or kick 1.1.1.1 / 1.1.1.2.
+            GlobalIpLimit::recordAndEnforce(1, [
+                (object) ['user_id' => 50, 'ip' => '127.0.0.1'],
+                (object) ['user_id' => 50, 'ip' => '103.169.217.55'],
+                (object) ['user_id' => 50, 'ip' => '1.1.1.1'],
+                (object) ['user_id' => 50, 'ip' => '1.1.1.2'],
+            ], $redis, $now);
+
+            self::assertSame([], GlobalIpLimit::drainKickIps(1, $redis));
+            self::assertSame([50 => 2], OnlineLog::getActiveIpCounts());
+
+            // A 3rd distinct public IP in the same /24 still counts separately (no subnet aggregation).
+            GlobalIpLimit::recordAndEnforce(2, [
+                (object) ['user_id' => 50, 'ip' => '1.1.1.3'],
+            ], $redis, $now + 5);
+
+            self::assertCount(2, OnlineLog::where('user_id', 50)->where('kicked_at', 0)->get());
+            self::assertSame([50 => 2], OnlineLog::getActiveIpCounts());
+        } finally {
+            if ($prevIgnored === null) {
+                unset($_ENV['iplimit_ignore_ips']);
+            } else {
+                $_ENV['iplimit_ignore_ips'] = $prevIgnored;
+            }
+        }
+    }
 }
 
 final class InMemoryRedisStub

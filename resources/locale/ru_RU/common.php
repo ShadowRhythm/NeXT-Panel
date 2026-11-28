@@ -110,4 +110,5 @@ return [
     'dt_sort_descending' => ': активировать для сортировки столбца по убыванию',
     'request_failed' => 'Ошибка запроса: %message%',
     'unknown' => 'Неизвестно',
+    'leave_impersonation' => 'Вернуться к администратору',
 ];

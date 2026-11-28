@@ -110,4 +110,5 @@ return [
     'dt_sort_descending' => ': aktifkan untuk mengurutkan kolom secara menurun',
     'request_failed' => 'Permintaan gagal: %message%',
     'unknown' => 'Tidak Diketahui',
+    'leave_impersonation' => 'Kembali ke Admin',
 ];

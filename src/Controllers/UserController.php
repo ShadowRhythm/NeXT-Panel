@@ -36,11 +36,17 @@ final class UserController extends BaseController
     {
         $captcha = [];
         $traffic_logs = [];
+        $raw_traffic_logs = [];
         $traffic_logs_labels = [];
+        $traffic_unit = 'MB';
         $daily_traffic_logs = [];
+        $raw_daily_traffic_logs = [];
         $daily_traffic_labels = [];
+        $daily_traffic_unit = 'MB';
         $monthly_traffic_logs = [];
+        $raw_monthly_traffic_logs = [];
         $monthly_traffic_labels = [];
+        $monthly_traffic_unit = 'GB';
         $class_expire_days = $this->user->class > 0 ?
             round((strtotime($this->user->class_expire) - time()) / 86400) : 0;
         $ann = (new Ann())->where('status', '>', 0)
@@ -55,43 +61,70 @@ final class UserController extends BaseController
         }
 
         if (Config::obtain('traffic_log')) {
-            $chartData = Cache::remember('user_dashboard_traffic_' . $this->user->id, 60, function (): array {
+            $chartData = Cache::remember('user_dashboard_traffic_v3_' . $this->user->id, 60, function (): array {
                 $uid = $this->user->id;
-                $hourly_usage_data = Analytics::getUserPast24HoursUsage($uid);
-                $daily_usage_data = Analytics::getUserPast30DaysUsage($uid);
-                $monthly_usage_data = Analytics::getUserPast12MonthsUsage($uid);
+                $buildSeries = static function (array $data): array {
+                    $billedBytes = $data['billed_usage'] ?? [];
+                    $rawBytes = $data['usage'] ?? [];
+                    $maxBytes = 0;
 
-                $traffic_logs = [];
-                foreach ($hourly_usage_data['usage'] as $usage) {
-                    $traffic_logs[] = Tools::bToMB((int) $usage);
-                }
+                    foreach ($billedBytes as $bytes) {
+                        $val = (int) $bytes;
+                        if ($val > $maxBytes) {
+                            $maxBytes = $val;
+                        }
+                    }
 
-                $daily_traffic_logs = [];
-                foreach ($daily_usage_data['usage'] as $usage) {
-                    $daily_traffic_logs[] = Tools::bToMB((int) $usage);
-                }
+                    $useGb = $maxBytes >= 1073741824;
+                    $billed = [];
+                    foreach ($billedBytes as $bytes) {
+                        $billed[] = $useGb ? Tools::bToGB((int) $bytes) : Tools::bToMB((int) $bytes);
+                    }
+                    $raw = [];
+                    foreach ($rawBytes as $bytes) {
+                        $raw[] = $useGb ? Tools::bToGB((int) $bytes) : Tools::bToMB((int) $bytes);
+                    }
 
-                $monthly_traffic_logs = [];
-                foreach ($monthly_usage_data['usage'] as $usage) {
-                    $monthly_traffic_logs[] = Tools::bToGB((int) $usage);
-                }
+                    return [
+                        'billed' => $billed,
+                        'raw' => $raw,
+                        'labels' => $data['labels'] ?? [],
+                        'unit' => $useGb ? 'GB' : 'MB',
+                    ];
+                };
+
+                $hourly = $buildSeries(Analytics::getUserPast24HoursUsage($uid));
+                $daily = $buildSeries(Analytics::getUserPast30DaysUsage($uid));
+                $monthly = $buildSeries(Analytics::getUserPast12MonthsUsage($uid));
 
                 return [
-                    'traffic_logs' => $traffic_logs,
-                    'traffic_logs_labels' => $hourly_usage_data['labels'],
-                    'daily_traffic_logs' => $daily_traffic_logs,
-                    'daily_traffic_labels' => $daily_usage_data['labels'],
-                    'monthly_traffic_logs' => $monthly_traffic_logs,
-                    'monthly_traffic_labels' => $monthly_usage_data['labels'],
+                    'traffic_logs' => $hourly['billed'],
+                    'raw_traffic_logs' => $hourly['raw'],
+                    'traffic_logs_labels' => $hourly['labels'],
+                    'traffic_unit' => $hourly['unit'],
+                    'daily_traffic_logs' => $daily['billed'],
+                    'raw_daily_traffic_logs' => $daily['raw'],
+                    'daily_traffic_labels' => $daily['labels'],
+                    'daily_traffic_unit' => $daily['unit'],
+                    'monthly_traffic_logs' => $monthly['billed'],
+                    'raw_monthly_traffic_logs' => $monthly['raw'],
+                    'monthly_traffic_labels' => $monthly['labels'],
+                    'monthly_traffic_unit' => $monthly['unit'],
                 ];
             });
 
             $traffic_logs = $chartData['traffic_logs'];
+            $raw_traffic_logs = $chartData['raw_traffic_logs'];
             $traffic_logs_labels = $chartData['traffic_logs_labels'];
+            $traffic_unit = $chartData['traffic_unit'];
             $daily_traffic_logs = $chartData['daily_traffic_logs'];
+            $raw_daily_traffic_logs = $chartData['raw_daily_traffic_logs'];
             $daily_traffic_labels = $chartData['daily_traffic_labels'];
+            $daily_traffic_unit = $chartData['daily_traffic_unit'];
             $monthly_traffic_logs = $chartData['monthly_traffic_logs'];
+            $raw_monthly_traffic_logs = $chartData['raw_monthly_traffic_logs'];
             $monthly_traffic_labels = $chartData['monthly_traffic_labels'];
+            $monthly_traffic_unit = $chartData['monthly_traffic_unit'];
         }
 
         $universalSub = Subscribe::getUniversalSubLink($this->user);
@@ -110,11 +143,17 @@ final class UserController extends BaseController
                 ->assign('ann', $ann)
                 ->assign('captcha', $captcha)
                 ->assign('traffic_logs', json_encode($traffic_logs))
+                ->assign('raw_traffic_logs', json_encode($raw_traffic_logs))
                 ->assign('traffic_logs_labels', json_encode($traffic_logs_labels))
+                ->assign('traffic_unit', $traffic_unit)
                 ->assign('daily_traffic_logs', json_encode($daily_traffic_logs))
+                ->assign('raw_daily_traffic_logs', json_encode($raw_daily_traffic_logs))
                 ->assign('daily_traffic_labels', json_encode($daily_traffic_labels))
+                ->assign('daily_traffic_unit', $daily_traffic_unit)
                 ->assign('monthly_traffic_logs', json_encode($monthly_traffic_logs))
+                ->assign('raw_monthly_traffic_logs', json_encode($raw_monthly_traffic_logs))
                 ->assign('monthly_traffic_labels', json_encode($monthly_traffic_labels))
+                ->assign('monthly_traffic_unit', $monthly_traffic_unit)
                 ->assign('class_expire_days', $class_expire_days)
                 ->assign('UniversalSub', $universalSub)
                 ->assign('subUrlPrefix', $subUrlPrefix)
@@ -281,5 +320,28 @@ final class UserController extends BaseController
         Auth::logout();
 
         return $response->withStatus(302)->withHeader('Location', '/');
+    }
+
+    public function leaveImpersonation(ServerRequest $request, Response $response, array $args): ResponseInterface
+    {
+        $result = Auth::leaveImpersonation();
+
+        if (! $result['ok']) {
+            return $response->withStatus(403)->withJson([
+                'ret' => 0,
+                'msg' => $result['msg'],
+            ]);
+        }
+
+        $targetUid = (int) ($result['target_uid'] ?? 0);
+        $redirect = $targetUid > 0 ? '/admin/user/' . $targetUid . '/edit' : '/admin/user';
+
+        return $response
+            ->withHeader('HX-Redirect', $redirect)
+            ->withJson([
+                'ret' => 1,
+                'msg' => $result['msg'],
+                'redirect' => $redirect,
+            ]);
     }
 }

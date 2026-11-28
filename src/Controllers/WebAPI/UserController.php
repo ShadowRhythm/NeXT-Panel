@@ -24,6 +24,7 @@ use function is_array;
 use function is_numeric;
 use function json_decode;
 use function max;
+use function round;
 use function time;
 
 final class UserController extends BaseController
@@ -104,7 +105,7 @@ final class UserController extends BaseController
             }
 
             if ($node->sort === 1) {
-                $method = json_decode($node->custom_config)->method ?? '2022-blake3-aes-128-gcm';
+                $method = Tools::decodeCustomConfig($node->custom_config)['method'] ?? '2022-blake3-aes-128-gcm';
                 $user_pk = Tools::genSs2022UserPk($user_raw->passwd, $method);
 
                 if (! $user_pk) {
@@ -182,6 +183,7 @@ final class UserController extends BaseController
         $sum = 0;
         $is_traffic_log = Config::obtain('traffic_log');
         $hourlyUsages = [];
+        $hourlyBilledUsages = [];
         $now = time();
 
         foreach ($data as $log) {
@@ -193,6 +195,7 @@ final class UserController extends BaseController
             if ($user_id > 0 && $bytes > 0) {
                 $billed_u = $u * $rate;
                 $billed_d = $d * $rate;
+                $billed_bytes = (int) round($billed_u + $billed_d);
 
                 User::where('id', $user_id)->incrementEach([
                     'u' => $billed_u,
@@ -203,6 +206,7 @@ final class UserController extends BaseController
 
                 if ($is_traffic_log) {
                     $hourlyUsages[$user_id] = ($hourlyUsages[$user_id] ?? 0) + $bytes;
+                    $hourlyBilledUsages[$user_id] = ($hourlyBilledUsages[$user_id] ?? 0) + $billed_bytes;
                 }
             }
 
@@ -210,7 +214,7 @@ final class UserController extends BaseController
         }
 
         if ($is_traffic_log && $hourlyUsages !== []) {
-            HourlyUsage::addBatch($hourlyUsages);
+            HourlyUsage::addBatch($hourlyUsages, $hourlyBilledUsages);
         }
 
         Node::where('id', $node->id)->increment('node_bandwidth', $sum, [

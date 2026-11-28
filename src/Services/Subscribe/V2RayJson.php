@@ -8,7 +8,6 @@ use App\Services\Subscribe;
 use App\Utils\Tools;
 use function array_filter;
 use function array_merge;
-use function json_decode;
 use function json_encode;
 
 final class V2RayJson extends Base
@@ -20,7 +19,7 @@ final class V2RayJson extends Base
         $nodes_raw = Subscribe::getUserNodes($user);
 
         foreach ($nodes_raw as $node_raw) {
-            $node_custom_config = json_decode($node_raw->custom_config, true);
+            $node_custom_config = Tools::decodeCustomConfig($node_raw->custom_config);
 
             switch ((int) $node_raw->sort) {
                 case 0:

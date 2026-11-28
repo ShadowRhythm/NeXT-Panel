@@ -124,7 +124,8 @@ return static function (Slim\App $app): void {
         $group->get('/clients/{name}', App\Controllers\User\ClientController::class . ':getClients');
         // 登出
         $group->get('/logout', App\Controllers\UserController::class . ':logout');
-    })->add(new User());
+        $group->post('/impersonate/leave', App\Controllers\UserController::class . ':leaveImpersonation');
+    })->add(new Csrf())->add(new User());
 
     $app->group('/payment', static function (RouteCollectorProxy $group): void {
         $group->get('/notify/{type}', App\Services\Payment::class . ':notify');
@@ -237,6 +238,7 @@ return static function (Slim\App $app): void {
         $group->delete('/user/{id}', App\Controllers\Admin\UserController::class . ':delete');
         $group->post('/user/ajax', App\Controllers\Admin\UserController::class . ':ajax');
         $group->post('/user/{id:[0-9]+}/revoke_mfa', App\Controllers\Admin\UserController::class . ':revokeMfa');
+        $group->post('/user/{id:[0-9]+}/impersonate', App\Controllers\Admin\UserController::class . ':impersonate');
         // Coupon
         $group->get('/coupon', App\Controllers\Admin\CouponController::class . ':index');
         $group->post('/coupon', App\Controllers\Admin\CouponController::class . ':add');
@@ -358,7 +360,7 @@ return static function (Slim\App $app): void {
         // Analytics
         $group->get('/analytics', App\Controllers\Admin\AnalyticsController::class . ':index');
         $group->get('/analytics/ajax', App\Controllers\Admin\AnalyticsController::class . ':ajax');
-    })->add(new Admin());
+    })->add(new Csrf())->add(new Admin());
     // WebAPI
     $app->group('/mod_mu', static function (RouteCollectorProxy $group): void {
         // 流媒体检测

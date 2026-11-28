@@ -122,6 +122,7 @@ final class Stripe extends Base
 
         $stripe = new StripeClient(Config::obtain('stripe_api_key'));
         $session = null;
+        $unitAmount = (int) round($exchange_amount * 1.0325 + 20);
 
         try {
             $session = $stripe->checkout->sessions->create([
@@ -132,11 +133,11 @@ final class Stripe extends Base
                 'line_items' => [
                     [
                         'price_data' => [
-                            'currency' => Config::obtain('stripe_currency'),
+                            'currency' => $stripe_currency,
                             'product_data' => [
                                 'name' => 'Invoice #' . $invoice_id,
                             ],
-                            'unit_amount' => (int)($exchange_amount * 1.0325 + 20),
+                            'unit_amount' => $unitAmount,
                         ],
                         'quantity' => 1,
                     ],
@@ -147,8 +148,10 @@ final class Stripe extends Base
                         'trade_no' => $pl->tradeno,
                     ],
                 ],
-                'success_url' => $_ENV['baseUrl'] . '/user/invoice/' . $invoice_id . '/view',
-                'cancel_url' => $_ENV['baseUrl'] . '/user/invoice/' . $invoice_id . '/view',
+                'success_url' => $_ENV['baseUrl'] . '/user/invoice/' . $invoice_id . '/view?session_id={CHECKOUT_SESSION_ID}&paid=1',
+                'cancel_url' => $_ENV['baseUrl'] . '/user/invoice/' . $invoice_id . '/view?canceled=1',
+            ], [
+                'idempotency_key' => 'checkout_' . $pl->tradeno . '_' . $stripe_currency . '_' . $unitAmount,
             ]);
         } catch (ApiErrorException) {
             return $response->withJson([
@@ -195,19 +198,16 @@ final class Stripe extends Base
             if ($session->payment_status === 'paid') {
                 $trade_no = $session->metadata->trade_no ?? null;
             }
+        } elseif ($event->type === 'checkout.session.async_payment_succeeded') {
+            $session = $event->data->object;
+            $trade_no = $session->metadata->trade_no ?? null;
         }
 
         if (is_string($trade_no) && $trade_no !== '') {
             $this->postPayment($trade_no);
-
-            return $response->withStatus(204);
         }
 
-        // Return 200 for other event types so Stripe does not mark webhook delivery as failing
-        return $response->withStatus(200)->withJson([
-            'ret' => 1,
-            'msg' => 'Event ignored',
-        ]);
+        return $response->withStatus(204);
     }
 
     /**

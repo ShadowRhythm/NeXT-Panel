@@ -8,10 +8,11 @@ use App\Utils\Tools;
 use Illuminate\Database\Query\Builder;
 use function array_chunk;
 use function array_keys;
-use function array_unique;
 use function array_values;
+use function count;
 use function inet_ntop;
 use function inet_pton;
+use function is_array;
 use function substr;
 use function time;
 
@@ -60,19 +61,42 @@ final class OnlineLog extends Model
     }
 
     /**
-     * Fetch active IP counts per user within the recent window in a single grouped query.
+     * @return array<string>
+     */
+    public static function ignoredIpLimitList(): array
+    {
+        $ignored = $_ENV['iplimit_ignore_ips'] ?? [];
+
+        return is_array($ignored) ? $ignored : [];
+    }
+
+    /**
+     * Fetch active IP counts per user within the recent window in a single query,
+     * ignoring non-globally-routable addresses and configured relay exit IPs.
      *
      * @return array<int, int>
      */
     public static function getActiveIpCounts(int $windowSeconds = 90): array
     {
-        return self::where('last_time', '>', time() - $windowSeconds)
+        $ignored = self::ignoredIpLimitList();
+        $rows = self::where('last_time', '>', time() - $windowSeconds)
             ->where('kicked_at', 0)
-            ->selectRaw('user_id, count(*) as ip_count')
-            ->groupBy('user_id')
-            ->pluck('ip_count', 'user_id')
-            ->map(static fn ($count): int => (int) $count)
-            ->toArray();
+            ->get(['user_id', 'ip']);
+
+        $activeByUser = [];
+        foreach ($rows as $row) {
+            $key = Tools::ipLimitKey((string) $row->ip, $ignored);
+            if ($key !== null) {
+                $activeByUser[(int) $row->user_id][$key] = true;
+            }
+        }
+
+        $counts = [];
+        foreach ($activeByUser as $userId => $ips) {
+            $counts[$userId] = count($ips);
+        }
+
+        return $counts;
     }
 
     /**
@@ -98,6 +122,7 @@ final class OnlineLog extends Model
     public static function normalizeRows(int $nodeId, array $logs, int $now): array
     {
         $entries = [];
+        $ignored = self::ignoredIpLimitList();
 
         foreach ($logs as $log) {
             $rawIp = (string) ($log?->ip ?? '');
@@ -107,14 +132,17 @@ final class OnlineLog extends Model
                 continue;
             }
 
-            if (Tools::isIPv4($rawIp)) {
+            $limitIp = Tools::ipLimitKey($rawIp, $ignored);
+            if ($limitIp === null) {
+                continue;
+            }
+
+            if (Tools::isIPv4($limitIp)) {
                 // convert IPv4 Address to IPv4-mapped IPv6 Address
-                $storedIp = '::ffff:' . $rawIp;
-                $humanIp = $rawIp;
-            } elseif (Tools::isIPv6($rawIp)) {
-                $packed = inet_pton($rawIp);
-                $canonical = $packed !== false ? inet_ntop($packed) : false;
-                $storedIp = $canonical !== false ? $canonical : $rawIp;
+                $storedIp = '::ffff:' . $limitIp;
+                $humanIp = $limitIp;
+            } elseif (Tools::isIPv6($limitIp)) {
+                $storedIp = $limitIp;
                 $humanIp = self::formatHumanIp($storedIp);
             } else {
                 continue;

@@ -77,7 +77,7 @@ final class InvoiceController extends BaseController
         $invoice->status_text = $invoice->status();
         $invoice->create_time = Tools::toDateTime($invoice->create_time);
         $invoice->update_time = Tools::toDateTime($invoice->update_time);
-        $invoice->pay_time = Tools::toDateTime($invoice->pay_time);
+        $invoice->pay_time = Tools::toOptionalDateTime((int) $invoice->pay_time);
         $invoice_content = json_decode($invoice->content);
         if (is_array($invoice_content)) {
             foreach ($invoice_content as $item) {
@@ -212,7 +212,7 @@ final class InvoiceController extends BaseController
             $invoice->status = $invoice->status();
             $invoice->create_time = Tools::toDateTime($invoice->create_time);
             $invoice->update_time = Tools::toDateTime($invoice->update_time);
-            $invoice->pay_time = Tools::toDateTime($invoice->pay_time);
+            $invoice->pay_time = Tools::toOptionalDateTime((int) $invoice->pay_time);
         }
 
         $invoices['invoices'] = $invoices['data'];

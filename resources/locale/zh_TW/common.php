@@ -110,4 +110,5 @@ return [
     'dt_sort_descending' => ': 以降序排列此列',
     'request_failed' => '請求失敗: %message%',
     'unknown' => '未知',
+    'leave_impersonation' => '返回管理員身分',
 ];

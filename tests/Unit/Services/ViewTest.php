@@ -24,13 +24,31 @@ describe('View::getTheme', function () {
     });
 
     it('returns default theme when user is not logged in', function () {
-        $_ENV['theme'] = 'not-tabler';
+        $_ENV['theme'] = 'tabler';
         $this->user->isLogin = false;
 
         $theme = $this->view->getTheme($this->user);
 
-        expect($theme)->toBe('not-tabler');
+        expect($theme)->toBe('tabler');
     });
+
+    it('falls back to tabler when theme is invalid or attempts path traversal', function (string $malicious) {
+        $_ENV['theme'] = 'tabler';
+        $this->user->isLogin = true;
+        $this->user->theme = $malicious;
+
+        $theme = $this->view->getTheme($this->user);
+
+        expect($theme)->toBe('tabler');
+    })->with([
+        '../../storage',
+        '../../public/images',
+        '..',
+        'tabler/../../../etc',
+        '/etc',
+        'nonexistent-theme',
+        '',
+    ]);
 });
 
 describe('View::getConfig', function () {

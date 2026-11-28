@@ -6,11 +6,12 @@ namespace App\Services;
 
 use App\Models\Config;
 use App\Models\User;
+use App\Utils\Tools;
 use Illuminate\Database\DatabaseManager;
 use Smarty\Smarty;
-use Twig\Environment;
-use Twig\Loader\FilesystemLoader;
-use Twig\TwigFilter;
+use function in_array;
+use function is_dir;
+use function is_string;
 use const BASE_PATH;
 
 final class View
@@ -31,6 +32,7 @@ final class View
         $smarty->assign('config', self::getConfig($user));
         $smarty->assign('public_setting', Config::getPublicConfig());
         $smarty->assign('user', $user);
+        $smarty->assign('is_impersonating', Auth::isImpersonating());
         $smarty->assign('current_locale', $currentLocale);
         $smarty->assign('is_rtl', I18n::isRtlLocale($currentLocale));
 
@@ -87,35 +89,17 @@ final class View
         });
     }
 
-    public static function getTwig(): Environment
-    {
-        $user = Auth::getUser();
-        $currentLocale = I18n::getCurrentLocale($user);
-        $loader = new FilesystemLoader(BASE_PATH . '/resources/views/' . self::getTheme($user) . '/');
-
-        $twig = new Environment($loader, [
-            'cache' => BASE_PATH . '/storage/framework/twig/cache/',
-        ]);
-
-        $twig->addGlobal('config', self::getConfig($user));
-        $twig->addGlobal('public_setting', Config::getPublicConfig());
-        $twig->addGlobal('user', $user);
-        $twig->addGlobal('current_locale', $currentLocale);
-        $twig->addGlobal('is_rtl', I18n::isRtlLocale($currentLocale));
-
-        $twig->addFilter(new TwigFilter('trans', static function (string $key, ?string $lang = null, array $params = []) use ($currentLocale): string {
-            return I18n::trans($key, $lang ?? $currentLocale, $params);
-        }));
-
-        return $twig;
-    }
-
     public static function getTheme($user): string
     {
-        if ($user->isLogin) {
-            $theme = $user->theme;
-        } else {
-            $theme = $_ENV['theme'];
+        $allowed = Tools::getDir(BASE_PATH . '/resources/views');
+        $theme = $user->isLogin ? $user->theme : ($_ENV['theme'] ?? 'tabler');
+
+        if (! is_string($theme) || ! in_array($theme, $allowed, true) || ! is_dir(BASE_PATH . '/resources/views/' . $theme)) {
+            $fallback = $_ENV['theme'] ?? 'tabler';
+
+            return is_string($fallback) && in_array($fallback, $allowed, true) && is_dir(BASE_PATH . '/resources/views/' . $fallback)
+                ? $fallback
+                : 'tabler';
         }
 
         return $theme;

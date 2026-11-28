@@ -30,13 +30,14 @@ final class User implements MiddlewareInterface
             return AppFactory::determineResponseFactory()->createResponse(302)->withHeader('Location', '/auth/login');
         }
 
-        $bannedUserEnabledPages = ['/user/banned', '/user/logout'];
+        $bannedUserEnabledPages = ['/user/banned', '/user/logout', '/user/impersonate/leave'];
 
         if ($user->is_banned && ! in_array($path, $bannedUserEnabledPages)) {
             return AppFactory::determineResponseFactory()->createResponse(302)->withHeader('Location', '/user/banned');
         }
 
         $request = $request->withAttribute('user', $user);
+        Csrf::ensureCookie();
 
         return $handler->handle($request);
     }

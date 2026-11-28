@@ -10,7 +10,6 @@ use App\Utils\Tools;
 use function base64_encode;
 use function implode;
 use function is_array;
-use function json_decode;
 use const PHP_EOL;
 
 /**
@@ -38,7 +37,7 @@ final class QuantumultX extends Base
         $nodes_raw = Subscribe::getUserNodes($user);
 
         foreach ($nodes_raw as $node_raw) {
-            $node_custom_config = json_decode($node_raw->custom_config, true);
+            $node_custom_config = Tools::decodeCustomConfig($node_raw->custom_config);
             $name = $node_raw->name;
             $server = $node_raw->server;
 

@@ -24,6 +24,7 @@ use function is_array;
 use function is_numeric;
 use function is_string;
 use function json_decode;
+use function round;
 use function time;
 
 final class UserController extends BaseController
@@ -93,10 +94,7 @@ final class UserController extends BaseController
             // sort=1: SS2022 — passwd only (derived key), sort=4: Hysteria2, sort=5: AnyTLS — passwd only
             // sort=2: TUIC — uuid + passwd, sort=11: VMess, sort=14: Trojan — uuid only
             if ($node->sort === 1) {
-                $custom_config = is_string($node->custom_config)
-                    ? json_decode($node->custom_config)
-                    : (object) $node->custom_config;
-                $method = $custom_config->method ?? '2022-blake3-aes-128-gcm';
+                $method = Tools::decodeCustomConfig($node->custom_config)['method'] ?? '2022-blake3-aes-128-gcm';
                 $user_pk = Tools::genSs2022UserPk($user_raw->passwd, $method);
 
                 if (! $user_pk) {
@@ -193,6 +191,7 @@ final class UserController extends BaseController
         $sum = 0;
         $is_traffic_log = Config::obtain('traffic_log');
         $hourlyUsages = [];
+        $hourlyBilledUsages = [];
         $now = time();
 
         foreach ($data as $log) {
@@ -204,6 +203,7 @@ final class UserController extends BaseController
             if ($user_id > 0 && $bytes > 0) {
                 $billed_u = $u * $rate;
                 $billed_d = $d * $rate;
+                $billed_bytes = (int) round($billed_u + $billed_d);
 
                 User::where('id', $user_id)->incrementEach([
                     'u' => $billed_u,
@@ -214,6 +214,7 @@ final class UserController extends BaseController
 
                 if ($is_traffic_log) {
                     $hourlyUsages[$user_id] = ($hourlyUsages[$user_id] ?? 0) + $bytes;
+                    $hourlyBilledUsages[$user_id] = ($hourlyBilledUsages[$user_id] ?? 0) + $billed_bytes;
                 }
             }
 
@@ -221,7 +222,7 @@ final class UserController extends BaseController
         }
 
         if ($is_traffic_log && $hourlyUsages !== []) {
-            HourlyUsage::addBatch($hourlyUsages);
+            HourlyUsage::addBatch($hourlyUsages, $hourlyBilledUsages);
         }
 
         if ($sum > 0) {

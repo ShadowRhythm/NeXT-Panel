@@ -110,4 +110,5 @@ return [
     'dt_sort_descending' => ': 列を降順にソート',
     'request_failed' => 'リクエスト失敗: %message%',
     'unknown' => '不明',
+    'leave_impersonation' => '管理者に戻る',
 ];

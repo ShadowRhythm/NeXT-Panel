@@ -22,7 +22,11 @@ use function filter_var;
 use function floor;
 use function hash;
 use function in_array;
+use function inet_ntop;
+use function inet_pton;
+use function is_array;
 use function is_numeric;
+use function is_string;
 use function json_decode;
 use function log;
 use function max;
@@ -34,10 +38,12 @@ use function range;
 use function readdir;
 use function round;
 use function shuffle;
+use function str_starts_with;
 use function strlen;
 use function strpos;
 use function strtolower;
 use function substr;
+use const FILTER_FLAG_GLOBAL_RANGE;
 use const FILTER_FLAG_IPV4;
 use const FILTER_FLAG_IPV6;
 use const FILTER_VALIDATE_EMAIL;
@@ -305,6 +311,11 @@ final class Tools
         return date('Y-m-d H:i:s', $time);
     }
 
+    public static function toOptionalDateTime(int $time, string $fallback = '-'): string
+    {
+        return $time > 0 ? self::toDateTime($time) : $fallback;
+    }
+
     public static function getSsPort(): int
     {
         $max_port = (int) Config::obtain('max_port');
@@ -413,6 +424,45 @@ final class Tools
         return true;
     }
 
+    /**
+     * Normalize an online_log IP for device limit tracking without subnet aggregation.
+     *
+     * Drops non-globally-routable addresses (such as 127.0.0.1 from a local reverse proxy,
+     * RFC1918 private ranges, or link-local addresses) and exact addresses listed in $ignored
+     * (such as relay exit IPs).
+     *
+     * @param array<string> $ignored
+     */
+    public static function ipLimitKey(string $ip, array $ignored = []): ?string
+    {
+        if (str_starts_with($ip, '::ffff:') && self::isIPv4(substr($ip, 7))) {
+            $ip = substr($ip, 7);
+        }
+
+        if (! filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_GLOBAL_RANGE)) {
+            return null;
+        }
+
+        $packed = inet_pton($ip);
+        if ($packed === false) {
+            return null;
+        }
+
+        foreach ($ignored as $ignoredIp) {
+            $ignoredIp = (string) $ignoredIp;
+            if (str_starts_with($ignoredIp, '::ffff:') && self::isIPv4(substr($ignoredIp, 7))) {
+                $ignoredIp = substr($ignoredIp, 7);
+            }
+            if ($ignoredIp !== '' && @inet_pton($ignoredIp) === $packed) {
+                return null;
+            }
+        }
+
+        $normalized = inet_ntop($packed);
+
+        return $normalized !== false ? $normalized : null;
+    }
+
     public static function isInt($input): bool
     {
         if (! filter_var($input, FILTER_VALIDATE_INT)) {
@@ -420,6 +470,27 @@ final class Tools
         }
 
         return true;
+    }
+
+    /**
+     * Decode a node custom_config JSON string into an associative array,
+     * degrading malformed JSON or top-level scalars (e.g. `123`) to `[]`.
+     *
+     * @return array<string, mixed>
+     */
+    public static function decodeCustomConfig(mixed $raw): array
+    {
+        if (is_array($raw)) {
+            return $raw;
+        }
+
+        if (! is_string($raw) || $raw === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 
     /**

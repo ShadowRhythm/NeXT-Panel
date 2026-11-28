@@ -26,6 +26,7 @@ return [
     'invoice' => 'Invoices',
     'money' => 'Balance',
     'site_admin' => 'Site Admin',
+    'leave_impersonation' => 'Return to Admin',
     'logout' => 'Logout',
     'light_mode' => 'Light Mode',
     'dark_mode' => 'Dark Mode',

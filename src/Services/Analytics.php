@@ -178,9 +178,27 @@ final class Analytics
 
     public static function getUserHourlyUsage(int $user_id, string $date): array
     {
-        $hourly_usage = (new HourlyUsage())->where('user_id', $user_id)->where('date', $date)->first();
+        return self::getUserHourlyUsagePair($user_id, $date)['raw'];
+    }
 
-        return $hourly_usage ? json_decode($hourly_usage->usage, true) : array_fill(0, 24, 0);
+    /**
+     * @return array{raw: array<int, int>, billed: array<int, int>}
+     */
+    public static function getUserHourlyUsagePair(int $user_id, string $date): array
+    {
+        $hourly_usage = (new HourlyUsage())->where('user_id', $user_id)->where('date', $date)->first();
+        if (! $hourly_usage) {
+            $empty = array_fill(0, 24, 0);
+
+            return ['raw' => $empty, 'billed' => $empty];
+        }
+
+        $raw = HourlyUsage::decodeHourlyArray((string) $hourly_usage->usage);
+        $billed = $hourly_usage->billed_usage !== null
+            ? HourlyUsage::decodeHourlyArray((string) $hourly_usage->billed_usage)
+            : $raw;
+
+        return ['raw' => $raw, 'billed' => $billed];
     }
 
     public static function getUserTodayHourlyUsage(int $user_id): array
@@ -194,6 +212,7 @@ final class Analytics
     {
         $usage_cache = [];
         $usage = [];
+        $billed_usage = [];
         $labels = [];
 
         for ($i = 23; $i >= 0; $i--) {
@@ -203,14 +222,16 @@ final class Analytics
             $labels[] = date('H', $timestamp);
 
             if (! isset($usage_cache[$date])) {
-                $usage_cache[$date] = self::getUserHourlyUsage($user_id, $date);
+                $usage_cache[$date] = self::getUserHourlyUsagePair($user_id, $date);
             }
 
-            $usage[] = $usage_cache[$date][$hour] ?? 0;
+            $usage[] = $usage_cache[$date]['raw'][$hour] ?? 0;
+            $billed_usage[] = $usage_cache[$date]['billed'][$hour] ?? 0;
         }
 
         return [
             'usage' => $usage,
+            'billed_usage' => $billed_usage,
             'labels' => $labels,
         ];
     }
@@ -218,16 +239,17 @@ final class Analytics
     public static function getUserPast30DaysUsage(int $user_id): array
     {
         $stat = UserTrafficStat::getOrUpdate($user_id);
-        $daily_usage = json_decode($stat->daily_usage, true);
-        if (! is_array($daily_usage) || count($daily_usage) !== 30) {
-            $daily_usage = array_fill(0, 30, 0);
-        }
+        $daily_usage = UserTrafficStat::decodeUsageArray($stat->daily_usage, 30);
+        $daily_billed_usage = UserTrafficStat::decodeUsageArray($stat->daily_billed_usage, 30, $daily_usage);
 
         array_shift($daily_usage);
         $daily_usage[] = 0;
+        array_shift($daily_billed_usage);
+        $daily_billed_usage[] = 0;
 
-        $today_traffic = (int) array_sum(self::getUserTodayHourlyUsage($user_id));
-        $daily_usage[29] += $today_traffic;
+        $today_pair = self::getUserHourlyUsagePair($user_id, date('Y-m-d'));
+        $daily_usage[29] += (int) array_sum($today_pair['raw']);
+        $daily_billed_usage[29] += (int) array_sum($today_pair['billed']);
 
         $labels = [];
         for ($i = 29; $i >= 0; $i--) {
@@ -236,6 +258,7 @@ final class Analytics
 
         return [
             'usage' => $daily_usage,
+            'billed_usage' => $daily_billed_usage,
             'labels' => $labels,
         ];
     }
@@ -243,18 +266,19 @@ final class Analytics
     public static function getUserPast12MonthsUsage(int $user_id): array
     {
         $stat = UserTrafficStat::getOrUpdate($user_id);
-        $monthly_usage = json_decode($stat->monthly_usage, true);
-        if (! is_array($monthly_usage) || count($monthly_usage) !== 12) {
-            $monthly_usage = array_fill(0, 12, 0);
-        }
+        $monthly_usage = UserTrafficStat::decodeUsageArray($stat->monthly_usage, 12);
+        $monthly_billed_usage = UserTrafficStat::decodeUsageArray($stat->monthly_billed_usage, 12, $monthly_usage);
 
         if ($stat->monthly_last_month !== date('Y-m')) {
             array_shift($monthly_usage);
             $monthly_usage[] = 0;
+            array_shift($monthly_billed_usage);
+            $monthly_billed_usage[] = 0;
         }
 
-        $today_traffic = (int) array_sum(self::getUserTodayHourlyUsage($user_id));
-        $monthly_usage[11] += $today_traffic;
+        $today_pair = self::getUserHourlyUsagePair($user_id, date('Y-m-d'));
+        $monthly_usage[11] += (int) array_sum($today_pair['raw']);
+        $monthly_billed_usage[11] += (int) array_sum($today_pair['billed']);
 
         $labels = [];
         $dt = new DateTime('first day of this month');
@@ -266,6 +290,7 @@ final class Analytics
 
         return [
             'usage' => $monthly_usage,
+            'billed_usage' => $monthly_billed_usage,
             'labels' => $labels,
         ];
     }

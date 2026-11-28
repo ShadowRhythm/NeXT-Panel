@@ -703,7 +703,9 @@
                             <p id="totpSecret"></p>
                         </div>
                         <div class="col-md-12">
-                            <input type="text" id="totpCode" placeholder="{trans key='user.enter_totp_code'}" class="form-control mx-auto">
+                            <input type="text" id="totpCode" placeholder="{trans key='user.enter_totp_code'}"
+                                   class="form-control mx-auto text-center"
+                                   inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code">
                         </div>
                     </div>
                     <div id="qrcode"></div>

@@ -6,8 +6,8 @@ namespace App\Services\Subscribe;
 
 use App\Models\Config;
 use App\Services\Subscribe;
+use App\Utils\Tools;
 use function base64_encode;
-use function json_decode;
 use function json_encode;
 use const PHP_EOL;
 
@@ -24,7 +24,7 @@ final class V2Ray extends Base
         $nodes_raw = Subscribe::getUserNodes($user);
 
         foreach ($nodes_raw as $node_raw) {
-            $node_custom_config = json_decode((string) $node_raw->custom_config, true) ?? [];
+            $node_custom_config = Tools::decodeCustomConfig($node_raw->custom_config);
 
             switch ((int) $node_raw->sort) {
                 case 4:

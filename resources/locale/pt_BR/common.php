@@ -110,4 +110,5 @@ return [
     'dt_sort_descending' => ': ativar para ordenar coluna de forma descendente',
     'request_failed' => 'Falha na solicitação: %message%',
     'unknown' => 'Desconhecido',
+    'leave_impersonation' => 'Voltar ao administrador',
 ];

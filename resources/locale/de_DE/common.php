@@ -110,4 +110,5 @@ return [
     'dt_sort_descending' => ': aktivieren, um Spalte absteigend zu sortieren',
     'request_failed' => 'Anfrage fehlgeschlagen: %message%',
     'unknown' => 'Unbekannt',
+    'leave_impersonation' => 'Zurück zum Admin',
 ];

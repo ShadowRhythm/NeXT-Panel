@@ -9,6 +9,7 @@ use App\Controllers\BaseController;
 use App\Models\Config;
 use App\Models\MFADevice;
 use App\Models\User;
+use App\Services\Auth;
 use App\Services\DataTable;
 use App\Models\UserMoneyLog;
 use App\Services\I18n;
@@ -365,6 +366,27 @@ final class UserController extends BaseController
         return $response->withJson([
             'ret' => 1,
             'msg' => '已撤销该用户所有 MFA 设备',
+        ]);
+    }
+
+    public function impersonate(ServerRequest $request, Response $response, array $args): ResponseInterface
+    {
+        $id = (int) $args['id'];
+        $targetUser = (new User())->find($id);
+
+        if ($targetUser === null) {
+            return $response->withJson([
+                'ret' => 0,
+                'msg' => '用户不存在',
+            ]);
+        }
+
+        $result = Auth::impersonate($this->user, $targetUser);
+
+        return $response->withJson([
+            'ret' => $result['ok'] ? 1 : 0,
+            'msg' => $result['msg'],
+            'redirect' => $result['ok'] ? '/user' : '',
         ]);
     }
 }

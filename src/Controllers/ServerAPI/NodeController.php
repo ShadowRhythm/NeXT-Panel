@@ -8,10 +8,10 @@ use App\Controllers\BaseController;
 use App\Models\Node;
 use App\Services\GlobalIpLimit;
 use App\Utils\ResponseHelper;
+use App\Utils\Tools;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
-use function json_decode;
 use function max;
 use function time;
 
@@ -38,7 +38,7 @@ final class NodeController extends BaseController
             'node_speedlimit' => $node->node_speedlimit,
             'sort' => $node->sort,
             'server' => $node->server,
-            'custom_config' => json_decode((string) $node->custom_config, true),
+            'custom_config' => Tools::decodeCustomConfig($node->custom_config),
         ];
 
         return ResponseHelper::successWithDataEtag($request, $response, $data);

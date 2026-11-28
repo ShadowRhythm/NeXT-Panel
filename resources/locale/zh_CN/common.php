@@ -26,6 +26,7 @@ return [
     'invoice' => '账单',
     'money' => '余额',
     'site_admin' => '站点管理',
+    'leave_impersonation' => '返回管理员身份',
     'logout' => '登出',
     'light_mode' => '浅色模式',
     'dark_mode' => '深色模式',

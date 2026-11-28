@@ -110,4 +110,5 @@ return [
     'dt_sort_descending' => ': فعال‌سازی مرتب‌سازی نزولی ستون',
     'request_failed' => 'درخواست ناموفق بود: %message%',
     'unknown' => 'نامشخص',
+    'leave_impersonation' => 'بازگشت به مدیر',
 ];

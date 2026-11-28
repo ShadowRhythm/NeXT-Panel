@@ -359,4 +359,64 @@ describe('Tools validation methods', function () {
             ->and(Tools::isJson('[]'))->toBeFalse()
             ->and(Tools::isJson('what the'))->toBeFalse();
     });
+
+    test('toOptionalDateTime formats positive timestamps and falls back when zero', function () {
+        expect(Tools::toOptionalDateTime(0))->toBe('-')
+            ->and(Tools::toOptionalDateTime(0, '—'))->toBe('—')
+            ->and(Tools::toOptionalDateTime(1700000000))->toBe(Tools::toDateTime(1700000000));
+    });
+});
+
+describe('Tools::ipLimitKey', function () {
+    test('keeps distinct public IPv4 and IPv6 addresses separate without subnet aggregation', function () {
+        expect(Tools::ipLimitKey('223.104.79.66'))->toBe('223.104.79.66')
+            ->and(Tools::ipLimitKey('223.104.79.87'))->toBe('223.104.79.87')
+            ->and(Tools::ipLimitKey('240e:3a8:4caf:6de0::1'))->toBe('240e:3a8:4caf:6de0::1')
+            ->and(Tools::ipLimitKey('240e:3a8:4caf:6de0:0000:0000:0000:0002'))->toBe('240e:3a8:4caf:6de0::2');
+    });
+
+    test('unwraps the IPv4-mapped form stored in online_log', function () {
+        expect(Tools::ipLimitKey('::ffff:223.104.79.66'))->toBe('223.104.79.66');
+    });
+
+    test('drops non-globally-routable addresses such as loopback, private, and CGNAT', function () {
+        foreach (['127.0.0.1', '::ffff:127.0.0.1', '10.1.0.5', '172.26.6.228', '192.168.1.1', '100.64.1.1', '::1', 'fe80::1', 'fd00::1'] as $ip) {
+            expect(Tools::ipLimitKey($ip))->toBeNull();
+        }
+    });
+
+    test('drops exact ignored relay exit IPs while keeping neighbors', function () {
+        $ignored = ['103.169.217.55', '2a0b:9900::1'];
+
+        expect(Tools::ipLimitKey('103.169.217.55', $ignored))->toBeNull()
+            ->and(Tools::ipLimitKey('::ffff:103.169.217.55', $ignored))->toBeNull()
+            ->and(Tools::ipLimitKey('2a0b:9900:0:0::1', $ignored))->toBeNull()
+            ->and(Tools::ipLimitKey('103.169.217.56', $ignored))->toBe('103.169.217.56');
+    });
+
+    test('drops invalid IP strings', function () {
+        expect(Tools::ipLimitKey(''))->toBeNull()
+            ->and(Tools::ipLimitKey('UwU'))->toBeNull();
+    });
+});
+
+describe('Tools::decodeCustomConfig', function () {
+    test('decodes valid JSON objects into associative arrays', function () {
+        expect(Tools::decodeCustomConfig('{"offset_port_user":443,"host":"example.com"}'))
+            ->toBe(['offset_port_user' => 443, 'host' => 'example.com'])
+            ->and(Tools::decodeCustomConfig(['already' => 'array']))
+            ->toBe(['already' => 'array']);
+    });
+
+    test('degrades top-level JSON scalars, null, empty, and malformed JSON to empty array', function (mixed $raw) {
+        expect(Tools::decodeCustomConfig($raw))->toBe([]);
+    })->with([
+        'integer scalar' => ['123'],
+        'string scalar' => ['"hello"'],
+        'boolean scalar' => ['true'],
+        'json null' => ['null'],
+        'empty string' => [''],
+        'malformed json' => ['{"broken":'],
+        'php null' => [null],
+    ]);
 });

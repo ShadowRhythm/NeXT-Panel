@@ -31,6 +31,15 @@
                                 <p class="empty-title">{trans key='user.banned_reason_title'}</p>
                                 <p class="empty-subtitle text-secondary">{$banned_reason}</p>
                             {/if}
+                            {if $is_impersonating}
+                                <div class="empty-action">
+                                    <button type="button" class="btn btn-warning"
+                                            hx-post="/user/impersonate/leave" hx-swap="none">
+                                        <i class="ti ti-arrow-back-up icon"></i>
+                                        {trans key='common.leave_impersonation'}
+                                    </button>
+                                </div>
+                            {/if}
                         </div>
                     </div>
                 </div>

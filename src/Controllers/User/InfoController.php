@@ -23,6 +23,7 @@ use RedisException;
 use Slim\Http\Response;
 use Slim\Http\ServerRequest;
 use function in_array;
+use function is_dir;
 use function strlen;
 use function strtolower;
 use function trim;
@@ -339,6 +340,12 @@ final class InfoController extends BaseController
 
         if ($theme === '') {
             return ResponseHelper::error($response, I18n::trans('user.theme_empty', $locale));
+        }
+
+        if (! in_array($theme, Tools::getDir(BASE_PATH . '/resources/views'), true)
+            || ! is_dir(BASE_PATH . '/resources/views/' . $theme)
+        ) {
+            return ResponseHelper::error($response, I18n::trans('user.invalid_parameter', $locale));
         }
 
         $user->theme = $theme;

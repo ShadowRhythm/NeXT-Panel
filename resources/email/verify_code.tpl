@@ -1,28 +1,11 @@
-{include file='header.tpl'}
-
-<body style="background-color:#EEEEEE;">
-    <div style="text-align: center">
-        <div border="0" cellpadding="0" cellspacing="0" width="100%" style="padding-top:30px;table-layout:fixed;background-color:#EEEEEE;">
-            <div align="center" valign="top" style="padding-right:10px;padding-left:10px;">
-                <div border="0" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;max-width:600px;text-align:center;" width="100%">
-                    <div align="center" valign="top">
-                        <div border="0" cellpadding="0" cellspacing="0" width="100%">
-                            <div align="center" valign="middle" style="padding-top:60px;padding-bottom:60px;">
-                                <h2 class="bigTitle">
-                                    {trans key='email.verify_email_title'}
-                                </h2>
-                            </div>
-                        </div>
-                        <div border="0" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF" width="100%">
-                            <div align="center" valign="top" style="padding-bottom:60px;padding-left:20px;padding-right:20px;">
-                                <p class="midText">
-                                    {trans key='email.verify_code_text' code=$code}<br>
-                                    {trans key='email.verify_code_expire' expire=$expire}<br>
-                                    {trans key='email.verify_code_ignore'}<br>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-{include file='footer.tpl'}
+{include file='components/header.tpl'}
+{include file='components/hero.tpl' hero_title=('email.verify_email_title'|trans)}
+<p style="margin:0 0 14px;">{trans key='email.verify_code_text' code=$code}</p>
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:6px 0 16px;">
+    <tr>
+        <td align="center" style="background-color:#ecf3fb;border-radius:8px;padding:18px 12px;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:28px;font-weight:700;letter-spacing:6px;color:#1a5db0;">{$code}</td>
+    </tr>
+</table>
+<p style="margin:0;font-size:13px;color:#667085;text-align:center;">{trans key='email.verify_code_expire' expire=$expire}</p>
+<p style="margin:10px 0 0;font-size:13px;color:#667085;text-align:center;">{trans key='email.verify_code_ignore'}</p>
+{include file='components/footer.tpl'}

@@ -20,6 +20,7 @@
     <script src="//{$config['jsdelivr_url']}/npm/qrcode_js@latest/qrcode.min.js"></script>
     <script src="//{$config['jsdelivr_url']}/npm/clipboard@latest/dist/clipboard.min.js"></script>
     <script src="//{$config['jsdelivr_url']}/npm/htmx.org@latest/dist/htmx.min.js"></script>
+    <script src="/assets/js/csrf.js"></script>
     <style>
         .home-subtitle {
             font-size: 14px;
@@ -94,6 +95,14 @@
                         </div>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                        {if $is_impersonating}
+                            <button type="button" class="dropdown-item text-warning fw-semibold"
+                                    hx-post="/user/impersonate/leave" hx-swap="none">
+                                <i class="ti ti-arrow-back-up icon me-1"></i>
+                                {trans key='common.leave_impersonation'}
+                            </button>
+                            <div class="dropdown-divider"></div>
+                        {/if}
                         {if $user->is_dark_mode}
                             <a class="dropdown-item" hx-post="/user/switch_theme_mode" hx-swap="none">
                                 {trans key='common.light_mode'}
@@ -270,6 +279,19 @@
                                         {trans key='common.site_admin'}
                                     </span>
                                 </a>
+                            </li>
+                        {/if}
+                        {if $is_impersonating}
+                            <li class="nav-item">
+                                <button type="button" class="nav-link text-warning fw-semibold border-0 bg-transparent"
+                                        hx-post="/user/impersonate/leave" hx-swap="none">
+                                    <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                        <i class="ti ti-arrow-back-up icon text-warning"></i>
+                                    </span>
+                                    <span class="nav-link-title">
+                                        {trans key='common.leave_impersonation'}
+                                    </span>
+                                </button>
                             </li>
                         {/if}
                     </ul>

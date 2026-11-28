@@ -6,7 +6,7 @@ namespace App\Services\Subscribe;
 
 use App\Models\Config;
 use App\Services\Subscribe;
-use function json_decode;
+use App\Utils\Tools;
 use function json_encode;
 
 final class SIP008 extends Base
@@ -22,7 +22,7 @@ final class SIP008 extends Base
         $nodes_raw = Subscribe::getUserNodes($user);
 
         foreach ($nodes_raw as $node_raw) {
-            $node_custom_config = json_decode($node_raw->custom_config, true);
+            $node_custom_config = Tools::decodeCustomConfig($node_raw->custom_config);
 
             if ((int) $node_raw->sort === 0) {
                 $plugin = $node_custom_config['plugin'] ?? '';

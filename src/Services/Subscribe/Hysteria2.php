@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Subscribe;
 
 use App\Services\Subscribe;
+use App\Utils\Tools;
 use function filter_var;
 use function http_build_query;
 use function is_numeric;
-use function json_decode;
 use function rawurlencode;
 use function trim;
 use const FILTER_FLAG_IPV6;
@@ -75,7 +75,7 @@ final class Hysteria2 extends Base
         $nodes_raw = Subscribe::getUserNodes($user);
 
         foreach ($nodes_raw as $node_raw) {
-            $node_custom_config = json_decode((string) $node_raw->custom_config, true) ?? [];
+            $node_custom_config = Tools::decodeCustomConfig($node_raw->custom_config);
 
             if ((int) $node_raw->sort === 4) {
                 $links .= self::buildUri($user, $node_raw, $node_custom_config);

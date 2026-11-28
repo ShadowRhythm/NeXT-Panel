@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\OnlineLog;
 use App\Models\User;
+use App\Utils\Tools;
 use Redis;
 use Throwable;
 use function array_chunk;
@@ -83,7 +84,11 @@ final class GlobalIpLimit
         }
 
         $rowsByUser = [];
+        $ignored = OnlineLog::ignoredIpLimitList();
         foreach ($activeRows as $row) {
+            if (Tools::ipLimitKey((string) $row->ip, $ignored) === null) {
+                continue;
+            }
             $rowsByUser[(int) $row->user_id][] = $row;
         }
 
