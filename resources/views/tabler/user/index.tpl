@@ -140,6 +140,49 @@
 .client-action-btn {
     white-space: nowrap;
 }
+
+#traffic-log {
+    position: relative;
+}
+
+#traffic-log .apexcharts-canvas,
+#traffic-log .apexcharts-canvas:focus,
+#traffic-log .apexcharts-canvas *:focus,
+#traffic-log .apexcharts-svg,
+#traffic-log .apexcharts-svg:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
+#traffic-log .apexcharts-yaxis,
+#traffic-log .apexcharts-xaxis {
+    pointer-events: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
+#traffic-log .apexcharts-tooltip {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+#traffic-log .apexcharts-zoom-rect,
+#traffic-log .apexcharts-selection-rect,
+#traffic-log .apexcharts-tooltip::before,
+#traffic-log .apexcharts-tooltip::after,
+#traffic-log .apexcharts-tooltip .apexcharts-tooltip-arrow,
+#traffic-log .apexcharts-tooltip:empty,
+#traffic-log .apexcharts-tooltip:has(.traffic-tooltip-empty),
+#traffic-log .apexcharts-tooltip:not(:has(.traffic-tooltip-card)),
+#traffic-log .apexcharts-yaxis-label title,
+#traffic-log .apexcharts-xaxis-label title {
+    display: none !important;
+    content: none !important;
+}
 </style>
 
 <div class="page-wrapper">
@@ -409,16 +452,6 @@
                                     </div>
                                 </div>
                                 <div class="card-body">
-                                    <div class="d-flex flex-wrap align-items-center gap-3 mb-2 small text-secondary" id="traffic-chart-legend">
-                                        <span class="d-inline-flex align-items-center gap-1">
-                                            <span class="rounded-1 d-inline-block" id="legend-swatch-billed" style="width:12px;height:12px;background:#066fd1;"></span>
-                                            <span>{trans key='user.billed_traffic_label'}</span>
-                                        </span>
-                                        <span class="d-inline-flex align-items-center gap-1">
-                                            <span class="rounded-1 d-inline-block" id="legend-swatch-raw" style="width:12px;height:12px;background:#7db8fb;"></span>
-                                            <span>{trans key='user.raw_traffic_label'}</span>
-                                        </span>
-                                    </div>
                                     <div id="traffic-log" dir="ltr"></div>
                                 </div>
                             </div>
@@ -502,11 +535,6 @@
     {if $public_setting['traffic_log']}
     <script src="//{$config['jsdelivr_url']}/npm/@tabler/core@latest/dist/libs/apexcharts/dist/apexcharts.min.js"></script>
     <script>
-        const trafficYTitles = {
-            MB: "{trans key='user.traffic_used_mb' escape='js'}",
-            GB: "{trans key='user.traffic_used_gb' escape='js'}"
-        };
-
         const trafficRanges = {
             '24h': {
                 title: "{trans key='user.hourly_usage' escape='js'}",
@@ -514,7 +542,6 @@
                 raw: {$raw_traffic_logs},
                 categories: {$traffic_logs_labels},
                 unit: "{$traffic_unit|default:'MB'|escape:'js'}",
-                yTitle: trafficYTitles["{$traffic_unit|default:'MB'|escape:'js'}"] || trafficYTitles.MB,
                 xTitle: "{trans key='user.hour' escape='js'}"
             },
             '30d': {
@@ -523,7 +550,6 @@
                 raw: {$raw_daily_traffic_logs},
                 categories: {$daily_traffic_labels},
                 unit: "{$daily_traffic_unit|default:'MB'|escape:'js'}",
-                yTitle: trafficYTitles["{$daily_traffic_unit|default:'MB'|escape:'js'}"] || trafficYTitles.MB,
                 xTitle: "{trans key='user.day' escape='js'}"
             },
             '12m': {
@@ -532,7 +558,6 @@
                 raw: {$raw_monthly_traffic_logs},
                 categories: {$monthly_traffic_labels},
                 unit: "{$monthly_traffic_unit|default:'GB'|escape:'js'}",
-                yTitle: trafficYTitles["{$monthly_traffic_unit|default:'GB'|escape:'js'}"] || trafficYTitles.GB,
                 xTitle: "{trans key='user.month' escape='js'}"
             }
         };
@@ -587,7 +612,9 @@
         }
 
         function formatYAxisValue(val) {
-            return Number(val || 0).toFixed(2);
+            const activeConf = trafficRanges[currentTrafficRange] || trafficRanges['24h'];
+            const unit = activeConf.unit || 'MB';
+            return Number(val || 0).toFixed(2) + ' ' + unit;
         }
 
         function formatTooltipTraffic(val, unit) {
@@ -598,74 +625,19 @@
             return num.toFixed(2) + ' ' + unit;
         }
 
-        function syncTrafficLegendColors(palette) {
-            const billedSwatch = document.getElementById('legend-swatch-billed');
-            const rawSwatch = document.getElementById('legend-swatch-raw');
-            if (billedSwatch) billedSwatch.style.background = palette.primary;
-            if (rawSwatch) rawSwatch.style.background = palette.raw;
-        }
-
         function getBilledSeriesData(conf) {
             const billedArr = Array.isArray(conf.billed) ? conf.billed : [];
             return billedArr.map(v => Math.max(0, roundTrafficValue(v)));
         }
 
-        function renderRawTrafficOverlays(chartContext) {
+        function stripYAxisSvgTitles(chartContext) {
             if (!chartContext || !chartContext.el) return;
-            const svg = chartContext.el.querySelector('svg');
-            if (!svg) return;
-
-            svg.querySelectorAll('.raw-traffic-overlay-layer').forEach(node => node.remove());
-
-            const barSeries = svg.querySelector('.apexcharts-bar-series');
-            if (!barSeries) return;
-
-            const bars = barSeries.querySelectorAll('path.apexcharts-bar-area');
-            if (!bars || bars.length === 0) return;
-
-            const conf = trafficRanges[currentTrafficRange] || trafficRanges['24h'];
-            const billedArr = Array.isArray(conf.billed) ? conf.billed : [];
-            const rawArr = Array.isArray(conf.raw) ? conf.raw : [];
-            const palette = getChartPalette();
-
-            const overlayGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            overlayGroup.setAttribute('class', 'raw-traffic-overlay-layer');
-            overlayGroup.setAttribute('pointer-events', 'none');
-
-            bars.forEach((barEl, idx) => {
-                const billed = Math.max(0, roundTrafficValue(billedArr[idx]));
-                const raw = Math.max(0, roundTrafficValue(rawArr[idx]));
-                if (billed <= 0 || raw <= 0) return;
-
-                const bbox = barEl.getBBox();
-                if (!bbox || bbox.width <= 0 || bbox.height <= 0) return;
-
-                const ratio = Math.min(1, raw / billed);
-                const overlayHeight = bbox.height * ratio;
-                if (overlayHeight <= 0) return;
-
-                const innerWidth = Math.max(2, bbox.width * 0.56);
-                const innerX = bbox.x + (bbox.width - innerWidth) / 2;
-                const innerY = bbox.y + (bbox.height - overlayHeight);
-
-                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                rect.setAttribute('x', innerX.toFixed(2));
-                rect.setAttribute('y', innerY.toFixed(2));
-                rect.setAttribute('width', innerWidth.toFixed(2));
-                rect.setAttribute('height', overlayHeight.toFixed(2));
-                rect.setAttribute('rx', '2');
-                rect.setAttribute('ry', '2');
-                rect.setAttribute('fill', palette.raw);
-                overlayGroup.appendChild(rect);
-            });
-
-            barSeries.appendChild(overlayGroup);
+            chartContext.el.querySelectorAll('.apexcharts-yaxis-label title, .apexcharts-xaxis-label title').forEach(node => node.remove());
         }
 
         function getTrafficChartConfig(rangeKey) {
             const conf = trafficRanges[rangeKey] || trafficRanges['24h'];
             const palette = getChartPalette();
-            syncTrafficLegendColors(palette);
             return {
                 chart: {
                     type: "bar",
@@ -675,14 +647,29 @@
                     height: '100%',
                     parentHeightOffset: 0,
                     toolbar: {
-                        show: false
+                        show: false,
+                        tools: {
+                            download: false,
+                            selection: false,
+                            zoom: false,
+                            zoomin: false,
+                            zoomout: false,
+                            pan: false,
+                            reset: false
+                        }
                     },
-                    animations: {
+                    zoom: {
                         enabled: false
                     },
+                    selection: {
+                        enabled: false
+                    },
+                    animations: {
+                        enabled: true
+                    },
                     events: {
-                        mounted: renderRawTrafficOverlays,
-                        updated: renderRawTrafficOverlays
+                        mounted: stripYAxisSvgTitles,
+                        updated: stripYAxisSvgTitles
                     }
                 },
                 theme: {
@@ -713,10 +700,15 @@
                     theme: "dark",
                     shared: true,
                     intersect: false,
-                    custom: function ({ dataPointIndex }) {
+                    custom: function ({ dataPointIndex, w }) {
+                        const tooltipEl = w && w.globals && w.globals.dom && w.globals.dom.baseEl
+                            ? w.globals.dom.baseEl.querySelector('.apexcharts-tooltip')
+                            : document.querySelector('#traffic-log .apexcharts-tooltip');
                         if (typeof dataPointIndex !== 'number' || dataPointIndex < 0) {
-                            return '';
+                            if (tooltipEl) tooltipEl.style.display = 'none';
+                            return '<span class="traffic-tooltip-empty"></span>';
                         }
+                        if (tooltipEl) tooltipEl.style.display = '';
                         const activeConf = trafficRanges[currentTrafficRange] || trafficRanges['24h'];
                         const activePalette = getChartPalette();
                         const categories = Array.isArray(activeConf.categories) ? activeConf.categories : [];
@@ -725,27 +717,28 @@
                         const raw = roundTrafficValue((activeConf.raw || [])[dataPointIndex]);
                         const unit = activeConf.unit || 'MB';
                         const rateRow = raw > 0
-                            ? '<div class="apexcharts-tooltip-y-group" style="color:#cbd5e1;"><span class="apexcharts-tooltip-text-y-label">' +
+                            ? '<div class="apexcharts-tooltip-y-group" style="color:#cbd5e1;padding-left:16px;"><span class="apexcharts-tooltip-text-y-label">' +
                               escapeTrafficHtml(trafficLabels.rate) + ': </span><span class="apexcharts-tooltip-text-y-value" style="color:#f8fafc;">' +
                               (billed / raw).toFixed(2) + 'x</span></div>'
                             : '';
 
-                        return '<div style="background:#1e293b;color:#f8fafc;border:1px solid rgba(255,255,255,0.12);border-radius:6px;overflow:hidden;">' +
+                        return '<div class="traffic-tooltip-card" style="background:#1e293b;color:#f8fafc;border:1px solid rgba(255,255,255,0.12);border-radius:6px;box-shadow:0 6px 16px rgba(0,0,0,0.28);overflow:hidden;">' +
                             '<div class="apexcharts-tooltip-title" style="font-weight:600;background:rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.08);color:#f8fafc;">' +
                             escapeTrafficHtml(category) + ' ' + escapeTrafficHtml(activeConf.xTitle || '') +
                             '</div>' +
-                            '<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;align-items:center;padding:6px 10px 3px;">' +
-                            '<span class="apexcharts-tooltip-marker" style="background:' + activePalette.primary + ';margin-right:8px;"></span>' +
-                            '<div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group" style="color:#cbd5e1;">' +
+                            '<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:block;padding:6px 10px;">' +
+                            '<div class="apexcharts-tooltip-text">' +
+                            '<div class="apexcharts-tooltip-y-group" style="display:flex;align-items:center;color:#cbd5e1;">' +
+                            '<span class="apexcharts-tooltip-marker" style="background:' + activePalette.primary + ';width:10px;height:10px;margin-right:6px;flex-shrink:0;"></span>' +
                             '<span class="apexcharts-tooltip-text-y-label">' + escapeTrafficHtml(trafficLabels.billed) + ': </span>' +
                             '<span class="apexcharts-tooltip-text-y-value" style="color:#f8fafc;">' + escapeTrafficHtml(formatTooltipTraffic(billed, unit)) + '</span>' +
-                            '</div></div></div>' +
-                            '<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;align-items:center;padding:3px 10px 6px;">' +
-                            '<span class="apexcharts-tooltip-marker" style="background:' + activePalette.raw + ';margin-right:8px;"></span>' +
-                            '<div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group" style="color:#cbd5e1;">' +
+                            '</div>' +
+                            '<div class="apexcharts-tooltip-y-group" style="color:#cbd5e1;padding-left:16px;">' +
                             '<span class="apexcharts-tooltip-text-y-label">' + escapeTrafficHtml(trafficLabels.raw) + ': </span>' +
                             '<span class="apexcharts-tooltip-text-y-value" style="color:#f8fafc;">' + escapeTrafficHtml(formatTooltipTraffic(raw, unit)) + '</span>' +
-                            '</div>' + rateRow + '</div></div></div>';
+                            '</div>' +
+                            rateRow +
+                            '</div></div></div>';
                     }
                 },
                 grid: {
@@ -753,7 +746,7 @@
                     padding: {
                         top: -10,
                         right: 12,
-                        left: 16,
+                        left: 10,
                         bottom: 0
                     },
                     strokeDashArray: 4
@@ -784,16 +777,11 @@
                     categories: (conf.categories && conf.categories.length > 0) ? conf.categories : []
                 },
                 yaxis: {
-                    title: {
-                        text: conf.yTitle,
-                        rotate: -90,
-                        offsetX: 4,
-                        style: {
-                            color: palette.fore
-                        }
+                    tooltip: {
+                        enabled: false
                     },
                     labels: {
-                        padding: 12,
+                        padding: 8,
                         style: {
                             colors: palette.fore
                         },
@@ -814,7 +802,6 @@
             currentTrafficRange = rangeKey;
             const conf = trafficRanges[rangeKey];
             const palette = getChartPalette();
-            syncTrafficLegendColors(palette);
 
             trafficChart.updateOptions({
                 chart: {
@@ -854,16 +841,11 @@
                     categories: conf.categories
                 },
                 yaxis: {
-                    title: {
-                        text: conf.yTitle,
-                        rotate: -90,
-                        offsetX: 4,
-                        style: {
-                            color: palette.fore
-                        }
+                    tooltip: {
+                        enabled: false
                     },
                     labels: {
-                        padding: 12,
+                        padding: 8,
                         style: {
                             colors: palette.fore
                         },

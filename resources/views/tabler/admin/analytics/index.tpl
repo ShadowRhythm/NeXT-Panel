@@ -25,6 +25,37 @@
         overflow: hidden;
     }
 
+    .tab-content .apexcharts-canvas,
+    .tab-content .apexcharts-canvas:focus,
+    .tab-content .apexcharts-canvas *:focus,
+    .tab-content .apexcharts-svg,
+    .tab-content .apexcharts-svg:focus {
+        outline: none !important;
+        box-shadow: none !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
+    }
+
+    .tab-content .apexcharts-yaxis,
+    .tab-content .apexcharts-xaxis {
+        pointer-events: none !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
+    }
+
+    .tab-content .apexcharts-zoom-rect,
+    .tab-content .apexcharts-selection-rect,
+    .tab-content .apexcharts-yaxis-label title,
+    .tab-content .apexcharts-xaxis-label title,
+    .tab-content .apexcharts-tooltip:empty,
+    .tab-content .apexcharts-tooltip:empty::before,
+    .tab-content .apexcharts-tooltip:empty::after {
+        display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
     @media (max-width: 767.98px) {
         .analytics-kpi-grid {
             width: 100%;
@@ -645,6 +676,8 @@
 
         {literal}
         const chartInstances = {};
+        const chartConfigs = {};
+        const chartThemeModes = {};
         let currentMode  = 'month';
         let currentDate  = TODAY_DATE;
         let currentMonth = THIS_MONTH;
@@ -956,12 +989,142 @@
         applyMonth(currentMonth, false);
         applyYear(currentYear, false);
 
+        function isAnalyticsDarkTheme() {
+            return document.documentElement.getAttribute('data-bs-theme') === 'dark' ||
+                document.body.getAttribute('data-bs-theme') === 'dark';
+        }
+
+        function getAnalyticsPalette() {
+            const dark = isAnalyticsDarkTheme();
+            return {
+                dark,
+                fore: dark ? '#cbd5e1' : '#64748b',
+                grid: dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+                ticks: dark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.16)',
+                donutStroke: dark ? '#182433' : '#ffffff'
+            };
+        }
+
+        function stripAnalyticsSvgTitles(chartContext) {
+            if (!chartContext || !chartContext.el) return;
+            chartContext.el.querySelectorAll('.apexcharts-yaxis-label title, .apexcharts-xaxis-label title').forEach(node => node.remove());
+        }
+
+        function normalizeAnalyticsYAxis(yaxis, palette) {
+            const enhanceOne = axis => {
+                const src = axis || {};
+                const labels = src.labels || {};
+                const style = Object.assign({}, labels.style || {}, { colors: palette.fore });
+                return Object.assign({}, src, {
+                    tooltip: { enabled: false },
+                    labels: Object.assign({}, labels, { style })
+                });
+            };
+            return Array.isArray(yaxis) ? yaxis.map(enhanceOne) : enhanceOne(yaxis);
+        }
+
+        function normalizeAnalyticsChartOptions(rawOptions) {
+            const palette = getAnalyticsPalette();
+            const srcChart = rawOptions.chart || {};
+            const isDonut = srcChart.type === 'donut';
+            const srcEvents = srcChart.events || {};
+            const srcToolbar = srcChart.toolbar || {};
+            const mobile = isMobileView();
+
+            const normalized = Object.assign({}, rawOptions, {
+                chart: Object.assign({}, srcChart, {
+                    background: 'transparent',
+                    foreColor: palette.fore,
+                    toolbar: Object.assign({}, srcToolbar, {
+                        show: false,
+                        tools: {
+                            download: false,
+                            selection: false,
+                            zoom: false,
+                            zoomin: false,
+                            zoomout: false,
+                            pan: false,
+                            reset: false
+                        }
+                    }),
+                    zoom: { enabled: false },
+                    selection: { enabled: false },
+                    events: Object.assign({}, srcEvents, {
+                        mounted: (ctx, cfg) => {
+                            stripAnalyticsSvgTitles(ctx);
+                            if (typeof srcEvents.mounted === 'function') srcEvents.mounted(ctx, cfg);
+                        },
+                        updated: (ctx, cfg) => {
+                            stripAnalyticsSvgTitles(ctx);
+                            if (typeof srcEvents.updated === 'function') srcEvents.updated(ctx, cfg);
+                        }
+                    })
+                }),
+                theme: {
+                    mode: palette.dark ? 'dark' : 'light'
+                }
+            });
+
+            if (isDonut) {
+                normalized.stroke = Object.assign({}, rawOptions.stroke || {}, {
+                    colors: [palette.donutStroke]
+                });
+                if (rawOptions.legend) {
+                    normalized.legend = Object.assign({}, rawOptions.legend, {
+                        labels: Object.assign({}, rawOptions.legend.labels || {}, { colors: palette.fore })
+                    });
+                }
+                return normalized;
+            }
+
+            const srcGrid = rawOptions.grid || {};
+            const srcPad = srcGrid.padding || {};
+            normalized.grid = Object.assign({}, srcGrid, {
+                borderColor: palette.grid,
+                padding: Object.assign({}, srcPad, {
+                    right: Math.max(Number(srcPad.right || 0), mobile ? 14 : 24)
+                })
+            });
+
+            const srcX = rawOptions.xaxis || {};
+            const srcXLabels = srcX.labels || {};
+            normalized.xaxis = Object.assign({}, srcX, {
+                tooltip: { enabled: false },
+                axisTicks: Object.assign({ show: true, color: palette.ticks }, srcX.axisTicks || {}),
+                labels: Object.assign({}, srcXLabels, {
+                    style: Object.assign({}, srcXLabels.style || {}, { colors: palette.fore })
+                })
+            });
+
+            normalized.yaxis = normalizeAnalyticsYAxis(rawOptions.yaxis, palette);
+
+            if (rawOptions.legend) {
+                normalized.legend = Object.assign({}, rawOptions.legend, {
+                    labels: Object.assign({}, rawOptions.legend.labels || {}, { colors: palette.fore })
+                });
+            }
+
+            return normalized;
+        }
+
         function destroyAndRender(id, options) {
             const el = document.getElementById(id);
             if (!el || !window.ApexCharts) return;
+            chartConfigs[id] = options;
+            chartThemeModes[id] = isAnalyticsDarkTheme();
             if (chartInstances[id]) { chartInstances[id].destroy(); }
-            chartInstances[id] = new ApexCharts(el, options);
+            chartInstances[id] = new ApexCharts(el, normalizeAnalyticsChartOptions(options));
             chartInstances[id].render();
+        }
+
+        function refreshVisibleChartsTheme(force = false) {
+            const dark = isAnalyticsDarkTheme();
+            Object.keys(chartConfigs).forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.offsetParent !== null && chartConfigs[id] && (force || chartThemeModes[id] !== dark)) {
+                    destroyAndRender(id, chartConfigs[id]);
+                }
+            });
         }
 
         // ── 顶部 KPI 摘要更新 ────────────────────────────────────────────
@@ -1355,6 +1518,7 @@
             tabEl.addEventListener('shown.bs.tab', e => {
                 activeTab = e.target.dataset.tab || 'overview';
                 loadActiveTab();
+                refreshVisibleChartsTheme(false);
             });
         });
 
@@ -1523,6 +1687,15 @@
                 }
             }, 200);
         });
+
+        // ── 暗色/浅色主题切换重绘图表 ────────────────────────────────────
+        if (typeof MutationObserver === 'function') {
+            const themeObserver = new MutationObserver(() => {
+                refreshVisibleChartsTheme(true);
+            });
+            themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-bs-theme'] });
+            themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-bs-theme'] });
+        }
 
         // ── 初始化 ───────────────────────────────────────────────────────
         if (document.readyState === 'loading') {
