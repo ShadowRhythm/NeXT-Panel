@@ -10,7 +10,6 @@ use Telegram\Bot\Exceptions\TelegramSDKException;
 use function microtime;
 use function sleep;
 use function str_contains;
-use function str_replace;
 use function strip_tags;
 use function usleep;
 
@@ -66,15 +65,7 @@ final class Telegram extends Base
      */
     public function send($to, $msg = ''): void
     {
-        $msg = str_replace(
-            [
-                '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!',
-            ],
-            [
-                '\_', '\*', '\[', '\]', '\(', '\)', '\~', '\`', '\>', '\#', '\+', '\-', '\=', '\|', '\{', '\}', '\.', '\!',
-            ],
-            $msg
-        );
+        $msg = self::formatHtmlMessage((string) $msg, 'markdownv2');
 
         $sendMessage = [
             'chat_id' => $to,

@@ -35,7 +35,7 @@ final class Slack extends Base
 
         $body = [
             'channel' => $to,
-            'text' => $msg,
+            'text' => self::formatHtmlMessage($msg, 'slack'),
         ];
 
         $response = $this->client->post($url, [

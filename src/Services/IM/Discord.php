@@ -57,7 +57,7 @@ final class Discord extends Base
         $channel_url = 'https://discord.com/api/v10/channels/' . $to . '/messages';
 
         $msg_body = [
-            'content' => $msg,
+            'content' => self::formatHtmlMessage($msg, 'markdown'),
         ];
 
         $msg_response = $this->client->post($channel_url, [
