@@ -34,7 +34,7 @@ final class SubController extends BaseController
         $subtype_list = [
             'json', 'clash', 'sip008', 'singbox', 'v2rayjson',
             'sip002', 'ss', 'v2ray', 'trojan', 'qx',
-            'hysteria2', 'hysteria', 'hy2',
+            'hysteria2', 'hysteria', 'hy2', 'anytls',
         ];
 
         if (! $_ENV['Subscribe'] ||

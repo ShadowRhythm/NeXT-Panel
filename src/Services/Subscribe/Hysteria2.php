@@ -6,13 +6,9 @@ namespace App\Services\Subscribe;
 
 use App\Services\Subscribe;
 use App\Utils\Tools;
-use function filter_var;
 use function http_build_query;
 use function is_numeric;
 use function rawurlencode;
-use function trim;
-use const FILTER_FLAG_IPV6;
-use const FILTER_VALIDATE_IP;
 use const PHP_EOL;
 
 final class Hysteria2 extends Base
@@ -28,14 +24,7 @@ final class Hysteria2 extends Base
         $ports = (string) ($node_custom_config['ports'] ?? ($node_custom_config['server_ports'] ?? ''));
         $pin_sha256 = $node_custom_config['pin_sha256'] ?? ($node_custom_config['pinSHA256'] ?? '');
 
-        $raw_server = trim((string) $node_raw->server);
-        $unbracketed = trim($raw_server, '[]');
-
-        if (filter_var($unbracketed, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            $server_host = '[' . $unbracketed . ']';
-        } else {
-            $server_host = $raw_server;
-        }
+        $server_host = self::formatUriHost((string) $node_raw->server);
 
         $params = [];
         if ($host !== '') {

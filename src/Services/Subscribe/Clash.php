@@ -135,6 +135,37 @@ final class Clash extends Base
                     }
 
                     break;
+                case 5:
+                    $anytls_port = $node_custom_config['offset_port_user'] ??
+                        ($node_custom_config['offset_port_node'] ?? 443);
+                    $host = (string) ($node_custom_config['host'] ?? ($node_custom_config['sni'] ?? ''));
+                    $allow_insecure = $node_custom_config['allow_insecure'] ?? false;
+                    $udp = $node_custom_config['udp'] ?? true;
+                    $fingerprint = (string) ($node_custom_config['client_fingerprint'] ??
+                        ($node_custom_config['client-fingerprint'] ?? ($node_custom_config['fp'] ?? '')));
+                    $alpn = self::parseAlpn($node_custom_config['alpn'] ?? null);
+
+                    $node = [
+                        'name' => $node_raw->name,
+                        'type' => 'anytls',
+                        'server' => trim((string) $node_raw->server, '[]'),
+                        'port' => (int) $anytls_port,
+                        'password' => $user->passwd,
+                        'skip-cert-verify' => (bool) $allow_insecure,
+                        'udp' => (bool) $udp,
+                    ];
+
+                    if ($host !== '') {
+                        $node['sni'] = $host;
+                    }
+                    if ($fingerprint !== '') {
+                        $node['client-fingerprint'] = $fingerprint;
+                    }
+                    if ($alpn !== []) {
+                        $node['alpn'] = $alpn;
+                    }
+
+                    break;
                 case 11:
                     $v2_port = $node_custom_config['offset_port_user'] ??
                         ($node_custom_config['offset_port_node'] ?? 443);

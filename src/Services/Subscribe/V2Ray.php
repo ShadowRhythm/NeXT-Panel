@@ -30,6 +30,9 @@ final class V2Ray extends Base
                 case 4:
                     $links .= Hysteria2::buildUri($user, $node_raw, $node_custom_config);
                     break;
+                case 5:
+                    $links .= AnyTLS::buildUri($user, $node_raw, $node_custom_config);
+                    break;
                 case 11:
                     $v2_port = $node_custom_config['offset_port_user'] ?? ($node_custom_config['offset_port_node'] ?? 443);
                     $security = $node_custom_config['security'] ?? 'none';
