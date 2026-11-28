@@ -101,18 +101,20 @@
                                                        value="{$settings['invite_reward_rate']}">
                                             </div>
                                         </div>
-                                        <div class="form-group mb-3 row">
-                                            <label class="form-label col-3 col-form-label">返利次数限制</label>
+                                        <div class="form-group mb-3 row" id="row_invite_reward_count_limit">
+                                            <label class="form-label col-3 col-form-label">返利次数限制（每名被邀请人）</label>
                                             <div class="col">
-                                                <input id="invite_reward_count_limit" type="text" class="form-control"
+                                                <input id="invite_reward_count_limit" type="number" min="0" step="1" class="form-control"
                                                        value="{$settings['invite_reward_count_limit']}">
+                                                <div class="form-hint">仅在「限制返利次数」模式下生效，统计单名被邀请人最多可产生的返利笔数（按每个下线单独计算）。</div>
                                             </div>
                                         </div>
-                                        <div class="form-group mb-3 row">
-                                            <label class="form-label col-3 col-form-label">返利金额限制</label>
+                                        <div class="form-group mb-3 row" id="row_invite_reward_total_limit">
+                                            <label class="form-label col-3 col-form-label">返利金额限制（每名被邀请人，元）</label>
                                             <div class="col">
-                                                <input id="invite_reward_total_limit" type="text" class="form-control"
+                                                <input id="invite_reward_total_limit" type="number" min="0" step="0.01" class="form-control"
                                                        value="{$settings['invite_reward_total_limit']}">
+                                                <div class="form-hint">仅在「限制返利金额」模式下生效，统计单名被邀请人累计最多可产生的返利金额（按每个下线单独计算）。</div>
                                             </div>
                                         </div>
                                     </div>
@@ -125,7 +127,20 @@
         </div>
 
         <script>
-            $("#save-setting").click(function () {
+            function syncRewardModeFields() {
+                const mode = $('#invite_reward_mode').val();
+                const isCount = mode === 'reward_count';
+                $('#row_invite_reward_count_limit').toggleClass('opacity-50', !isCount);
+                $('#invite_reward_count_limit').prop('readonly', !isCount);
+                $('#row_invite_reward_total_limit').toggleClass('opacity-50', isCount);
+                $('#invite_reward_total_limit').prop('readonly', isCount);
+            }
+
+            $('#invite_reward_mode').on('change', syncRewardModeFields);
+            syncRewardModeFields();
+
+            $("#save-setting").click(function (e) {
+                e.preventDefault();
                 $.ajax({
                     url: '/admin/setting/ref',
                     type: 'POST',

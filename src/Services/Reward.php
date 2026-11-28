@@ -10,84 +10,129 @@ use App\Models\User;
 use App\Models\UserMoneyLog;
 use App\Utils\Tools;
 use Exception;
+use function min;
 use function random_int;
+use function round;
 use function time;
 
 final class Reward
 {
-    public static function issuePaybackReward($user_id, $ref_user_id, $total, $invoice_id): void
-    {
-        $ref_get = 0;
-
-        $ref_user = (new User())->where('id', $ref_user_id)
-            ->where('is_banned', 0)
-            ->where('is_shadow_banned', 0)
-            ->first();
-
-        $exsit_payback = (new Payback())->where('userid', $user_id)
-            ->where('invoice_id', $invoice_id)
-            ->first();
-
-        if ($ref_user !== null && $exsit_payback === null) {
-            $invite_reward_mode = Config::obtain('invite_reward_mode');
-            $invite_reward_rate = Config::obtain('invite_reward_rate');
-
-            if ($invite_reward_mode === 'reward_count') {
-                $invite_reward_count_limit = Config::obtain('invite_reward_count_limit');
-
-                $invite_reward_count = (new Payback())->where('userid', $user_id)
-                    ->where('ref_by', $ref_user_id)
-                    ->count();
-
-                if ($invite_reward_count < $invite_reward_count_limit) {
-                    $ref_get = $total * $invite_reward_rate;
-                }
-            }
-
-            if ($invite_reward_mode === 'reward_total') {
-                $invite_reward_total_limit = Config::obtain('invite_reward_total_limit');
-
-                $invite_reward_total = (new Payback())->where('userid', $user_id)
-                    ->where('ref_by', $ref_user_id)
-                    ->sum('ref_get');
-
-                if ($invite_reward_total < $invite_reward_total_limit) {
-                    $ref_get = $total * $invite_reward_rate;
-
-                    if ($invite_reward_total + $ref_get > $invite_reward_total_limit) {
-                        $ref_get = $invite_reward_total_limit - $invite_reward_total;
-                    }
-                }
-            }
+    /**
+     * Calculate payback reward amount from mode, limits, and existing per-invitee totals.
+     */
+    public static function calculatePaybackAmount(
+        string $mode,
+        float $total,
+        float $rate,
+        int $countLimit,
+        int $existingCount,
+        float $totalLimit,
+        float $existingTotal
+    ): float {
+        if ($total <= 0 || $rate <= 0) {
+            return 0.0;
         }
 
-        if ($ref_get !== 0) {
-            $money_before = $ref_user->money;
-            $ref_user->money += $ref_get;
+        if ($mode === 'reward_count') {
+            if ($countLimit <= 0 || $existingCount >= $countLimit) {
+                return 0.0;
+            }
+
+            return round($total * $rate, 2);
+        }
+
+        if ($mode === 'reward_total') {
+            $remaining = round($totalLimit - $existingTotal, 2);
+            if ($totalLimit <= 0 || $remaining <= 0) {
+                return 0.0;
+            }
+
+            return min(round($total * $rate, 2), $remaining);
+        }
+
+        return 0.0;
+    }
+
+    public static function issuePaybackReward($user_id, $ref_user_id, $total, $invoice_id): void
+    {
+        $userId = (int) $user_id;
+        $refUserId = (int) $ref_user_id;
+        $orderTotal = (float) $total;
+        $invoiceId = (int) $invoice_id;
+
+        if ($orderTotal <= 0 || $userId <= 0 || $refUserId <= 0 || $userId === $refUserId) {
+            return;
+        }
+
+        DB::transaction(static function () use ($userId, $refUserId, $orderTotal, $invoiceId): void {
+            $ref_user = (new User())->where('id', $refUserId)
+                ->where('is_banned', 0)
+                ->where('is_shadow_banned', 0)
+                ->lockForUpdate()
+                ->first();
+
+            $exsit_payback = (new Payback())->where('userid', $userId)
+                ->where('invoice_id', $invoiceId)
+                ->lockForUpdate()
+                ->first();
+
+            if ($ref_user === null || $exsit_payback !== null) {
+                return;
+            }
+
+            $invite_reward_mode = (string) Config::obtain('invite_reward_mode');
+            $invite_reward_rate = (float) Config::obtain('invite_reward_rate');
+            $countLimit = (int) Config::obtain('invite_reward_count_limit');
+            $totalLimit = (float) Config::obtain('invite_reward_total_limit');
+
+            $existingCount = (int) (new Payback())->where('userid', $userId)
+                ->where('ref_by', $refUserId)
+                ->count();
+            $existingTotal = (float) ((new Payback())->where('userid', $userId)
+                ->where('ref_by', $refUserId)
+                ->sum('ref_get') ?? 0);
+
+            $ref_get = self::calculatePaybackAmount(
+                $invite_reward_mode,
+                $orderTotal,
+                $invite_reward_rate,
+                $countLimit,
+                $existingCount,
+                $totalLimit,
+                $existingTotal
+            );
+
+            if ($ref_get <= 0) {
+                return;
+            }
+
+            $money_before = (float) $ref_user->money;
+            $ref_user->money = round($money_before + $ref_get, 2);
             $ref_user->save();
+
             // 添加余额记录
             (new UserMoneyLog())->add(
                 $ref_user->id,
-                (float) $money_before,
+                $money_before,
                 (float) $ref_user->money,
                 $ref_get,
-                '邀请用户 #' . $user_id . ' 返利',
+                '邀请用户 #' . $userId . ' 返利',
             );
             // 添加返利记录
             (new Payback())->add(
-                (float) $total,
-                $user_id,
-                $ref_user_id,
-                (float) $ref_get,
-                $invoice_id,
+                $orderTotal,
+                $userId,
+                $refUserId,
+                $ref_get,
+                $invoiceId,
             );
-        }
+        });
     }
 
     public static function issueRegReward($user_id, $ref_user_id): void
     {
-        $invite_reg_money_reward = Config::obtain('invite_reg_money_reward');
-        $invite_reg_traffic_reward = Config::obtain('invite_reg_traffic_reward');
+        $invite_reg_money_reward = round((float) Config::obtain('invite_reg_money_reward'), 2);
+        $invite_reg_traffic_reward = (float) Config::obtain('invite_reg_traffic_reward');
 
         $user = (new User())->where('id', $user_id)->first();
 
@@ -97,21 +142,21 @@ final class Reward
             ->first();
 
         if ($user !== null && $ref_user !== null) {
-            if ($invite_reg_money_reward !== 0) {
-                $money_before = $user->money;
-                $user->money += $invite_reg_money_reward;
+            if ($invite_reg_money_reward > 0) {
+                $money_before = (float) $user->money;
+                $user->money = round($money_before + $invite_reg_money_reward, 2);
                 $user->save();
                 // 添加余额记录
                 (new UserMoneyLog())->add(
                     $user->id,
-                    (float) $money_before,
+                    $money_before,
                     (float) $user->money,
                     $invite_reg_money_reward,
                     '被用户 #' . $ref_user_id . ' 邀请注册奖励',
                 );
             }
 
-            if ($invite_reg_traffic_reward !== 0) {
+            if ($invite_reg_traffic_reward > 0) {
                 $ref_user->transfer_enable += Tools::gbToB($invite_reg_traffic_reward);
                 $ref_user->save();
             }
