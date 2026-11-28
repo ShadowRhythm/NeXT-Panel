@@ -15,13 +15,14 @@ use const PHP_EOL;
 /**
  * Quantumult X 原生订阅格式生成器
  *
- * 支持 Shadowsocks、VMess（TCP/WS+TLS）、Trojan（TLS/WS+TLS）节点
+ * 支持 Shadowsocks、VMess（TCP/WS+TLS）、Trojan（TLS/WS+TLS）、AnyTLS 节点
  * 输出每行一条 QX 原生格式的纯文本，内容经过 Base64 编码
  *
  * 格式参考：
  *   shadowsocks=server:port, method=..., password=..., [obfs=...], tag=name
  *   vmess=server:port, method=aes-128-gcm, password=uuid, [obfs=...], tls-verification=true, tag=name
  *   trojan=server:port, password=uuid, over-tls=true, tls-host=..., tag=name
+ *   anytls=server:port, password=..., over-tls=true, tls-host=..., tls-verification=true, udp-relay=true, tag=name
  */
 final class QuantumultX extends Base
 {
@@ -53,6 +54,13 @@ final class QuantumultX extends Base
                 ),
                 // Shadowsocks 2022
                 1 => $this->buildShadowsocks2022(
+                    $server,
+                    $user->passwd,
+                    $name,
+                    $node_custom_config
+                ),
+                // AnyTLS
+                5 => $this->buildAnyTLS(
                     $server,
                     $user->passwd,
                     $name,
@@ -270,6 +278,52 @@ final class QuantumultX extends Base
         $parts[] = 'tls-verification=' . ($allow_insecure ? 'false' : 'true');
         $parts[] = 'fast-open=false';
         $parts[] = 'udp-relay=false';
+        $parts[] = "tag={$name}";
+
+        return implode(', ', $parts);
+    }
+
+    /**
+     * 构建 AnyTLS 节点行（Quantumult X 1.7.0+ 原生支持）
+     *
+     * @param array<string, mixed> $config
+     */
+    private function buildAnyTLS(
+        string $server,
+        string $password,
+        string $name,
+        array $config
+    ): string {
+        $port = (int) ($config['offset_port_user'] ?? ($config['offset_port_node'] ?? 443));
+        $host = (string) ($config['host'] ?? ($config['sni'] ?? ''));
+        $allow_insecure = (bool) ($config['allow_insecure'] ?? false);
+        $udp = (bool) ($config['udp'] ?? true);
+        $reality_pubkey = (string) ($config['reality-base64-pubkey'] ?? ($config['reality_pubkey'] ?? ''));
+        $reality_shortid = (string) ($config['reality-hex-shortid'] ?? ($config['reality_shortid'] ?? ''));
+
+        $server_host = self::formatUriHost($server);
+
+        $parts = [
+            "anytls={$server_host}:{$port}",
+            "password={$password}",
+            'over-tls=true',
+        ];
+
+        if ($host !== '') {
+            $parts[] = "tls-host={$host}";
+        }
+
+        $parts[] = 'tls-verification=' . ($allow_insecure ? 'false' : 'true');
+
+        if ($reality_pubkey !== '') {
+            $parts[] = "reality-base64-pubkey={$reality_pubkey}";
+            if ($reality_shortid !== '') {
+                $parts[] = "reality-hex-shortid={$reality_shortid}";
+            }
+        }
+
+        $parts[] = 'fast-open=false';
+        $parts[] = 'udp-relay=' . ($udp ? 'true' : 'false');
         $parts[] = "tag={$name}";
 
         return implode(', ', $parts);
