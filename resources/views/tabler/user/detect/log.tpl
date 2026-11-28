@@ -24,29 +24,32 @@
                             <table class="table table-vcenter card-table">
                                 <thead>
                                 <tr>
-                                    <th>{trans key='user.event_id'}</th>
-                                    <th>{trans key='user.node_id'}</th>
-                                    <th>{trans key='user.node_name'}</th>
-                                    <th>{trans key='user.rule_id'}</th>
-                                    <th>{trans key='user.name'}</th>
-                                    <th>{trans key='common.description'}</th>
-                                    <th>{trans key='user.detect_regex'}</th>
-                                    <th>{trans key='common.type'}</th>
-                                    <th>{trans key='common.time'}</th>
+                                    <th class="text-nowrap">{trans key='user.event_id'}</th>
+                                    <th class="text-nowrap">{trans key='user.node_id'}</th>
+                                    <th class="text-nowrap">{trans key='user.node_name'}</th>
+                                    <th class="text-nowrap">{trans key='user.rule_id'}</th>
+                                    <th class="text-nowrap">{trans key='user.name'}</th>
+                                    <th style="min-width: 10rem;">{trans key='common.description'}</th>
+                                    <th style="min-width: 14rem;">{trans key='user.detect_regex'}</th>
+                                    <th class="text-nowrap">{trans key='common.type'}</th>
+                                    <th class="text-nowrap">{trans key='common.time'}</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 {foreach $logs as $log}
                                     <tr>
-                                        <td>#{$log->id}</td>
-                                        <td>{$log->node_id}</td>
-                                        <td>{$log->node_name}</td>
-                                        <td>{$log->list_id}</td>
-                                        <td>{$log->rule->name}</td>
-                                        <td>{$log->rule->text}</td>
-                                        <td>{$log->rule->regex}</td>
-                                        <td>{$log->rule->type}</td>
-                                        <td>{$log->datetime}</td>
+                                        <td class="text-secondary text-nowrap">#{$log->id}</td>
+                                        <td class="text-nowrap">{$log->node_id}</td>
+                                        <td class="text-nowrap">{$log->node_name|escape}</td>
+                                        <td class="text-nowrap">{$log->list_id}</td>
+                                        <td class="fw-medium text-nowrap">{$log->rule->name|escape}</td>
+                                        <td class="text-secondary">{$log->rule->text|escape}</td>
+                                        <td style="word-break: break-all; overflow-wrap: anywhere;">
+                                            <code class="d-inline-block small user-select-all px-2 py-1 rounded bg-body-tertiary text-body"
+                                                  style="word-break: break-all; overflow-wrap: anywhere; max-width: 100%;">{$log->rule->regex|default:''|escape}</code>
+                                        </td>
+                                        <td class="text-nowrap">{$log->rule->type|escape}</td>
+                                        <td class="text-nowrap text-secondary">{$log->datetime|escape}</td>
                                     </tr>
                                 {/foreach}
                                 </tbody>
