@@ -5,6 +5,9 @@
     }
 
     function isSameOrigin(url) {
+        if (typeof url !== 'string' && !(typeof URL !== 'undefined' && url instanceof URL)) {
+            return false;
+        }
         try {
             return new URL(url, window.location.origin).origin === window.location.origin;
         } catch (e) {
@@ -101,7 +104,12 @@
         };
 
         proto.send = function () {
-            if (!this._hasCsrfHeader && !isSafeMethod(this._csrfMethod) && isSameOrigin(this._csrfUrl)) {
+            if (
+                this.readyState === 1 &&
+                !this._hasCsrfHeader &&
+                !isSafeMethod(this._csrfMethod) &&
+                isSameOrigin(this._csrfUrl)
+            ) {
                 const token = getCsrfToken();
                 if (token) {
                     origSetHeader.call(this, 'X-CSRF-Token', token);

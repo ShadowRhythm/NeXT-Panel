@@ -15,7 +15,7 @@
     <script src="//{$config['jsdelivr_url']}/npm/clipboard@latest/dist/clipboard.min.js"></script>
     <script src="//{$config['jsdelivr_url']}/npm/jquery/dist/jquery.min.js"></script>
     <script src="//{$config['jsdelivr_url']}/npm/htmx.org@latest/dist/htmx.min.js"></script>
-    <script src="/assets/js/csrf.js"></script>
+    <script src="/assets/js/csrf.js?v=2"></script>
     <style>
         .home-subtitle {
             font-size: 14px;
